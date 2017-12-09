@@ -1,0 +1,20 @@
+{
+  "name": "asyncglk",
+  "version": "0.1.0",
+  "author": "Dannii Willis <curiousdannii@gmail.com>",
+  "license": "MIT",
+  "description": "An ES2017 Glk library",
+  "repository": "curiousdannii/asyncglk",
+  "bugs": "https://github.com/curiousdannii/asyncglk/issues",
+  "homepage": "https://github.com/curiousdannii/asyncglk",
+  "keywords": [
+    "interactive-fiction"
+  ],
+  "main": "src/asyncglk.mjs",
+  "scripts": {
+    "lint": "eslint --ext .js,.mjs ."
+  },
+  "devDependencies": {
+    "eslint": "^4.13.0"
+  }
+}

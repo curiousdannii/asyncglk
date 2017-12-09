@@ -1,0 +1,36 @@
+env:
+  es6: true
+  shared-node-browser: true
+
+extends: 'eslint:recommended'
+
+parserOptions:
+  ecmaFeatures:
+    impliedStrict: true
+  ecmaVersion: 2017
+  sourceType: module
+
+rules:
+  brace-style:
+    - error
+    - allman
+  curly:
+    - error
+  eqeqeq:
+    - error
+  indent:
+    - error
+    - 4
+  linebreak-style:
+    - error
+    - unix
+  no-var:
+    - error
+  prefer-const:
+    - error
+  quotes:
+    - error
+    - single
+  semi:
+    - error
+    - never
