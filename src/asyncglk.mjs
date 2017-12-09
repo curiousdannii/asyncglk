@@ -9,15 +9,22 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-export class AsyncGlk
+import * as Const from 'const.mjs'
+import Gestalt from 'gestalt.mjs'
+import MemoryView from 'memoryview.mjs'
+
+class AsyncGlkAPI
 {
 
     constructor()
     {
+        this.buffer = null
+        this.Const = Const
         this.Dialog = null
         this.GiDispa = null
         this.GiLoad = null
         this.GlkOte = null
+        this.mem = null
         this.metrics = null
         this.support = {}
         this.vm = null
@@ -56,6 +63,13 @@ export class AsyncGlk
         this.vm.init()
     }
 
+    // Set our reference to the memory
+    set_buffer( buffer )
+    {
+        this.buffer = buffer
+        this.mem = MemoryView( buffer )
+    }
+
     // Set references to external libraries
     set_references( refs )
     {
@@ -85,3 +99,7 @@ export class AsyncGlk
         }
     }
 }
+
+class AsyncGlk extends Gestalt( AsyncGlkAPI ) {}
+
+export default AsyncGlk
