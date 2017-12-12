@@ -10,7 +10,7 @@
   "keywords": [
     "interactive-fiction"
   ],
-  "main": "src/asyncglk.mjs",
+  "main": "src/index.mjs",
   "scripts": {
     "lint": "eslint --ext .js,.mjs ."
   },

@@ -49,14 +49,11 @@ class AsyncGlkAPI
         }
 
         // Initialise GlkOte, and get back the support array and metrics
-        const data = await this.GlkOte.init( options )
+        const data = await this.GlkOte.init()
         this.metrics = data.metrics
-        if ( data.support )
+        for ( const item of data.support )
         {
-            for ( const item of data.support )
-            {
-                this.support[item] = true
-            }
+            this.support[item] = true
         }
 
         // Initialise the VM
