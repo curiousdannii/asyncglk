@@ -46,9 +46,15 @@ const asyncFuncs = [
     'glk_window_get_arrangement',
     'glk_window_get_size',
     'glk_window_open',
+    'glk_window_set_arrangement',
+    'restore_allstate',
+    'save_allstate',
 ]
 
 const syncFuncs = [
+    'byte_array_to_string',
+    'call_may_not_return',
+    'fatal_error',
     'glk_buffer_canon_decompose_uni',
     'glk_buffer_canon_normalize_uni',
     'glk_buffer_to_lower_case_uni',
@@ -80,6 +86,8 @@ const syncFuncs = [
     'glk_put_char_stream',
     'glk_put_char_stream_uni',
     'glk_put_char_uni',
+    'glk_put_jstring',
+    'glk_put_jstring_stream',
     'glk_put_string',
     'glk_put_string_stream',
     'glk_put_string_stream_uni',
@@ -130,9 +138,16 @@ const syncFuncs = [
     'glk_window_get_type',
     'glk_window_iterate',
     'glk_window_move_cursor',
-    'glk_window_set_arrangement',
     'glk_window_set_background_color',
     'glk_window_set_echo_stream',
+    'uni_array_to_string',
+]
+
+const props = [
+    'Const',
+    'DidNotReturn',
+    'RefBox',
+    'version',
 ]
 
 export default class AsyncGlkProxy
@@ -156,6 +171,11 @@ export default class AsyncGlkProxy
                 return this.Glk[func].apply( this.Glk, arguments )
             }
         }
+
+        for ( const prop of props )
+        {
+            this[prop] = this.Glk[prop]
+        }
     }
 
     async glk_fileref_create_by_prompt( usage, fmode, rock )
@@ -172,7 +192,7 @@ export default class AsyncGlkProxy
     {
         return new Promise( ( resolve /*, reject*/ ) =>
         {
-            this.callback = () => resolve( eventref )
+            this.callback = resolve
             this.Glk.glk_select( eventref )
             this.Glk.update()
         })
