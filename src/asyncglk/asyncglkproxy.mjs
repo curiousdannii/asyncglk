@@ -3,7 +3,7 @@
 AsyncGlkProxy: Proxy for a synchronous Glk
 ==========================================
 
-Copyright (c) 2017 Dannii Willis
+Copyright (c) 2018 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -147,6 +147,7 @@ const props = [
     'Const',
     'DidNotReturn',
     'RefBox',
+    'RefStruct',
     'version',
 ]
 
@@ -160,7 +161,7 @@ export default class AsyncGlkProxy
         {
             this[func] = async function()
             {
-                return this.Glk[func].apply( this.Glk, arguments )
+                return Glk[func].apply( Glk, arguments )
             }
         }
 
@@ -168,13 +169,13 @@ export default class AsyncGlkProxy
         {
             this[func] = function()
             {
-                return this.Glk[func].apply( this.Glk, arguments )
+                return Glk[func].apply( Glk, arguments )
             }
         }
 
         for ( const prop of props )
         {
-            this[prop] = this.Glk[prop]
+            this[prop] = Glk[prop]
         }
     }
 
@@ -200,11 +201,9 @@ export default class AsyncGlkProxy
 
     async init( options )
     {
-        options.vm = {
-            resume: res =>
-            {
-                this.callback( res )
-            },
+        options.vm.resume = res =>
+        {
+            this.callback( res )
         }
 
         this.Glk.init( options )
