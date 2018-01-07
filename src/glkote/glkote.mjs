@@ -1,15 +1,15 @@
 /*
 
-AsyncGlkOte: An async GlkOte class
+GlkOte: An async GlkOte class
 ==================================
 
-Copyright (c) 2017 Dannii Willis
+Copyright (c) 2018 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
 
-export default class AsyncGlkOte
+export default class GlkOte
 {
     constructor()
     {

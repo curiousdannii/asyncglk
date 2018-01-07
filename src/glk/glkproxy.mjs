@@ -1,6 +1,6 @@
 /*
 
-AsyncGlkProxy: Proxy for a synchronous Glk
+GlkProxy: Async proxy for a synchronous Glk
 ==========================================
 
 Copyright (c) 2018 Dannii Willis
@@ -151,7 +151,7 @@ const props = [
     'version',
 ]
 
-export default class AsyncGlkProxy
+export default class GlkProxy
 {
     constructor( Glk )
     {

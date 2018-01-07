@@ -3,7 +3,7 @@
 AsyncGlk: An ES2017 Glk library
 ===============================
 
-Copyright (c) 2017 Dannii Willis
+Copyright (c) 2018 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -13,7 +13,7 @@ import * as Const from 'const.mjs'
 import Gestalt from 'gestalt.mjs'
 import MemoryView from 'memoryview.mjs'
 
-class AsyncGlkAPI
+class GlkAPI
 {
 
     constructor()
@@ -97,6 +97,6 @@ class AsyncGlkAPI
     }
 }
 
-class AsyncGlk extends Gestalt( AsyncGlkAPI ) {}
+class Glk extends Gestalt( GlkAPI ) {}
 
-export default AsyncGlk
+export default Glk
