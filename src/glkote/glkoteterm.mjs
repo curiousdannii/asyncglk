@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import GlkOte from './asyncglkote.mjs'
+import GlkOte from './glkote.mjs'
 
 export default class GlkOteTerm extends GlkOte
 {}
