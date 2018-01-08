@@ -15,7 +15,12 @@ import util from 'util'
 import * as Const from '../glk/const.mjs'
 import Dialog from './dialog.mjs'
 
-const open = util.promisify( fs.open )
+const promisify = util.promisify
+const access = promisify( fs.access )
+const close = promisify( fs.close )
+const read = promisify( fs.read )
+const open = promisify( fs.open )
+const write = promisify( fs.write )
 
 const modestrings = {
     [Const.filemode_Read]: 'r',
@@ -31,11 +36,42 @@ class FStream
         this.fd = null
         this.filename = filename
         this.fmode = fmode
+        this.writebuffer = []
+    }
+
+    async fclose()
+    {
+        await this._write()
+        await close( this.fd )
+    }
+
+    async fread( array, len )
+    {
+        await this._write()
+        const data = await read( this.fd, array, 0, len || array.buffer.byteLength, null )
+        return data.bytesRead
+    }
+
+    // Queue an array to be written to the buffer
+    fwrite( array )
+    {
+        this.writebuffer.push( array )
+        this._write()
     }
 
     async open()
     {
         this.fd = await open( this.filename, modestrings[this.fmode] )
+    }
+
+    // Go through the queue, writing each in turn
+    async _write()
+    {
+        while ( this.writebuffer.length )
+        {
+            const data = this.writebuffer.shift()
+            await write( this.fd, data )
+        }
     }
 }
 
@@ -46,5 +82,18 @@ export default class DialogNode extends Dialog
         const fstream = new FStream( fmode, ref.filename )
         await fstream.open()
         return fstream
+    }
+
+    async file_ref_exists( ref )
+    {
+        try
+        {
+            await access( ref.filename )
+        }
+        catch (e)
+        {
+            return false
+        }
+        return true
     }
 }

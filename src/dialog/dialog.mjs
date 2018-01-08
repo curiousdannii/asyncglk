@@ -50,7 +50,7 @@ export default class Dialog
         throw new Error( 'Method not implemented: file_read' )
     }
 
-    file_ref_exists()
+    async file_ref_exists()
     {
         throw new Error( 'Method not implemented: file_ref_exists' )
     }

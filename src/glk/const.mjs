@@ -76,6 +76,11 @@ export const evtype_SoundNotify = 7
 export const evtype_Hyperlink = 8
 export const evtype_VolumeNotify = 9
 
+export const strtype_File = 1
+export const strtype_Window = 2
+export const strtype_Memory = 3
+export const strtype_Resource = 4
+
 export const style_Normal = 0
 export const style_Emphasized = 1
 export const style_Preformatted = 2
