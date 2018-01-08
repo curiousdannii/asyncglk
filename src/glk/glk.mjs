@@ -12,8 +12,10 @@ https://github.com/curiousdannii/asyncglk
 import SyncGlk from 'glkote-term/src/glkapi.js'
 
 import * as Const from './const.mjs'
+import Fref from './fref.mjs'
 //import Gestalt from './gestalt.mjs'
 //import MemoryView from './memoryview.mjs'
+import Stream from './stream.mjs'
 
 // Unimplemented functions which we will proxy
 const asyncFuncs = [
@@ -40,8 +42,6 @@ const asyncFuncs = [
     'glk_select_poll',
     'glk_stream_close',
     'glk_stream_get_position',
-    'glk_stream_open_file',
-    'glk_stream_open_file_uni',
     'glk_stream_open_memory',
     'glk_stream_open_memory_uni',
     'glk_stream_open_resource',
@@ -79,8 +79,6 @@ const syncFuncs = [
     'glk_date_to_simple_time_utc',
     'glk_date_to_time_local',
     'glk_date_to_time_utc',
-    'glk_fileref_get_rock',
-    'glk_fileref_iterate',
     'glk_gestalt',
     'glk_gestalt_ext',
     'glk_image_draw',
@@ -124,8 +122,6 @@ const syncFuncs = [
     'glk_simple_time_to_date_utc',
     'glk_sound_load_hint',
     'glk_stream_get_current',
-    'glk_stream_get_rock',
-    'glk_stream_iterate',
     'glk_stream_set_current',
     'glk_stylehint_clear',
     'glk_stylehint_set',
@@ -199,8 +195,9 @@ class GlkAPI
     // Initialise the library and the VM
     async init( options )
     {
-        /*this.set_references( options )
-        if ( !this.Glk )
+        this.set_references( options )
+
+        /*if ( !this.Glk )
         {
             throw new Error( 'No reference to Glk' )
         }
@@ -231,6 +228,7 @@ class GlkAPI
         }
 
         this.Glk.init( options )
+        this.accept = options.accept
     }
 
     // Set our reference to the memory
@@ -265,18 +263,8 @@ class GlkAPI
 
         if ( refs.vm )
         {
-            this.vm = refs.GlkOte
+            this.vm = refs.vm
         }
-    }
-
-    async glk_fileref_create_by_prompt( usage, fmode, rock )
-    {
-        return new Promise( ( resolve /*, reject*/ ) =>
-        {
-            this.callback = res => resolve( res )
-            this.Glk.glk_fileref_create_by_prompt( usage, fmode, rock )
-            this.Glk.update()
-        })
     }
 
     async glk_select( eventref )
@@ -290,7 +278,6 @@ class GlkAPI
     }
 }
 
-//class Glk extends Gestalt( GlkAPI ) {}
-class Glk extends GlkAPI {}
+class Glk extends Fref( Stream( GlkAPI ) ) {}
 
 export default Glk
