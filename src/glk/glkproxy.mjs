@@ -140,6 +140,7 @@ const syncFuncs = [
     'glk_window_move_cursor',
     'glk_window_set_background_color',
     'glk_window_set_echo_stream',
+    'set_references',
     'uni_array_to_string',
 ]
 
