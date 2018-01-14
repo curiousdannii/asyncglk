@@ -193,7 +193,7 @@ class GlkAPI
     {
         this.set_references( options )
 
-        /*if ( !this.Glk )
+        if ( !this.Glk )
         {
             throw new Error( 'No reference to Glk' )
         }
@@ -208,7 +208,7 @@ class GlkAPI
         }
 
         // Initialise GlkOte, and get back the support array and metrics
-        const data = await this.GlkOte.init()
+        /*const data = await this.GlkOte.init()
         this.metrics = data.metrics
         for ( const item of data.support )
         {
@@ -223,6 +223,7 @@ class GlkAPI
             this.callback( res )
         }
 
+        options.Glk = this.Glk
         this.Glk.init( options )
         this.accept = options.accept
     }

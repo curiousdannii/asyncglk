@@ -12,6 +12,7 @@ https://github.com/curiousdannii/asyncglk
 const asyncFuncs = [
     'glk_exit',
     'glk_fileref_create_by_name',
+    //'glk_fileref_create_by_prompt',
     'glk_fileref_create_from_fileref',
     'glk_fileref_create_temp',
     'glk_fileref_delete_file',
@@ -30,6 +31,7 @@ const asyncFuncs = [
     'glk_schannel_play',
     'glk_schannel_play_ext',
     'glk_schannel_play_multi',
+    //'glk_select',
     'glk_select_poll',
     'glk_stream_close',
     'glk_stream_get_position',
@@ -140,6 +142,7 @@ const syncFuncs = [
     'glk_window_move_cursor',
     'glk_window_set_background_color',
     'glk_window_set_echo_stream',
+    //'init',
     'set_references',
     'uni_array_to_string',
 ]
@@ -207,6 +210,7 @@ export default class GlkProxy
             this.callback( res )
         }
 
+        options.Glk = this.Glk
         this.Glk.init( options )
     }
 }
