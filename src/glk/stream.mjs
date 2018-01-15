@@ -11,6 +11,28 @@ https://github.com/curiousdannii/asyncglk
 
 import * as Const from './const.mjs'
 
+// Given an array, return an array of the same length with all the values
+// trimmed to the range 0-255. This may be the same array.
+function TrimArrayToBytes( arr )
+{
+    let ix = 0
+    const len = arr.length
+    for ( ; ix < len; ix++ )
+    {
+        if ( arr[ix] < 0 || arr[ix] >= 0x100 )
+        {
+            break
+        }
+    }
+    if ( ix === len )
+    {
+        return arr
+    }
+
+    // Replace characters out of range with a '?'
+    return Uint8Array.from( arr, ch => ch < 0 || ch >= 0x100 ? 63 : ch )
+}
+
 const StreamAPI = Base => class extends Base
 {
     constructor()
@@ -19,6 +41,7 @@ const StreamAPI = Base => class extends Base
 
         // Beginning of the Stream linked list
         this.streamlist = null
+        this.currentstr = null
     }
 
     async glk_get_buffer_stream( str, array )
@@ -31,6 +54,11 @@ const StreamAPI = Base => class extends Base
         return this._get_array( str, array, true )
     }
 
+    glk_put_buffer( array )
+    {
+        this._put_array( this.currentstr, array )
+    }
+
     glk_put_buffer_stream( str, array )
     {
         this._put_array( str, array )
@@ -39,6 +67,36 @@ const StreamAPI = Base => class extends Base
     glk_put_buffer_stream_uni( str, array )
     {
         this._put_array( str, array )
+    }
+
+    glk_put_buffer_uni( array )
+    {
+        this._put_array( this.currentstr, array )
+    }
+
+    glk_put_char( ch )
+    {
+        this._put_char( this.currentstr, ch & 0xFF )
+    }
+
+    glk_put_char_stream( str, ch )
+    {
+        this._put_char( str, ch & 0xFF )
+    }
+
+    glk_put_char_stream_uni( str, ch )
+    {
+        this._put_char( str, ch )
+    }
+
+    glk_put_char_uni( ch )
+    {
+        this._put_char( this.currentstr, ch )
+    }
+
+    glk_stream_get_current()
+    {
+        return this.currentstr
     }
 
     glk_stream_get_rock (str)
@@ -71,12 +129,36 @@ const StreamAPI = Base => class extends Base
         return await this._stream_open_file( fref, fmode, rock, true )
     }
 
+    glk_stream_open_memory( buf, fmode, rock )
+    {
+        return this._stream_open_memory( buf, fmode, rock, false )
+    }
+
+    glk_stream_open_memory_uni( buf, fmode, rock )
+    {
+        return this._stream_open_memory( buf, fmode, rock, true )
+    }
+
+    async glk_stream_open_resource( filenum, rock )
+    {
+        return await this._stream_open_resource( filenum, rock, false )
+    }
+
+    async glk_stream_open_resource_uni( filenum, rock )
+    {
+        return await this._stream_open_resource( filenum, rock, true )
+    }
+
+    glk_stream_set_current( str )
+    {
+        this.currentstr = str
+    }
+
     async _get_array( str, array, unicode )
     {
-        const funcname = unicode ? 'glk_get_buffer_stream_uni' : 'glk_get_buffer_stream'
         if ( !str )
         {
-            throw new Error( `${ funcname }: invalid stream` )
+            throw new Error( 'Glk._get_array: invalid stream' )
         }
 
         if ( !str.readable )
@@ -84,10 +166,48 @@ const StreamAPI = Base => class extends Base
             return 0
         }
 
+        let len = array.length
         switch ( str.type )
         {
             case Const.strtype_File:
                 return str.fstream.fread( array )
+
+            case Const.strtype_Memory:
+            case Const.strtype_Resource:
+                if ( str.bufpos >= str.bufeof )
+                {
+                    len = 0
+                }
+                else
+                {
+                    if ( str.bufpos + len > str.bufeof )
+                    {
+                        len = str.bufeof - str.bufpos
+                    }
+                }
+
+                if ( !unicode )
+                {
+                    for ( let lx = 0; lx < len; lx++ )
+                    {
+                        let ch = str.buf[str.bufpos++]
+                        if ( !unicode && ch >= 0x100 )
+                        {
+                            ch = 63 // '?'
+                        }
+                        array[lx] = ch
+                    }
+                }
+                else
+                {
+                    for ( let lx = 0; lx < len; lx++ )
+                    {
+                        array[lx] = str.buf[str.bufpos++]
+                    }
+                }
+                str.readcount += len
+                return len
+
             default:
                 return 0
         }
@@ -98,7 +218,6 @@ const StreamAPI = Base => class extends Base
         const str = Object.assign( {
             disprock: null,
             readcount: 0,
-            streaming: true,
             writecount: 0,
         }, options )
 
@@ -128,11 +247,12 @@ const StreamAPI = Base => class extends Base
         // Truncate to 8 bit if needed, also converts non-typed arrays to a Uint8Array
         if ( !str.unicode && array.byteLength !== 8 )
         {
-            array = new Uint8Array( array )
+            array = TrimArrayToBytes( array )
         }
 
         str.writecount += array.length
 
+        let len = array.length
         switch ( str.type )
         {
             case Const.strtype_File:
@@ -144,21 +264,89 @@ const StreamAPI = Base => class extends Base
                 {
                     if ( !str.isbinary )
                     {
-                        /* cheap UTF-8 stream */
-                        //const arr8 = UniArrayToUTF8( array )
-                        //const buf = new str.fstream.BufferClass(arr8)
-                        //str.fstream.fwrite(buf)
+                        throw new Error( 'Glk._put_array: trying to put unicode non-binary array' )
                     }
                     else
                     {
-                        /* cheap big-endian stream */
-                        const buf = new str.fstream.BufferClass(4*array.length)
-                        for (let ix=0; ix<array.length; ix++)
-                        {
-                            buf.writeUInt32BE(array[ix], 4*ix, true)
-                        }
-                        str.fstream.fwrite(buf)
+                        throw new Error( 'Glk._put_array: trying to put unicode binary array' )
                     }
+                }
+                break
+
+            case Const.strtype_Memory:
+                if ( len > str.buflen - str.bufpos )
+                {
+                    len = str.buflen - str.bufpos
+                }
+                for ( let ix = 0; ix < len; ix++ )
+                {
+                    str.buf[str.bufpos + ix] = array[ix]
+                }
+                str.bufpos += len
+                break
+
+            case Const.strtype_Window:
+                if ( str.win.line_request )
+                {
+                    throw new Error( 'Glk._put_array: window has pending line request' )
+                }
+                this._window_put_string( str.win, String.fromCodePoint.apply( null, array ) )
+                if ( str.win.echostr )
+                {
+                    this._put_array( str.win.echostr, array )
+                }
+                break
+        }
+    }
+
+    _put_char( str, ch )
+    {
+        if ( !str || !str.writable )
+        {
+            throw new Error( 'Glk._put_char: invalid stream' )
+        }
+
+        if ( !str.unicode && ( ch < 0 || ch >= 0x100 ) )
+        {
+            ch = 63 // '?'
+        }
+
+        str.writecount += 1
+
+        switch ( str.type )
+        {
+            case Const.strtype_File:
+                if ( !str.unicode )
+                {
+                    str.fstream.fwrite( [ch] )
+                }
+                else
+                {
+                    throw new Error( 'Glk._put_char: writing char to unicode file' )
+                }
+                break
+
+            case Const.strtype_Memory:
+                if ( str.bufpos < str.buflen )
+                {
+                    str.buf[str.bufpos] = ch
+                    str.bufpos += 1
+                    if ( str.bufpos > str.bufeof )
+                    {
+                        str.bufeof = str.bufpos
+                    }
+                }
+                break
+
+            case Const.strtype_Window:
+                if ( str.win.line_request )
+                {
+                    throw new Error( 'Glk._put_char: window has pending line request' )
+                }
+                this._window_put_string( str.win, String.fromCodePoint( ch ) )
+                if ( str.win.echostr )
+                {
+                    this._put_char( str.win.echostr, ch )
                 }
                 break
         }
@@ -166,7 +354,7 @@ const StreamAPI = Base => class extends Base
 
     async _stream_open_file( fref, fmode, rock, unicode )
     {
-        const funcname = unicode ? 'glk_stream_open_file_uni' : 'glk_stream_open_file'
+        const funcname = 'Glk._stream_open_file'
         if ( !fref )
         {
             throw new Error( `${ funcname }: invalid fileref` )
@@ -191,7 +379,7 @@ const StreamAPI = Base => class extends Base
             return null
         }
 
-        const str = this._new_stream({
+        return this._new_stream({
             fstream: fstream,
             isbinary: !fref.textmode,
             origfmode: fmode,
@@ -202,10 +390,71 @@ const StreamAPI = Base => class extends Base
             unicode,
             writable: fmode !== Const.filemode_Read,
         })
+    }
+
+    _stream_open_memory( buf, fmode, rock, unicode )
+    {
+        if ( fmode !== Const.filemode_Read
+            && fmode !== Const.filemode_Write
+            && fmode !== Const.filemode_ReadWrite )
+        {
+            throw new Error( 'Glk._stream_open_memory: illegal filemode' )
+        }
+
+        const buflen = buf ? buf.length : 0
+        const str = this._new_stream({
+            buf,
+            bufeof: fmode === Const.filemode_Write ? 0 : buflen,
+            buflen,
+            bufpos: 0,
+            readable: fmode !== Const.filemode_Write,
+            rock,
+            type: Const.strtype_Memory,
+            unicode,
+            writable: fmode !== Const.filemode_Read,
+        })
+
+        if ( buf )
+        {
+            if ( this.GiDispa )
+            {
+                this.GiDispa.retain_array( buf )
+            }
+        }
 
         return str
     }
 
+    async _stream_open_resource( filenum, rock, unicode )
+    {
+        if ( !this.GiLoad || !this.GiLoad.find_data_chunk )
+        {
+            return null
+        }
+
+        const chunk = await this.GiLoad.find_data_chunk( filenum )
+        if ( !chunk )
+        {
+            return null
+        }
+
+        const buf = chunk.data
+        const buflen = buf ? buf.length : 0
+
+        return this._new_stream({
+            buf,
+            bufeof: buflen,
+            buflen,
+            bufpos: 0,
+            isbinary: chunk.type === 'BINA',
+            readable: true,
+            resfilenum: filenum,
+            rock,
+            type: Const.strtype_Resource,
+            unicode,
+            writable: false,
+        })
+    }
 }
 
 export default StreamAPI

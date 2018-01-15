@@ -16,6 +16,8 @@ import Fref from './fref.mjs'
 //import Gestalt from './gestalt.mjs'
 //import MemoryView from './memoryview.mjs'
 import Stream from './stream.mjs'
+import Style from './style.mjs'
+import Window from './window.mjs'
 
 // Unimplemented functions which we will proxy
 const asyncFuncs = [
@@ -34,10 +36,6 @@ const asyncFuncs = [
     'glk_select_poll',
     'glk_stream_close',
     'glk_stream_get_position',
-    'glk_stream_open_memory',
-    'glk_stream_open_memory_uni',
-    'glk_stream_open_resource',
-    'glk_stream_open_resource_uni',
     'glk_stream_set_position',
     'glk_style_distinguish',
     'glk_style_measure',
@@ -75,12 +73,6 @@ const syncFuncs = [
     'glk_gestalt_ext',
     'glk_image_draw',
     'glk_image_draw_scaled',
-    'glk_put_buffer',
-    'glk_put_buffer_uni',
-    'glk_put_char',
-    'glk_put_char_stream',
-    'glk_put_char_stream_uni',
-    'glk_put_char_uni',
     'glk_put_jstring',
     'glk_put_jstring_stream',
     'glk_put_string',
@@ -104,15 +96,11 @@ const syncFuncs = [
     'glk_set_echo_line_event',
     'glk_set_hyperlink',
     'glk_set_hyperlink_stream',
-    'glk_set_style',
-    'glk_set_style_stream',
     'glk_set_terminators_line_event',
     'glk_set_window',
     'glk_simple_time_to_date_local',
     'glk_simple_time_to_date_utc',
     'glk_sound_load_hint',
-    'glk_stream_get_current',
-    'glk_stream_set_current',
     'glk_stylehint_clear',
     'glk_stylehint_set',
     'glk_tick',
@@ -269,6 +257,6 @@ class GlkAPI
     }
 }
 
-class Glk extends Fref( Stream( GlkAPI ) ) {}
+class Glk extends Fref( Stream( Style( Window( GlkAPI ) ) ) ) {}
 
 export default Glk
