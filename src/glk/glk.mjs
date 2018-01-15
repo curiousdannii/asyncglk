@@ -20,12 +20,6 @@ import Stream from './stream.mjs'
 // Unimplemented functions which we will proxy
 const asyncFuncs = [
     'glk_exit',
-    'glk_fileref_create_by_name',
-    'glk_fileref_create_from_fileref',
-    'glk_fileref_create_temp',
-    'glk_fileref_delete_file',
-    'glk_fileref_destroy',
-    'glk_fileref_does_file_exist',
     'glk_get_char_stream',
     'glk_get_char_stream_uni',
     'glk_get_line_stream',

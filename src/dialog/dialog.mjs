@@ -9,7 +9,14 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-export default class Dialog
+import * as Const from '../glk/const.mjs'
+
+export const filepath_Temp = 0
+export const filepath_Data = 1
+export const filepath_User = 2
+export const filepath_Autosave = 3
+
+export class Dialog
 {
     autosave_read()
     {
@@ -21,9 +28,43 @@ export default class Dialog
         throw new Error( 'Method not implemented: autosave_write' )
     }
 
-    file_clean_fixed_name()
+    /* Dialog.file_clean_fixed_name( filename, usage ) -- clean up a filename
+     *
+     * Take an arbitrary string and convert it into a filename that can
+     * validly be stored in the user's directory. This is called for filenames
+     * that come from the game file, but not for filenames selected directly
+     * by the user (i.e. from a file selection dialog).
+     *
+     * The new spec recommendations: delete all characters in the string
+     * "/\<>:|?*" (including quotes). Truncate at the first period. Change to
+     * "null" if there's nothing left. Then append an appropriate suffix:
+     * ".glkdata", ".glksave", ".txt".
+     */
+    file_clean_fixed_name( filename, usage )
     {
-        throw new Error( 'Method not implemented: file_clean_fixed_name' )
+        filename = filename.replace( /["/\\<>:|?*]/g, '' )
+        const pos = filename.indexOf( '.' )
+        if ( pos >= 0 )
+        {
+            filename = filename.slice( 0, pos )
+        }
+        if ( filename.length === 0 )
+        {
+            filename = 'null'
+        }
+
+        switch ( usage )
+        {
+            case Const.fileusage_Data:
+                return filename + '.glkdata'
+            case Const.fileusage_SavedGame:
+                return filename + '.glksave'
+            case Const.fileusage_Transcript:
+            case Const.fileusage_InputRecord:
+                return filename + '.txt'
+            default:
+                return filename
+        }
     }
 
     file_construct_ref( filename = '', usage = '', gameid = '' )
@@ -35,9 +76,13 @@ export default class Dialog
         }
     }
 
-    file_construct_temp_ref()
+    file_construct_temp_ref( usage )
     {
-        throw new Error( 'Method not implemented: file_construct_temp_ref' )
+        const filename = `temp_${ new Date().getTime() }_${ Math.random() }`.replace( '.', '' )
+        return {
+            filename: this.join_path( filepath_Temp, filename ),
+            usage: usage,
+        }
     }
 
     async file_fopen()
@@ -55,7 +100,7 @@ export default class Dialog
         throw new Error( 'Method not implemented: file_ref_exists' )
     }
 
-    file_remove_ref()
+    async file_remove_ref()
     {
         throw new Error( 'Method not implemented: file_remove_ref' )
     }
@@ -80,6 +125,11 @@ export default class Dialog
             default:
                 return []
         }
+    }
+
+    join_path()
+    {
+        throw new Error( 'Method not implemented: join_path' )
     }
 
     async open()

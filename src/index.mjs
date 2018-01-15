@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-export { default as Dialog } from './dialog/dialog.mjs'
+export { Dialog } from './dialog/dialog.mjs'
 export { default as DialogNode } from './dialog/dialognode.mjs'
 export { default as DialogTerm } from './dialog/dialogterm.mjs'
 export { default as Glk } from './glk/glk.mjs'

@@ -10,16 +10,19 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import util from 'util'
 
 import * as Const from '../glk/const.mjs'
-import Dialog from './dialog.mjs'
+import * as Dialog from './dialog.mjs'
 
 const promisify = util.promisify
 const access = promisify( fs.access )
 const close = promisify( fs.close )
 const read = promisify( fs.read )
 const open = promisify( fs.open )
+const unlink = promisify( fs.unlink )
 const write = promisify( fs.write )
 
 const modestrings = {
@@ -75,7 +78,7 @@ class FStream
     }
 }
 
-export default class DialogNode extends Dialog
+export default class DialogNode extends Dialog.Dialog
 {
     async file_fopen( fmode, ref )
     {
@@ -95,5 +98,26 @@ export default class DialogNode extends Dialog
             return false
         }
         return true
+    }
+
+    async file_remove_ref( ref )
+    {
+        try
+        {
+            await unlink( ref.filename )
+        }
+        catch (e) {}
+    }
+
+    join_path( dir_mode, filename )
+    {
+        let directory = ''
+        switch ( dir_mode )
+        {
+            case Dialog.filepath_Temp:
+                directory = os.tmpdir()
+        }
+
+        return path.join( directory, filename )
     }
 }

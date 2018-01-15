@@ -31,6 +31,10 @@ rules:
     - unix
   no-console:
     - off
+  no-empty:
+    - error
+    -
+      allowEmptyCatch: true
   no-var:
     - error
   no-trailing-spaces:

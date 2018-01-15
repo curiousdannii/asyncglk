@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+// TODO: Cleanup temp filerefs?
+
 import * as Const from './const.mjs'
 
 const FileTypeMap = {
@@ -16,18 +18,6 @@ const FileTypeMap = {
     1: 'save',
     2: 'transcript',
     3: 'command',
-}
-
-// TODO: Is this actually useful vs a plain object?
-class FileRef
-{
-    constructor( filename, usage, rock, ref )
-    {
-        this.filename = filename
-        this.ref = ref
-        this.rock = rock
-        this.usage = usage
-    }
 }
 
 const FrefAPI = Base => class extends Base
@@ -50,11 +40,90 @@ const FrefAPI = Base => class extends Base
         const filetypename = FileTypeMap[filetype] || 'xxx'
         const ref = await this.Dialog.open( fmode !== Const.filemode_Read, filetypename, this.vm.get_signature() )
 
-        if ( ref )
+        // If fmode is Read, then ensure the file exists
+        if ( !ref || ( fmode === Const.filemode_Read && !( await this.Dialog.file_ref_exists( ref ) ) ) )
         {
-            return this._new_fileref( ref.filename, usage, rock, ref )
+            return null
         }
-        return null
+        return this._new_fileref( ref.filename, usage, rock, ref )
+    }
+
+    glk_fileref_create_by_name( usage, filename, rock )
+    {
+        // Filenames that do not come from the user must be cleaned up.
+        filename = this.Dialog.file_clean_fixed_name( filename, ( usage & Const.fileusage_TypeMask ) )
+
+        return this._new_fileref( filename, usage, rock, null )
+    }
+
+    glk_fileref_create_from_fileref( usage, oldfref, rock )
+    {
+        if ( !oldfref )
+        {
+            throw new Error( 'glk_fileref_create_from_fileref: invalid fileref' )
+        }
+
+        return this._new_fileref( oldfref.filename, usage, rock, null )
+    }
+
+    glk_fileref_create_temp( usage, rock )
+    {
+        const ref = this.Dialog.file_construct_temp_ref( FileTypeMap[( usage & Const.fileusage_TypeMask )] )
+        return this._new_fileref( ref.filename, usage, rock, ref )
+    }
+
+    async glk_fileref_delete_file( fref )
+    {
+        if ( !fref )
+        {
+            throw new Error( 'glk_fileref_delete_file: invalid fileref' )
+        }
+        await this.Dialog.file_remove_ref( fref.ref )
+    }
+
+    glk_fileref_destroy( fref )
+    {
+        if ( !fref )
+        {
+            throw new Error( 'glk_fileref_destroy: invalid fileref' )
+        }
+
+        if ( this.GiDispa )
+        {
+            this.GiDispa.class_unregister( 'fileref', fref )
+        }
+
+        const prev = fref.prev
+        const next = fref.next
+        fref.prev = null
+        fref.next = null
+
+        if ( prev )
+        {
+            prev.next = next
+        }
+        else
+        {
+            this.filereflist = next
+        }
+        if ( next )
+        {
+            next.prev = prev
+        }
+
+        fref.filename = null
+        fref.ref = null
+        fref.rock = null
+        fref.disprock = null
+    }
+
+    async glk_fileref_does_file_exist( fref )
+    {
+        if ( !fref )
+        {
+            throw new Error( 'glk_fileref_does_file_exist: invalid fileref' )
+        }
+        return ( await this.Dialog.file_ref_exists( fref.ref ) ) ? 1 : 0
     }
 
     glk_fileref_get_rock( fref )
@@ -86,7 +155,12 @@ const FrefAPI = Base => class extends Base
             ref = this.Dialog.file_construct_ref( filename, filetypename, this.vm.get_signature() )
         }
 
-        const fref = new FileRef( filename, usage, rock, ref )
+        const fref = {
+            filename,
+            ref,
+            rock,
+            usage,
+        }
 
         fref.prev = null
         fref.next = this.filereflist

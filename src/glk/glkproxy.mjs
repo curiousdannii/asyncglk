@@ -11,12 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 const asyncFuncs = [
     'glk_exit',
-    'glk_fileref_create_by_name',
     //'glk_fileref_create_by_prompt',
-    'glk_fileref_create_from_fileref',
-    'glk_fileref_create_temp',
     'glk_fileref_delete_file',
-    'glk_fileref_destroy',
     'glk_fileref_does_file_exist',
     'glk_get_buffer_stream',
     'glk_get_buffer_stream_uni',
@@ -74,6 +70,10 @@ const syncFuncs = [
     'glk_date_to_simple_time_utc',
     'glk_date_to_time_local',
     'glk_date_to_time_utc',
+    'glk_fileref_create_by_name',
+    'glk_fileref_create_from_fileref',
+    'glk_fileref_create_temp',
+    'glk_fileref_destroy',
     'glk_fileref_get_rock',
     'glk_fileref_iterate',
     'glk_gestalt',
