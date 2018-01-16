@@ -21,6 +21,7 @@ import * as Dialog from './dialog.mjs'
 const promisify = util.promisify
 const access = promisify( fs.access )
 const close = promisify( fs.close )
+const fstat = promisify( fs.fstat )
 const mkdirp = promisify( mkdirp_module )
 const read = promisify( fs.read )
 const open = promisify( fs.open )
@@ -29,9 +30,9 @@ const write = promisify( fs.write )
 
 const modestrings = {
     [Const.filemode_Read]: 'r',
-    [Const.filemode_ReadWrite]: 'a',
+    [Const.filemode_ReadWrite]: 'r+',
     [Const.filemode_Write]: 'w',
-    [Const.filemode_WriteAppend]: 'a',
+    [Const.filemode_WriteAppend]: 'r+',
 }
 
 class FStream
@@ -41,6 +42,7 @@ class FStream
         this.fd = null
         this.filename = filename
         this.fmode = fmode
+        this.pos = 0
         this.writebuffer = []
     }
 
@@ -53,8 +55,47 @@ class FStream
     async fread( array, len )
     {
         await this._write()
-        const data = await read( this.fd, array, 0, len || array.buffer.byteLength, null )
+        const data = await read( this.fd, array, 0, len, this.pos )
+        this.pos += data.bytesRead
         return data.bytesRead
+    }
+
+    async fseek( pos, seekmode )
+    {
+        await this._write()
+
+        let val = 0
+        if ( seekmode === Const.seekmode_Current )
+        {
+            val = this.pos + pos
+        }
+        else if ( seekmode === Const.seekmode_End )
+        {
+            try
+            {
+                const stats = await fstat( this.fd )
+                val = stats.size + pos
+            }
+            catch (ex)
+            {
+                val = this.pos + pos
+            }
+        }
+        else
+        {
+            val = pos
+        }
+        if ( val < 0 )
+        {
+            val = 0
+        }
+        this.pos = val
+    }
+
+    async ftell()
+    {
+        await this._write()
+        return this.pos
     }
 
     // Queue an array to be written to the buffer
@@ -66,8 +107,41 @@ class FStream
 
     async open()
     {
+        const fmode = this.fmode
+
         await mkdirp( path.dirname( this.filename ) )
-        this.fd = await open( this.filename, modestrings[this.fmode] )
+
+        /* The spec says that Write, ReadWrite, and WriteAppend create the
+        file if necessary. However, open( filename, "r+" ) doesn't create
+        a file. So we have to pre-create it in the ReadWrite and
+        WriteAppend cases. (We use "a" so as not to truncate.) */
+
+        if ( fmode === Const.filemode_ReadWrite || fmode === Const.filemode_WriteAppend )
+        {
+            try
+            {
+                const tempfd = await open( this.filename, 'a' )
+                await close( tempfd )
+            }
+            catch ( ex )
+            {
+                //this.log( `file_fopen: failed to open ${ fstream.filename }: ${ ex }` )
+                return null
+            }
+        }
+
+        this.fd = await open( this.filename, modestrings[fmode] )
+
+        if ( fmode === Const.filemode_WriteAppend )
+        {
+            // We must manually jump to the end of the file
+            try
+            {
+                const stats = await fstat( this.fd )
+                this.pos = stats.size
+            }
+            catch ( ex ) {}
+        }
     }
 
     // Go through the queue, writing each in turn
@@ -76,7 +150,17 @@ class FStream
         while ( this.writebuffer.length )
         {
             const data = this.writebuffer.shift()
-            await write( this.fd, data )
+            const len = data.length
+            const pos = this.pos
+            this.pos += data.length
+            if ( typeof data === 'string' )
+            {
+                await write( this.fd, data, pos )
+            }
+            else
+            {
+                await write( this.fd, Uint8Array.from( data ), 0, len, pos )
+            }
         }
     }
 }

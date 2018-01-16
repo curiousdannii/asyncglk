@@ -23,8 +23,6 @@ import Window from './window.mjs'
 // Unimplemented functions which we will proxy
 const asyncFuncs = [
     'glk_exit',
-    'glk_get_char_stream',
-    'glk_get_char_stream_uni',
     'glk_get_line_stream',
     'glk_get_line_stream_uni',
     'glk_image_get_info',
@@ -35,8 +33,6 @@ const asyncFuncs = [
     'glk_schannel_play_ext',
     'glk_schannel_play_multi',
     'glk_select_poll',
-    'glk_stream_get_position',
-    'glk_stream_set_position',
     'glk_style_distinguish',
     'glk_style_measure',
     'glk_window_close',
@@ -161,10 +157,6 @@ class GlkAPI
     {
         this.set_references( options )
 
-        if ( !this.Glk )
-        {
-            throw new Error( 'No reference to Glk' )
-        }
         if ( !this.vm )
         {
             throw new Error( 'No VM provided' )

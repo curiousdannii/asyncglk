@@ -54,6 +54,16 @@ const StreamAPI = Base => class extends Base
         return this._get_array( str, array, true )
     }
 
+    async glk_get_char_stream( str )
+    {
+        return this._get_char( str, false )
+    }
+
+    async glk_get_char_stream_uni( str )
+    {
+        return this._get_char( str, true )
+    }
+
     glk_put_buffer( array )
     {
         this._put_array( this.currentstr, array )
@@ -209,6 +219,25 @@ const StreamAPI = Base => class extends Base
         return this.currentstr
     }
 
+    async glk_stream_get_position( str )
+    {
+        if ( !str )
+        {
+            throw new Error( 'glk_stream_get_position: invalid stream' )
+        }
+
+        switch ( str.type )
+        {
+            case Const.strtype_File:
+                return await str.fstream.ftell()
+            case Const.strtype_Resource:
+            case Const.strtype_Memory:
+                return str.bufpos
+            default:
+                return 0
+        }
+    }
+
     glk_stream_get_rock (str)
     {
         if ( !str )
@@ -262,6 +291,45 @@ const StreamAPI = Base => class extends Base
     glk_stream_set_current( str )
     {
         this.currentstr = str
+    }
+
+    async glk_stream_set_position( str, pos, seekmode )
+    {
+        if ( !str )
+        {
+            throw new Error( 'glk_stream_set_position: invalid stream' )
+        }
+
+        switch ( str.type )
+        {
+            case Const.strtype_File:
+                await str.fstream.fseek( pos, seekmode )
+                break
+
+            case Const.strtype_Resource:
+            case Const.strtype_Memory:
+                if ( seekmode === Const.seekmode_Current )
+                {
+                    pos = str.bufpos + pos
+                }
+                else if ( seekmode === Const.seekmode_End )
+                {
+                    pos = str.bufeof + pos
+                }
+                else
+                {
+                    /* pos = pos */
+                }
+                if ( pos < 0 )
+                {
+                    pos = 0
+                }
+                if ( pos > str.bufeof )
+                {
+                    pos = str.bufeof
+                }
+                str.bufpos = pos
+        }
     }
 
     async _delete_stream( str )
@@ -376,6 +444,125 @@ const StreamAPI = Base => class extends Base
 
             default:
                 return 0
+        }
+    }
+
+    async _get_char( str, unicode )
+    {
+        if ( !str || !str.readable )
+        {
+            return -1
+        }
+
+        let ch, len
+        switch ( str.type )
+        {
+            case Const.strtype_File:
+                if ( !str.unicode )
+                {
+                    len = await str.fstream.fread( str.buffer4, 1 )
+                    if ( !len )
+                    {
+                        return -1
+                    }
+                    str.readcount++
+                    return str.buffer4[0]
+                }
+                else
+                {
+                    if ( !str.isbinary )
+                    {
+                        // slightly less cheap UTF8 stream
+                        return -1
+                    }
+                    else
+                    {
+                        /* cheap big-endian stream */
+                        len = str.fstream.fread( str.buffer4, 4 )
+                        if ( len < 4 )
+                        {
+                            return -1
+                        }
+                        /*### or buf.readUInt32BE(0, true) */
+                        ch = ( str.buffer4[0] << 24 )
+                        ch |= ( str.buffer4[1] << 16 )
+                        ch |= ( str.buffer4[2] << 8 )
+                        ch |= str.buffer4[3]
+                    }
+                    str.readcount++
+                    ch >>>= 0
+                    if ( !unicode && ch >= 0x100 )
+                    {
+                        return 63 // return '?'
+                    }
+                    return ch
+                }
+
+            case Const.strtype_Resource:
+                if (str.unicode)
+                {
+                    if (str.isbinary)
+                    {
+                        /* cheap big-endian stream */
+                        if ( str.bufpos >= str.bufeof )
+                        {
+                            return -1
+                        }
+                        ch = str.buf[str.bufpos]
+                        str.bufpos++
+                        if ( str.bufpos >= str.bufeof )
+                        {
+                            return -1
+                        }
+                        ch = ( ch << 8 ) | ( str.buf[str.bufpos] & 0xFF )
+                        str.bufpos++
+                        if ( str.bufpos >= str.bufeof )
+                        {
+                            return -1
+                        }
+                        ch = ( ch << 8 ) | ( str.buf[str.bufpos] & 0xFF )
+                        str.bufpos++
+                        if ( str.bufpos >= str.bufeof )
+                        {
+                            return -1
+                        }
+                        ch = ( ch << 8 ) | ( str.buf[str.bufpos] & 0xFF )
+                        str.bufpos++
+                    }
+                    else
+                    {
+                        /* slightly less cheap UTF8 stream */
+                        return -1
+                    }
+                    str.readcount++
+                    ch >>>= 0
+                    if ( !unicode && ch >= 0x100 )
+                    {
+                        return 63 // return '?'
+                    }
+                    return ch
+                }
+                // non-unicode file/resource, fall through to memory...
+
+            case Const.strtype_Memory:
+                if ( str.bufpos < str.bufeof )
+                {
+                    ch = str.buf[str.bufpos]
+                    str.bufpos++
+                    str.readcount++
+                    if ( !unicode && ch >= 0x100 )
+                    {
+                        return 63 // return '?'
+                    }
+                    return ch
+                }
+                else
+                {
+                    return -1 // end of stream
+                }
+
+            default:
+                return -1
         }
     }
 
@@ -555,6 +742,7 @@ const StreamAPI = Base => class extends Base
         }
 
         return this._new_stream({
+            buffer4: new Uint8Array( 4 ),
             fstream: fstream,
             isbinary: !fref.textmode,
             origfmode: fmode,
