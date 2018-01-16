@@ -18,6 +18,11 @@ export const filepath_Autosave = 3
 
 export class Dialog
 {
+    constructor( options )
+    {
+        this.appname = options.appname || 'asyncglk'
+    }
+
     autosave_read()
     {
         throw new Error( 'Method not implemented: autosave_read' )

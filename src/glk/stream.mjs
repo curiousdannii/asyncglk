@@ -94,6 +94,116 @@ const StreamAPI = Base => class extends Base
         this._put_char( this.currentstr, ch )
     }
 
+    glk_put_jstring( val, allbytes )
+    {
+        this.glk_put_jstring_stream( this.currentstr, val, allbytes )
+    }
+
+    glk_put_jstring_stream( str, val, allbytes )
+    {
+        if ( !str || !str.writable )
+        {
+            throw new Error( 'glk_put_jstring_stream: invalid stream' )
+        }
+
+        str.writecount += val.length
+
+        let len = val.length
+        let ch
+        switch ( str.type )
+        {
+            case Const.strtype_File:
+                if ( !str.unicode )
+                {
+                    str.fstream.fwrite( val )
+                }
+                else
+                {
+                    if ( !str.isbinary )
+                    {
+                        throw new Error( 'glk_put_jstring_stream: trying to put unicode non-binary array' )
+                    }
+                    else
+                    {
+                        throw new Error( 'glk_put_jstring_stream: trying to put unicode binary array' )
+                    }
+                }
+                break
+
+            case Const.strtype_Memory:
+                if ( len > str.buflen - str.bufpos )
+                {
+                    len = str.buflen - str.bufpos
+                }
+                if ( str.unicode || allbytes )
+                {
+                    for ( let ix = 0; ix < len; ix++ )
+                    {
+                        // TODO: deal with post-BMP characters?
+                        str.buf[str.bufpos+ix] = val.charCodeAt( ix )
+                    }
+                }
+                else
+                {
+                    for ( let ix = 0; ix < len; ix++ )
+                    {
+                        ch = val.charCodeAt( ix )
+                        str.buf[str.bufpos+ix] = ch < 0 || ch >= 0x100 ? 63 : ch
+                    }
+                }
+                str.bufpos += len
+                break
+
+            case Const.strtype_Window:
+                if ( str.win.line_request )
+                {
+                    throw new Error( 'glk_put_jstring_stream: window has pending line request' )
+                }
+                this._window_put_string( str.win, val )
+                if ( str.win.echostr )
+                {
+                    this.glk_put_jstring_stream( str.win.echostr, val, allbytes )
+                }
+                break
+        }
+    }
+
+    glk_put_string( val )
+    {
+        this.glk_put_jstring_stream( this.currentstr, val, true )
+    }
+
+    glk_put_string_stream( str, val )
+    {
+        this.glk_put_jstring_stream( str, val, true )
+    }
+
+    glk_put_string_stream_uni( str, val )
+    {
+        this.glk_put_jstring_stream( str, val, false )
+    }
+
+    glk_put_string_uni( val )
+    {
+        this.glk_put_jstring_stream( this.currentstr, val, false )
+    }
+
+    async glk_stream_close( str, result )
+    {
+        if ( !str )
+        {
+            throw new Error( 'glk_stream_close: invalid stream' )
+        }
+
+        if ( str.type === Const.strtype_Window )
+        {
+            throw new Error( 'glk_stream_close: cannot close window stream' )
+        }
+
+        this._stream_fill_result( str, result )
+        await this._delete_stream( str )
+    }
+
     glk_stream_get_current()
     {
         return this.currentstr
@@ -154,6 +264,62 @@ const StreamAPI = Base => class extends Base
         this.currentstr = str
     }
 
+    async _delete_stream( str )
+    {
+        if ( str === this.currentstr )
+        {
+            this.currentstr = null
+        }
+
+        this._windows_unechostream( str )
+
+        if ( str.type === Const.strtype_Memory )
+        {
+            if ( this.GiDispa )
+            {
+                this.GiDispa.unretain_array( str.buf )
+            }
+        }
+        else if ( str.type === Const.strtype_File )
+        {
+            await str.fstream.fclose()
+            str.fstream = null
+        }
+
+        if ( this.GiDispa )
+        {
+            this.GiDispa.class_unregister( 'stream', str )
+        }
+
+        const prev = str.prev
+        const next = str.next
+        str.prev = null
+        str.next = null
+
+        if ( prev )
+        {
+            prev.next = next
+        }
+        else
+        {
+            this.streamlist = next
+        }
+        if ( next )
+        {
+            next.prev = prev
+        }
+
+        str.fstream = null
+        str.buf = null
+        str.readable = false
+        str.writable = false
+        str.ref = null
+        str.win = null
+        str.file = null
+        str.rock = null
+        str.disprock = null
+    }
+
     async _get_array( str, array, unicode )
     {
         if ( !str )
@@ -170,7 +336,7 @@ const StreamAPI = Base => class extends Base
         switch ( str.type )
         {
             case Const.strtype_File:
-                return str.fstream.fread( array )
+                return str.fstream.fread( array, len )
 
             case Const.strtype_Memory:
             case Const.strtype_Resource:
@@ -349,6 +515,15 @@ const StreamAPI = Base => class extends Base
                     this._put_char( str.win.echostr, ch )
                 }
                 break
+        }
+    }
+
+    _stream_fill_result( str, result )
+    {
+        if ( result )
+        {
+            result.set_field( 0, str.readcount )
+            result.set_field( 1, str.writecount )
         }
     }
 

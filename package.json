@@ -15,7 +15,8 @@
     "lint": "eslint --ext .js,.mjs ."
   },
   "dependencies": {
-    "glkote-term": "^0.4.0"
+    "glkote-term": "^0.4.0",
+    "mkdirp": "^0.5.1"
   },
   "devDependencies": {
     "eslint": "^4.13.0"

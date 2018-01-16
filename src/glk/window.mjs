@@ -17,6 +17,10 @@ const WindowAPI = Base => class extends Base
     {
         process.stdout.write( val )
     }
+
+    _windows_unechostream( /*str*/ )
+    {
+    }
 }
 
 export default WindowAPI

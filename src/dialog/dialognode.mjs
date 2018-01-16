@@ -10,6 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import fs from 'fs'
+import mkdirp_module from 'mkdirp'
 import os from 'os'
 import path from 'path'
 import util from 'util'
@@ -20,6 +21,7 @@ import * as Dialog from './dialog.mjs'
 const promisify = util.promisify
 const access = promisify( fs.access )
 const close = promisify( fs.close )
+const mkdirp = promisify( mkdirp_module )
 const read = promisify( fs.read )
 const open = promisify( fs.open )
 const unlink = promisify( fs.unlink )
@@ -64,6 +66,7 @@ class FStream
 
     async open()
     {
+        await mkdirp( path.dirname( this.filename ) )
         this.fd = await open( this.filename, modestrings[this.fmode] )
     }
 
@@ -115,7 +118,7 @@ export default class DialogNode extends Dialog.Dialog
         switch ( dir_mode )
         {
             case Dialog.filepath_Temp:
-                directory = os.tmpdir()
+                directory = path.join( os.tmpdir(), this.appname )
         }
 
         return path.join( directory, filename )
