@@ -12,6 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import SyncGlk from 'glkote-term/src/glkapi.js'
 
 import * as Const from './const.mjs'
+import DateTime from './datetime.mjs'
 import Fref from './fref.mjs'
 //import Gestalt from './gestalt.mjs'
 //import MemoryView from './memoryview.mjs'
@@ -62,12 +63,6 @@ const syncFuncs = [
     'glk_cancel_mouse_event',
     'glk_char_to_lower',
     'glk_char_to_upper',
-    'glk_current_simple_time',
-    'glk_current_time',
-    'glk_date_to_simple_time_local',
-    'glk_date_to_simple_time_utc',
-    'glk_date_to_time_local',
-    'glk_date_to_time_utc',
     'glk_gestalt',
     'glk_gestalt_ext',
     'glk_image_draw',
@@ -97,8 +92,6 @@ const syncFuncs = [
     'glk_stylehint_clear',
     'glk_stylehint_set',
     'glk_tick',
-    'glk_time_to_date_local',
-    'glk_time_to_date_utc',
     'glk_window_clear',
     'glk_window_erase_rect',
     'glk_window_fill_rect',
@@ -250,6 +243,8 @@ class GlkAPI
     }
 }
 
-class Glk extends Fref( Stream( Style( Window( GlkAPI ) ) ) ) {}
+const inherit = ( ...fns ) => fns.reduce( ( v, f ) => f( v ) )
+
+const Glk = inherit( GlkAPI, DateTime, Fref, Stream, Style, Window )
 
 export default Glk
