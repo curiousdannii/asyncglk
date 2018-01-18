@@ -66,7 +66,7 @@ const StreamAPI = Base => class extends Base
 
     glk_put_buffer( array )
     {
-        this._put_array( this.currentstr, array )
+        this._put_array( this.currentstr || this.Glk.glk_stream_get_current(), array )
     }
 
     glk_put_buffer_stream( str, array )
@@ -81,12 +81,12 @@ const StreamAPI = Base => class extends Base
 
     glk_put_buffer_uni( array )
     {
-        this._put_array( this.currentstr, array )
+        this._put_array( this.currentstr || this.Glk.glk_stream_get_current(), array )
     }
 
     glk_put_char( ch )
     {
-        this._put_char( this.currentstr, ch & 0xFF )
+        this._put_char( this.currentstr || this.Glk.glk_stream_get_current(), ch & 0xFF )
     }
 
     glk_put_char_stream( str, ch )
@@ -101,12 +101,12 @@ const StreamAPI = Base => class extends Base
 
     glk_put_char_uni( ch )
     {
-        this._put_char( this.currentstr, ch )
+        this._put_char( this.currentstr || this.Glk.glk_stream_get_current(), ch )
     }
 
     glk_put_jstring( val, allbytes )
     {
-        this.glk_put_jstring_stream( this.currentstr, val, allbytes )
+        this.glk_put_jstring_stream( this.currentstr || this.Glk.glk_stream_get_current(), val, allbytes )
     }
 
     glk_put_jstring_stream( str, val, allbytes )
@@ -181,7 +181,7 @@ const StreamAPI = Base => class extends Base
 
     glk_put_string( val )
     {
-        this.glk_put_jstring_stream( this.currentstr, val, true )
+        this.glk_put_jstring_stream( this.currentstr || this.Glk.glk_stream_get_current(), val, true )
     }
 
     glk_put_string_stream( str, val )
@@ -196,7 +196,7 @@ const StreamAPI = Base => class extends Base
 
     glk_put_string_uni( val )
     {
-        this.glk_put_jstring_stream( this.currentstr, val, false )
+        this.glk_put_jstring_stream( this.currentstr || this.Glk.glk_stream_get_current(), val, false )
     }
 
     async glk_stream_close( str, result )
