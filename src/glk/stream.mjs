@@ -169,7 +169,8 @@ const StreamAPI = Base => class extends Base
                 {
                     throw new Error( 'glk_put_jstring_stream: window has pending line request' )
                 }
-                this._window_put_string( str.win, val )
+                //this._window_put_string( str.win, val )
+                this.Glk.glk_put_jstring_stream( str, val )
                 if ( str.win.echostr )
                 {
                     this.glk_put_jstring_stream( str.win.echostr, val, allbytes )
@@ -425,7 +426,7 @@ const StreamAPI = Base => class extends Base
                     for ( let lx = 0; lx < len; lx++ )
                     {
                         let ch = str.buf[str.bufpos++]
-                        if ( !unicode && ch >= 0x100 )
+                        if ( ch >= 0x100 )
                         {
                             ch = 63 // '?'
                         }
@@ -643,7 +644,8 @@ const StreamAPI = Base => class extends Base
                 {
                     throw new Error( 'Glk._put_array: window has pending line request' )
                 }
-                this._window_put_string( str.win, String.fromCodePoint.apply( null, array ) )
+                //this._window_put_string( str.win, String.fromCodePoint.apply( null, array ) )
+                this.Glk.glk_put_jstring_stream( str, String.fromCodePoint.apply( null, array ) )
                 if ( str.win.echostr )
                 {
                     this._put_array( str.win.echostr, array )
@@ -696,7 +698,8 @@ const StreamAPI = Base => class extends Base
                 {
                     throw new Error( 'Glk._put_char: window has pending line request' )
                 }
-                this._window_put_string( str.win, String.fromCodePoint( ch ) )
+                //this._window_put_string( str.win, String.fromCodePoint( ch ) )
+                this.Glk.glk_put_jstring_stream( str, String.fromCodePoint( ch ) )
                 if ( str.win.echostr )
                 {
                     this._put_char( str.win.echostr, ch )

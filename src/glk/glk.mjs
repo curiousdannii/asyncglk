@@ -16,6 +16,7 @@ import DateTime from './datetime.mjs'
 import Fref from './fref.mjs'
 //import Gestalt from './gestalt.mjs'
 //import MemoryView from './memoryview.mjs'
+import Misc from './misc.mjs'
 import Stream from './stream.mjs'
 import Style from './style.mjs'
 import Window from './window.mjs'
@@ -87,7 +88,6 @@ const syncFuncs = [
     'glk_sound_load_hint',
     'glk_stylehint_clear',
     'glk_stylehint_set',
-    'glk_tick',
     'glk_window_clear',
     'glk_window_erase_rect',
     'glk_window_fill_rect',
@@ -237,6 +237,6 @@ class GlkAPI
 
 const inherit = ( ...fns ) => fns.reduce( ( v, f ) => f( v ) )
 
-const Glk = inherit( GlkAPI, DateTime, Fref, Stream, Style, Window )
+const Glk = inherit( GlkAPI, DateTime, Fref, Misc, Stream, Style, Window )
 
 export default Glk
