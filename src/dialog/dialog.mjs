@@ -11,12 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import * as Const from '../glk/const.mjs'
 
-export const filepath_Temp = 0
-export const filepath_Data = 1
-export const filepath_User = 2
-export const filepath_Autosave = 3
-
-export class Dialog
+export default class Dialog
 {
     constructor( options )
     {
@@ -85,7 +80,7 @@ export class Dialog
     {
         const filename = `temp_${ new Date().getTime() }_${ Math.random() }`.replace( '.', '' )
         return {
-            filename: this.join_path( filepath_Temp, filename ),
+            filename: this.join_path( 'temp', filename ),
             usage: usage,
         }
     }

@@ -9,8 +9,6 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import process from 'process'
-
 const MiscAPI = Base => class extends Base
 {
     glk_tick()

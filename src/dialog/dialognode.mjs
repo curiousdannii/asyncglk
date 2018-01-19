@@ -16,7 +16,7 @@ import path from 'path'
 import util from 'util'
 
 import * as Const from '../glk/const.mjs'
-import * as Dialog from './dialog.mjs'
+import Dialog from './dialog.mjs'
 
 const promisify = util.promisify
 const access = promisify( fs.access )
@@ -165,7 +165,7 @@ class FStream
     }
 }
 
-export default class DialogNode extends Dialog.Dialog
+export default class DialogNode extends Dialog
 {
     async file_fopen( fmode, ref )
     {
@@ -201,7 +201,7 @@ export default class DialogNode extends Dialog.Dialog
         let directory = ''
         switch ( dir_mode )
         {
-            case Dialog.filepath_Temp:
+            case 'temp':
                 directory = path.join( os.tmpdir(), this.appname )
         }
 
