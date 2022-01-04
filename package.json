@@ -1,0 +1,17 @@
+{
+  "name": "asyncglk",
+  "version": "0.1.0",
+  "author": "Dannii Willis <curiousdannii@gmail.com>",
+  "license": "MIT",
+  "description": "A Typescript Glk library",
+  "repository": "curiousdannii/asyncglk",
+  "bugs": "https://github.com/curiousdannii/asyncglk/issues",
+  "homepage": "https://github.com/curiousdannii/asyncglk",
+  "keywords": [
+    "glk",
+    "interactive-fiction"
+  ],
+  "devDependencies": {
+    "typescript": "^4.5.4"
+  }
+}
