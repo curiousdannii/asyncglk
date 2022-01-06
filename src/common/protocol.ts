@@ -200,13 +200,18 @@ export interface Metrics {
 }
 
 /** GlkApi/RemGlk->GlkOte content updates */
-export type Update = ErrorUpdate | PassUpdate | RetryUpdate | StateUpdate
+export type Update = ErrorUpdate | ExitUpdate | PassUpdate | RetryUpdate | StateUpdate
 
 export interface ErrorUpdate {
     /** Update type */
     type: 'error',
     /** Error message */
     message: string,
+}
+
+export interface ExitUpdate {
+    /** Update type */
+    type: 'exit',
 }
 
 export interface PassUpdate {
@@ -232,16 +237,7 @@ export interface StateUpdate {
     /** Windows with active input */
     input?: InputUpdate[],
     /** Special input */
-    specialinput?: {
-        /** Special input type */
-        type: 'fileref_prompt',
-        /** File mode */
-        filemode: 'read' | 'readwrite' | 'write' | 'writeappend',
-        /** File type */
-        filetype: 'command' | 'data' | 'save' | 'transcript',
-        /** Game ID */
-        gameid?: string,
-    },
+    specialinput?: SpecialInput,
     timer: number | null | undefined,
     /** Updates to window (new windows, or changes to their arrangements) */
     windows?: WindowUpdate[],
@@ -380,6 +376,17 @@ export interface InputUpdate {
     terminators?: string[],
     /** Textual input type */
     type: 'char' | 'line' | undefined,
+}
+
+export interface SpecialInput {
+    /** Special input type */
+    type: 'fileref_prompt',
+    /** File mode */
+    filemode: 'read' | 'readwrite' | 'write' | 'writeappend',
+    /** File type */
+    filetype: 'command' | 'data' | 'save' | 'transcript',
+    /** Game ID */
+    gameid?: string,
 }
 
 /** Updates to window (new windows, or changes to their arrangements) */
