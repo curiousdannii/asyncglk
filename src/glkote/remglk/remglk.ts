@@ -11,11 +11,11 @@ https://github.com/curiousdannii/asyncglk
 
 import * as TTY from 'tty'
 
-import * as Constants from '../../common/constants'
-import * as GlkOte from '../common/glkote'
-import * as protocol from '../../common/protocol'
+import * as Constants from '../../common/constants.js'
+import * as GlkOte from '../common/glkote.js'
+import * as protocol from '../../common/protocol.js'
 
-export class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
+export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
     private stdin: TTY.ReadStream
     private stdout: TTY.WriteStream
 

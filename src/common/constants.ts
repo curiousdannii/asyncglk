@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import * as protocol from './protocol'
+import * as protocol from './protocol.js'
 
 export const DEFAULT_METRICS: protocol.Metrics = {
     buffercharheight: 1,

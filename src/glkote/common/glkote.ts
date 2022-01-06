@@ -10,8 +10,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import * as Constants from '../../common/constants'
-import * as protocol from '../../common/protocol'
+import * as Constants from '../../common/constants.js'
+import * as protocol from '../../common/protocol.js'
 
 export interface GlkOte {
     classname: string,
