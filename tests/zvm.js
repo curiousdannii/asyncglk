@@ -5,13 +5,13 @@
 'use strict'
 
 import fs from 'fs'
+import GlkOteTerm from 'glkote-term'
 import readline from 'readline'
 import minimist from 'minimist'
 import MuteStream  from 'mute-stream'
 import ZVM from 'ifvms'
 
 import CheapGlkOte from '../dist/glkote/cheap/cheap.js'
-import GlkApi from '../dist/glkapi.js'
 import RemGlk from '../dist/glkote/remglk/remglk.js'
 
 const argv = minimist(process.argv.slice(2))
@@ -37,13 +37,12 @@ const vm = new ZVM.ZVM()
 
 const options = {
     vm: vm,
-    //Dialog: new GlkOteLib.DumbGlkOte.Dialog(rl_opts),
-    Dialog: {},
-    Glk: GlkApi,
+    Dialog: new GlkOteTerm.DumbGlkOte.Dialog(rl_opts),
+    Glk: GlkOteTerm.Glk,
     GlkOte: new GlkOte(rl_opts),
 }
 
 vm.prepare(fs.readFileSync(storyfile), options)
 
 // This will call vm.init()
-GlkApi.init(options)
+GlkOteTerm.Glk.init(options)

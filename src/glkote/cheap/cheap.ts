@@ -109,7 +109,7 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
         }
     }
 
-    private handle_line_input(line: any) {
+    private handle_line_input(line: string) {
         if (this.current_input_type === 'line') {
             if (this.stdout.isTTY) {
                 this.stdout.write(ansiEscapes.scrollDown + ansiEscapes.cursorRestorePosition + ansiEscapes.eraseEndLine)

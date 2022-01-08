@@ -16,6 +16,7 @@
     "ansi-escapes": "^5.0.0"
   },
   "devDependencies": {
+    "glkote-term": "^0.4.4",
     "ifvms": "^1.1.6",
     "minimist": "^1.2.5",
     "mute-stream": "0.0.8",
