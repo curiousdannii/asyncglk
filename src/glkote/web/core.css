@@ -31,3 +31,10 @@ https://github.com/curiousdannii/asyncglk
     height: 100%;
     width: 100%;
 }
+
+#loadingpane {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 20%;
+}

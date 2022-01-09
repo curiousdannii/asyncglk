@@ -26,6 +26,8 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         windowport_id: 'windowport',
     })
     private metrics_calculator: Metrics
+    private showing_error = false
+    private showing_loading = true
 
     constructor() {
         super()
@@ -81,7 +83,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected cancel_inputs(windows: protocol.InputUpdate[]) {
-        throw new Error('not yet implemented')
+        throw new Error('cancel_inputs not yet implemented')
     }
 
     protected capabilities(): string[] {
@@ -89,15 +91,30 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected disable(disable: boolean) {
-        throw new Error('not yet implemented')
+        throw new Error('disable not yet implemented')
     }
 
     error(msg: any) {
-        throw new Error('not yet implemented')
+        msg ?? '???'
+
+        // Don't use jQuery, because this is called if jQuery isn't present
+        const errorcontent = document.getElementById(this.dom.errorcontent_id)
+        if (!errorcontent) {
+            throw new Error(msg as string)
+        }
+        errorcontent.innerHTML = msg
+
+        const errorpane = document.getElementById(this.dom.errorpane_id)!
+        if (errorpane.className === 'WarningPane') {
+            errorpane.className = ''
+        }
+        errorpane.style.display = ''
+        this.showing_error = true
+        this.hide_loading()
     }
 
     protected exit() {
-        throw new Error('not yet implemented')
+        throw new Error('exit not yet implemented')
     }
 
     getdomcontext(): HTMLElement | undefined {
@@ -116,11 +133,24 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected handle_specialinput(data: protocol.SpecialInput) {
-        throw new Error('not yet implemented')
+        throw new Error('handle_specialinput not yet implemented')
+    }
+
+    private hide_loading() {
+        if (!this.showing_loading) {
+            return
+        }
+        this.showing_loading = false
+
+        // Don't use jQuery because this could be called from error()
+        const loadingpane = document.getElementById(this.dom.loadingpane_id)
+        if (loadingpane) {
+            loadingpane.style.display = 'none'
+        }
     }
 
     save_allstate(): any {
-        throw new Error('not yet implemented')
+        throw new Error('save_allstate not yet implemented')
     }
 
     setdomcontext(val: HTMLElement) {
@@ -128,14 +158,40 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected update_content(content: protocol.ContentUpdate[]) {
-        throw new Error('not yet implemented')
+        throw new Error('update_content not yet implemented')
     }
 
     protected update_inputs(windows: protocol.InputUpdate[]) {
-        throw new Error('not yet implemented')
+        throw new Error('update_inputs not yet implemented')
     }
 
     protected update_windows(windows: protocol.WindowUpdate[]) {
-        throw new Error('not yet implemented')
+        throw new Error('update_windows not yet implemented')
+    }
+
+    warning(msg: any) {
+        // Don't show warnings if an error is already being shown
+        if (this.showing_error) {
+            return
+        }
+
+        const errorpane = $(`#${this.dom.errorpane_id}`)
+
+        // Hide a warning
+        if (!msg) {
+            errorpane.hide()
+            return
+        }
+
+        const errorcontent = document.getElementById(this.dom.errorcontent_id)
+        if (!errorcontent) {
+            console.warn(msg)
+            return
+        }
+        errorcontent.innerHTML = msg
+
+        errorpane.addClass('WarningPane')
+        errorpane.show()
+        this.hide_loading()
     }
 }
