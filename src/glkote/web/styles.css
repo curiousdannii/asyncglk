@@ -1,0 +1,53 @@
+/*
+
+GlkOte Glk styles
+====================
+
+Copyright (c) 2022 Dannii Willis
+MIT licenced
+https://github.com/curiousdannii/asyncglk
+
+*/
+
+span.Style_normal {}
+
+span.Style_emphasized {
+    font-style: italic;
+}
+
+span.Style_preformatted {
+    font-family: var(--glkote-mono-family);
+}
+
+span.Style_header {
+    font-weight: bold;
+}
+
+.BufferWindow span.Style_header {
+    font-size: 1.13333em; /* 17px when using the default 15px buffer window text size */
+}
+
+span.Style_subheader {
+    font-weight: bold;
+}
+
+span.Style_alert {
+    font-weight: bold;
+}
+
+span.Style_note {
+    font-style: italic;
+}
+
+span.Style_blockquote {
+    background: var(--glkote-blockquote-bg);
+}
+
+span.Style_input {
+    font-weight: bold;
+    color: var(--glkote-input-fg);
+}
+
+.Style_user1 {}
+
+.Style_user2 {}

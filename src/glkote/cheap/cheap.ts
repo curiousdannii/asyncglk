@@ -48,6 +48,42 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
         this.stdout = options.stdout
     }
 
+    async init(options: GlkOte.GlkOteOptions) {
+        if (!options) {
+            throw new Error('no options provided')
+        }
+
+        // Wrap glk_window_open so that only one window can be opened
+        if (options.Glk) {
+            const old_glk_window_open = options.Glk.glk_window_open
+            options.Glk.glk_window_open = function(splitwin: any, method: any, size: any, wintype: any, rock: any) {
+                if (splitwin) {
+                    return null
+                }
+                return old_glk_window_open(splitwin, method, size, wintype, rock)
+            }
+        }
+
+        // Prepare to receive input events
+        if (process.stdin.isTTY) {
+            this.stdin.setRawMode(true)
+        }
+        readline.emitKeypressEvents(this.stdin)
+        this.rl.resume()
+
+        if (process.stdout.isTTY) {
+            this.current_metrics.height = process.stdout.rows
+            this.current_metrics.width = process.stdout.columns
+        }
+
+        // Event callbacks
+        this.handle_char_input_callback = (str: string, key: readline.Key) => this.handle_char_input(str, key)
+        this.handle_line_input_callback = (line: string) => this.handle_line_input(line)
+
+        // Note that this must be called last as it will result in VM.start() being called
+        super.init(options)
+    }
+
     private attach_handlers() {
         if (this.current_input_type === 'char') {
             this.stdout.mute()
@@ -81,8 +117,7 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
         }
     }
 
-    protected exit()
-    {
+    protected exit() {
         this.detach_handlers()
         this.rl.close()
         this.stdout.write('\n')
@@ -154,44 +189,8 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
         }
     }
 
-    async init(options: GlkOte.GlkOteOptions): Promise<void> {
-        if (!options) {
-            throw new Error('no options provided')
-        }
-
-        // Wrap glk_window_open so that only one window can be opened
-        if (options.Glk) {
-            const old_glk_window_open = options.Glk.glk_window_open
-            options.Glk.glk_window_open = function(splitwin: any, method: any, size: any, wintype: any, rock: any) {
-                if (splitwin) {
-                    return null
-                }
-                return old_glk_window_open(splitwin, method, size, wintype, rock)
-            }
-        }
-
-        // Prepare to receive input events
-        if (process.stdin.isTTY) {
-            this.stdin.setRawMode(true)
-        }
-        readline.emitKeypressEvents(this.stdin)
-        this.rl.resume()
-
-        if (process.stdout.isTTY) {
-            this.current_metrics.height = process.stdout.rows
-            this.current_metrics.width = process.stdout.columns
-        }
-
-        // Event callbacks
-        this.handle_char_input_callback = (str: string, key: readline.Key) => this.handle_char_input(str, key)
-        this.handle_line_input_callback = (line: string) => this.handle_line_input(line)
-
-        // Note that this must be called last as it will result in VM.start() being called
-        super.init(options)
-    }
-
     save_allstate(): any {
-        throw new Error('not yet implemented')
+        throw new Error('save_allstate not yet implemented')
     }
 
     protected update_content(content: protocol.ContentUpdate[]) {

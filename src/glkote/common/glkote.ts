@@ -15,9 +15,9 @@ import * as protocol from '../../common/protocol.js'
 
 export interface GlkOte {
     classname: string,
-    error(msg: string): void,
+    error(msg: any): void,
     extevent(val: any): void,
-    getdomcontext(): string,
+    getdomcontext(): HTMLElement | undefined,
     getdomid(name: string): string,
     getinterface(): GlkOteOptions,
     getlibrary(name: string): any,
@@ -25,10 +25,10 @@ export interface GlkOte {
     inited(): boolean,
     log(msg: string): void,
     save_allstate(): any,
-    setdomcontext(val: string): void,
+    setdomcontext(val: HTMLElement): void,
     update(data: protocol.Update): void,
     version: string,
-    warning(msg: string): void,
+    warning(msg: any): void,
 }
 
 export interface GlkOteOptions {
@@ -66,44 +66,12 @@ export abstract class GlkOteBase implements GlkOte {
     protected is_inited = false
     protected options: GlkOteOptions = {} as GlkOteOptions
 
-    error(msg: string): void {
-        throw new Error(msg)
-    }
-
-    extevent(val: any): void {
-        this.send_event({
-            type: 'external',
-            gen: this.generation,
-            value: val,
-        })
-    }
-
-    getdomcontext(): string {
-        throw new Error('getdomcontext is not applicable to this GlkOte library')
-    }
-
-    getdomid(name: string): string {
-        throw new Error('getdomid is not applicable to this GlkOte library')
-    }
-
-    getinterface(): GlkOteOptions {
-        return this.options
-    }
-
-    getlibrary(name: string): any {
-        switch (name) {
-            case 'Blorb': return this.Blorb
-            case 'Dialog': return this.Dialog
-            default: return null
-        }
-    }
-
-    async init(options: GlkOteOptions): Promise<void> {
+    async init(options: GlkOteOptions) {
         if (!options) {
-            throw new Error('no options provided')
+            return this.error('no options provided')
         }
         if (!options.accept) {
-            throw new Error('an accept function was not given to GlkOte')
+            return this.error('an accept function was not given to GlkOte')
         }
 
         this.options = options
@@ -127,19 +95,51 @@ export abstract class GlkOteBase implements GlkOte {
         })
     }
 
+    error(msg: any) {
+        throw new Error(msg)
+    }
+
+    extevent(val: any) {
+        this.send_event({
+            type: 'external',
+            gen: this.generation,
+            value: val,
+        })
+    }
+
+    getdomcontext(): HTMLElement | undefined {
+        throw new Error('getdomcontext is not applicable to this GlkOte library')
+    }
+
+    getdomid(name: string): string {
+        throw new Error('getdomid is not applicable to this GlkOte library')
+    }
+
+    getinterface(): GlkOteOptions {
+        return this.options
+    }
+
+    getlibrary(name: string): any {
+        switch (name) {
+            case 'Blorb': return this.Blorb
+            case 'Dialog': return this.Dialog
+            default: return null
+        }
+    }
+
     inited(): boolean {
         return this.is_inited
     }
 
-    log(msg: string): void {
+    log(msg: string) {
         console.log(msg)
     }
 
-    setdomcontext(val: string): void {
+    setdomcontext(val: HTMLElement) {
         throw new Error('setdomcontext is not applicable to this GlkOte library')
     }
 
-    update(data: protocol.Update): void {
+    update(data: protocol.Update) {
         if (data.type === 'error') {
             return this.error(data.message)
         }
@@ -197,7 +197,7 @@ export abstract class GlkOteBase implements GlkOte {
         }
     }
 
-    warning(msg: string): void {
+    warning(msg: any) {
         console.warn(msg)
     }
 
@@ -206,9 +206,9 @@ export abstract class GlkOteBase implements GlkOte {
         return []
     }
 
-    protected exit(): void {}
+    protected exit() {}
 
-    protected send_event(event: protocol.Event): void {
+    protected send_event(event: protocol.Event) {
         this.accept_func(event)
     }
 

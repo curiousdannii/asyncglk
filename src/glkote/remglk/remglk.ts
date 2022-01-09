@@ -30,7 +30,7 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         }
     }
 
-    async init(options: GlkOte.GlkOteOptions): Promise<void> {
+    async init(options: GlkOte.GlkOteOptions) {
         if (!options) {
             throw new Error('no options provided')
         }
@@ -67,35 +67,35 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         this.is_inited = true
     }
 
-    update(data: protocol.Update): void {
+    update(data: protocol.Update) {
         this.stdout.write(`${JSON.stringify(data)}\n\n`)
     }
 
-    cancel_inputs(windows: protocol.InputUpdate[]): void {
-        throw new Error('method should not be called in RemGlk mode')
+    cancel_inputs(windows: protocol.InputUpdate[]) {
+        throw new Error('cancel_inputs method should not be called in RemGlk mode')
     }
 
-    disable(disable: boolean): void {
-        throw new Error('method should not be called in RemGlk mode')
+    disable(disable: boolean) {
+        throw new Error('disable method should not be called in RemGlk mode')
     }
 
-    handle_specialinput(data: protocol.SpecialInput): void {
-        throw new Error('method should not be called in RemGlk mode')
+    handle_specialinput(data: protocol.SpecialInput) {
+        throw new Error('handle_specialinput method should not be called in RemGlk mode')
     }
 
-    save_allstate(): any {
-        throw new Error('method should not be called in RemGlk mode')
+    save_allstate() {
+        throw new Error('save_allstate method should not be called in RemGlk mode')
     }
 
-    update_content(content: protocol.ContentUpdate[]): void {
-        throw new Error('method should not be called in RemGlk mode')
+    update_content(content: protocol.ContentUpdate[]) {
+        throw new Error('update_content method should not be called in RemGlk mode')
     }
 
-    update_inputs(windows: protocol.InputUpdate[]): void {
-        throw new Error('method should not be called in RemGlk mode')
+    update_inputs(windows: protocol.InputUpdate[]) {
+        throw new Error('update_inputs method should not be called in RemGlk mode')
     }
 
-    update_windows(windows: protocol.WindowUpdate[]): void {
-        throw new Error('method should not be called in RemGlk mode')
+    update_windows(windows: protocol.WindowUpdate[]) {
+        throw new Error('update_windows method should not be called in RemGlk mode')
     }
 }

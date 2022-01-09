@@ -1,0 +1,33 @@
+/*
+
+GlkOte core styles
+==================
+
+Copyright (c) 2022 Dannii Willis
+MIT licenced
+https://github.com/curiousdannii/asyncglk
+
+*/
+
+/* Base black on white styles, see light.css for something nicer */
+:root {
+    --glkote-blockquote-bg: #fff0c0
+    --glkote-buffer-bg: #fff;
+    --glkote-buffer-fg: #000;
+    --glkote-buffer-reverse-bg: #000;
+    --glkote-buffer-reverse-fg: #fff;
+    --glkote-buffer-size: 15px;
+    --glkote-grid-bg: #fff;
+    --glkote-grid-fg: #000;
+    --glkote-grid-reverse-bg: #000;
+    --glkote-grid-reverse-fg: #fff;
+    --glkote-grid-size: 14px;
+    --glkote-input-fg: #300000
+    --glkote-mono-family: monospace;
+    --glkote-prop-family: serif;
+}
+
+#windowport {
+    height: 100%;
+    width: 100%;
+}

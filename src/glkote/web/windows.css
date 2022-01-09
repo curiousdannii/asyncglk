@@ -1,0 +1,73 @@
+/*
+
+GlkOte window styles
+====================
+
+Copyright (c) 2022 Dannii Willis
+MIT licenced
+https://github.com/curiousdannii/asyncglk
+
+*/
+
+.WindowFrame {
+    background: var(--glkote-buffer-bg);
+    box-sizing: border-box;
+    margin: 0px;
+    position: absolute;
+}
+
+.BufferWindow {
+    color: var(--glkote-buffer-fg);
+    font-family: var(--glkote-prop-family);
+    font-size: var(--glkote-buffer-size);
+    line-height: 1.4;
+    overflow-x: hidden; /* hide the horizontal scrollbar */
+    padding: 6px 10px;
+    scrollbar-gutter: stable; /* preserve space for the vertical scrollbar */
+    z-index: 1;
+}
+
+/* Make the scrollbar transparent grey */
+.BufferWindow::-webkit-scrollbar {
+    width: 10px;
+}
+.BufferWindow::-webkit-scrollbar-thumb {
+    background: rgba(50%, 50%, 50%, 20%);
+}
+
+.BufferWindow .reverse {
+    background: var(--glkote-buffer-reverse-bg);
+    color: var(--glkote-buffer-reverse-fg);
+}
+
+.BufferLine {
+    white-space: pre-wrap; /* required for spaces to work right */
+}
+
+.GraphicsWindow canvas {
+    background-color: var(--glkote-buffer-bg);
+    display: block;
+}
+
+.GridWindow {
+    background: var(--glkote-grid-bg);
+    color: var(--glkote-grid-fg);
+    font-family: var(--glkote-mono-family); /* necessary! */
+    font-size: var(--glkote-grid-size);
+    overflow: hidden;
+    padding: 6px 10px;
+    z-index: 2;
+}
+
+.GridWindow.reverse {
+    background: var(--glkote-grid-reverse-bg);
+}
+
+.GridWindow .reverse {
+    background: var(--glkote-grid-reverse-bg);
+    color: var(--glkote-grid-reverse-fg);
+}
+
+.GridLine {
+    white-space: pre; /* required for spaces to work right */
+}
