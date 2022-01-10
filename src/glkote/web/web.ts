@@ -14,7 +14,20 @@ import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
 import {DOM} from './shared.js'
+import Windows from './windows.js'
 
+/** A GlkOte implementation for the web
+ * 
+ * WebGlkOte requires the following HTML divs to be present (though the id names can be varied through the options):
+ * 
+ * ```
+ *     <div id="gameport">
+ *         <div id="windowport"></div>
+ *         <div id="loadingpane">Loading...</div>
+ *         <div id="errorpane" style="display:none;"><div id="errorcontent"></div></div>
+ *     </div>
+ * ```
+ */
 export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
     private dom: DOM = new DOM({
         context_element: undefined,
@@ -28,11 +41,13 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     private metrics_calculator: Metrics
     private showing_error = false
     private showing_loading = true
+    private windows: Windows
 
     constructor() {
         super()
 
         this.metrics_calculator = new Metrics(this.dom, this.current_metrics)
+        this.windows = new Windows(this.dom, this.current_metrics)
     }
 
     async init(options: GlkOte.GlkOteOptions) {
@@ -83,7 +98,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected cancel_inputs(windows: protocol.InputUpdate[]) {
-        throw new Error('cancel_inputs not yet implemented')
+        // TODO: implement!
     }
 
     protected capabilities(): string[] {
@@ -95,7 +110,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     error(msg: any) {
-        msg ?? '???'
+        msg ??= '???'
 
         // Don't use jQuery, because this is called if jQuery isn't present
         const errorcontent = document.getElementById(this.dom.errorcontent_id)
@@ -111,6 +126,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         errorpane.style.display = ''
         this.showing_error = true
         this.hide_loading()
+        throw msg
     }
 
     protected exit() {
@@ -150,7 +166,12 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     save_allstate(): any {
-        throw new Error('save_allstate not yet implemented')
+        return {
+            metrics: {
+                height: this.current_metrics.height,
+                width: this.current_metrics.width,
+            }
+        }
     }
 
     setdomcontext(val: HTMLElement) {
@@ -158,7 +179,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected update_content(content: protocol.ContentUpdate[]) {
-        throw new Error('update_content not yet implemented')
+        this.windows.update_content(content)
     }
 
     protected update_inputs(windows: protocol.InputUpdate[]) {
@@ -166,7 +187,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected update_windows(windows: protocol.WindowUpdate[]) {
-        throw new Error('update_windows not yet implemented')
+        this.windows.update(windows)
     }
 
     warning(msg: any) {

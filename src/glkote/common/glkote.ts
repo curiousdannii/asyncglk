@@ -140,60 +140,65 @@ export abstract class GlkOteBase implements GlkOte {
     }
 
     update(data: protocol.Update) {
-        if (data.type === 'error') {
-            return this.error(data.message)
-        }
-        if (data.type === 'exit') {
-            return this.exit()
-        }
-        if (data.type === 'pass') {
-            return
-        }
-        if (data.type === 'retry') {
-            setTimeout(() => {
-                this.send_event({
-                    type: 'refresh',
-                    gen: this.generation,
-                })
-            }, 2000)
-            return
-        }
-        if (data.type !== 'update') {
-            return this.error(`Unknown update type: ${(data as any).type}`)
-        }
+        try {
+            if (data.type === 'error') {
+                return this.error(data.message)
+            }
+            if (data.type === 'exit') {
+                return this.exit()
+            }
+            if (data.type === 'pass') {
+                return
+            }
+            if (data.type === 'retry') {
+                setTimeout(() => {
+                    this.send_event({
+                        type: 'refresh',
+                        gen: this.generation,
+                    })
+                }, 2000)
+                return
+            }
+            if (data.type !== 'update') {
+                return this.error(`Unknown update type: ${(data as any).type}`)
+            }
 
-        if (data.gen === this.generation) {
-            this.log(`Ignoring repeated generation number: ${data.gen}`)
-            return
-        }
-        this.generation = data.gen
+            if (data.gen === this.generation) {
+                this.log(`Ignoring repeated generation number: ${data.gen}`)
+                return
+            }
+            this.generation = data.gen
 
-        if (this.disabled) {
-            this.disable(false)
-        }
+            if (this.disabled) {
+                this.disable(false)
+            }
 
-        // Now handle all the state updates
-        if (data.input) {
-            this.cancel_inputs(data.input)
-        }
-        if (data.windows) {
-            this.update_windows(data.windows)
-        }
-        if (data.content) {
-            this.update_content(data.content)
-        }
-        if (data.input) {
-            this.update_inputs(data.input)
-        }
+            // Now handle all the state updates
+            if (data.input) {
+                this.cancel_inputs(data.input)
+            }
+            if (data.windows) {
+                this.update_windows(data.windows)
+            }
+            if (data.content) {
+                this.update_content(data.content)
+            }
+            if (data.input) {
+                this.update_inputs(data.input)
+            }
 
-        // Disable everything if requested
-        this.disabled = false
-        if (data.disable || data.specialinput) {
-            this.disable(true)
-        }
+            // Disable everything if requested
+            this.disabled = false
+            if (data.disable || data.specialinput) {
+                this.disable(true)
+            }
 
-        if (data.specialinput) {
-            this.handle_specialinput(data.specialinput)
+            if (data.specialinput) {
+                this.handle_specialinput(data.specialinput)
+            }
+        }
+        catch (err) {
+            this.error(err)
         }
     }
 

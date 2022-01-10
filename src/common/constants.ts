@@ -30,4 +30,6 @@ export const DEFAULT_METRICS: protocol.Metrics = {
     width: 80,
 }
 
+export const NBSP = '\xa0'
+
 export const PACKAGE_VERSION = '0.1.0'

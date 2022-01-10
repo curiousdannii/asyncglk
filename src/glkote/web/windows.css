@@ -24,7 +24,6 @@ https://github.com/curiousdannii/asyncglk
     overflow-x: hidden; /* hide the horizontal scrollbar */
     padding: 6px 10px;
     scrollbar-gutter: stable; /* preserve space for the vertical scrollbar */
-    z-index: 1;
 }
 
 /* Make the scrollbar transparent grey */
@@ -56,7 +55,6 @@ https://github.com/curiousdannii/asyncglk
     font-size: var(--glkote-grid-size);
     overflow: hidden;
     padding: 6px 10px;
-    z-index: 2;
 }
 
 .GridWindow.reverse {
