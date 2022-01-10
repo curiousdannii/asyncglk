@@ -47,7 +47,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         super()
 
         this.metrics_calculator = new Metrics(this.dom, this.current_metrics)
-        this.windows = new Windows(this.dom, this.current_metrics)
+        this.windows = new Windows(this.dom, event => this.send_event(event), this.current_metrics)
     }
 
     async init(options: GlkOte.GlkOteOptions) {
@@ -98,7 +98,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected cancel_inputs(windows: protocol.InputUpdate[]) {
-        // TODO: implement!
+        this.windows.cancel_inputs(windows)
     }
 
     protected capabilities(): string[] {
@@ -178,12 +178,19 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         this.dom.context_element = val
     }
 
+    update(data: protocol.Update) {
+        if (this.showing_loading) {
+            this.hide_loading()
+        }
+        super.update(data)
+    }
+
     protected update_content(content: protocol.ContentUpdate[]) {
         this.windows.update_content(content)
     }
 
     protected update_inputs(windows: protocol.InputUpdate[]) {
-        throw new Error('update_inputs not yet implemented')
+        this.windows.update_inputs(windows)
     }
 
     protected update_windows(windows: protocol.WindowUpdate[]) {

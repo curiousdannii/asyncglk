@@ -376,6 +376,10 @@ export interface InputUpdate {
     terminators?: string[],
     /** Textual input type */
     type: 'char' | 'line' | undefined,
+    /** Grid window coordinate X */
+    xpos?: number,
+    /** Grid window coordinate Y */
+    ypos?: number,
 }
 
 export interface SpecialInput {

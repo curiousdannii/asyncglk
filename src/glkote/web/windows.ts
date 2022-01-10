@@ -12,25 +12,53 @@ https://github.com/curiousdannii/asyncglk
 import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
+import {TextInput} from './input.js'
 import {create, DOM} from './shared.js'
+
+type EventFunc = (event: protocol.Event) => void
 
 type Window = BufferWindow | GraphicsWindow | GridWindow
 
-abstract class WindowBase {
+export abstract class WindowBase {
     desired: boolean = true
+    dom: DOM
     frameel: JQuery<HTMLElement>
     id: number
+    inputs?: protocol.InputUpdate
+    metrics: protocol.Metrics
     rock: number
+    send_event: EventFunc
+    textinput?: TextInput
     abstract type: 'buffer' | 'graphics' | 'grid'
 
     constructor(options: {
+        dom: DOM,
         frameel: JQuery<HTMLElement>,
         id: number,
+        metrics: protocol.Metrics,
         rock: number,
+        send_event: EventFunc,
     }) {
+        this.dom = options.dom
         this.frameel = options.frameel
         this.id = options.id
+        this.metrics = options.metrics
         this.rock = options.rock
+        this.send_event = options.send_event
+    }
+
+    destroy() {
+        if (this.textinput) {
+            this.textinput.destroy()
+        }
+        this.frameel.remove()
+    }
+
+    update_input() {
+        if (!this.textinput) {
+            this.textinput = new TextInput(this)
+        }
+        this.textinput.update()
     }
 }
 
@@ -54,17 +82,32 @@ class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
     lastline?: JQuery<HTMLElement>
 
+    add_cursor(): JQuery<HTMLElement> {
+        const cursor = this.dom.create('span', `win${this.id}_cursor`, 'InvisibleCursor')
+        cursor.append(NBSP)
+        const container = this.lastline || this.frameel
+        container.append(cursor)
+        return cursor
+    }
+
     update(data: protocol.BufferWindowContentUpdate) {
         // TODO: detach character input?
 
         if (data.clear) {
             this.frameel.empty()
+            this.lastline = undefined
         }
 
         // If the text field is missing, just do nothing
         if (!data.text) {
             return
         }
+
+        // Detach input and remove the cursor
+        if (this.textinput) {
+            this.textinput.el.detach()
+        }
+        this.dom.id(`win${this.id}_cursor`).remove()
 
         for (const line of data.text) {
             const content = line.content
@@ -75,6 +118,7 @@ class BufferWindow extends TextualWindow {
             if (!divel) {
                 divel = create('div', 'BufferLine')
                 this.frameel.append(divel)
+                this.lastline = divel
                 if (!content || !line.content.length) {
                     divel.addClass('BlankPara')
                     divel.append(create('span', 'BlankLineSpace').text(NBSP))
@@ -104,6 +148,27 @@ class BufferWindow extends TextualWindow {
                 divel.append(this.create_text_run(run))
             }
         }
+
+        // Attach a new cursor and the input if it exists
+        if (this.lastline) {
+            const cursor = this.add_cursor()
+            if (this.textinput) {
+                cursor.append(this.textinput.el)
+            }
+        }
+    }
+
+    update_input() {
+        super.update_input()
+
+        let cursor = this.dom.id(`win${this.id}_cursor`)
+        if (!cursor.length) {
+            cursor = this.add_cursor()
+        }
+        const pos = cursor.position()
+        const width = Math.max(200, this.frameel.width()! - (this.metrics.buffermarginx! + pos.left + 2))
+        this.textinput!.el.css('width', `${width}px`)
+        cursor.append(this.textinput!.el)
     }
 }
 
@@ -113,7 +178,7 @@ class GraphicsWindow extends WindowBase {
     width = 0
 
     update(data: protocol.GraphicsWindowContentUpdate) {
-        
+        // TODO!
     }
 }
 
@@ -163,11 +228,31 @@ const window_types: Record<string, string> = {
 export default class Windows extends Map<number, Window> {
     private dom: DOM
     private metrics: protocol.Metrics
+    private send_event: EventFunc
 
-    constructor(dom: DOM, metrics: protocol.Metrics) {
+    constructor(dom: DOM, send_event: EventFunc, metrics: protocol.Metrics) {
         super()
         this.dom = dom
         this.metrics = metrics
+        this.send_event = send_event
+    }
+
+    cancel_inputs(windows: protocol.InputUpdate[]) {
+        const newinputs: Record<number, protocol.InputUpdate> = {}
+        for (const window of windows) {
+            newinputs[window.id] = window
+        }
+
+        for (const win of this.values()) {
+            const update = newinputs[win.id]
+            if (!update && win.inputs) {
+                delete win.inputs
+                if (win.textinput) {
+                    win.textinput.destroy()
+                    delete win.textinput
+                }
+            }
+        }
     }
 
     update(windows: protocol.WindowUpdate[]) {
@@ -178,55 +263,56 @@ export default class Windows extends Map<number, Window> {
 
         // Go through each window in this update
         for (const update of windows) {
+            const id = update.id
+            const rock = update.rock
+            const type = update.type
+
             // Is there an existing window?
-            let win = this.get(update.id)
+            let win = this.get(id)
             let frameel
 
             // Create it if not
             if (!win) {
                 // GlkOte added class HasNoInputField - is it necessary?
-                frameel = this.dom.create('div', `window${update.id}`, `WindowFrame ${window_types[update.type]} WindowRock_${update.rock}`)
+                frameel = this.dom.create('div', `window${id}`, `WindowFrame ${window_types[type]} WindowRock_${rock}`)
                 // TODO: attach mousedown handler, scrolling handler, etc
 
-                switch (update.type) {
+                const options = {
+                    dom: this.dom,
+                    frameel,
+                    id,
+                    metrics: this.metrics,
+                    rock,
+                    send_event: this.send_event,
+                }
+
+                switch (type) {
                     case 'buffer': {
                         frameel.attr({
                             'aria-atomic': 'false',
                             'aria-live': 'polite',
                             'aria-relevant': 'additions',
                         })
-                        win = new BufferWindow({
-                            frameel,
-                            id: update.id,
-                            rock: update.rock,
-                        })
+                        win = new BufferWindow(options)
                         break
                     }
                     case 'graphics': {
-                        //const canvas = this.dom.create('canvas', `win${update.id}_canvas`)
-                        win = new GraphicsWindow({
-                            frameel,
-                            id: update.id,
-                            rock: update.rock,
-                        })
+                        //const canvas = this.dom.create('canvas', `win${id}_canvas`)
+                        win = new GraphicsWindow(options)
                         break
                     }
                     case 'grid': {
-                        win = new GridWindow({
-                            frameel,
-                            id: update.id,
-                            rock: update.rock,
-                        })
+                        win = new GridWindow(options)
                         break
                     }
                 }
 
-                this.set(update.id, win)
+                this.set(id, win)
                 this.dom.windowport().append(frameel)
             }
             else {
-                if (win.type !== update.type) {
-                    throw new Error(`Window ${update.id} was created with type ${win.type}, but now is described as type ${update.type}`)
+                if (win.type !== type) {
+                    throw new Error(`Window ${id} was created with type ${win.type}, but now is described as type ${type}`)
                 }
                 frameel = win.frameel
             }
@@ -268,7 +354,7 @@ export default class Windows extends Map<number, Window> {
             }
         }
         for (const win of windowstoclose) {
-            win.frameel.remove()
+            win.destroy()
             this.delete(win.id)
         }
     }
@@ -285,6 +371,27 @@ export default class Windows extends Map<number, Window> {
                 case 'buffer': win.update(update as protocol.BufferWindowContentUpdate); break
                 case 'graphics': win.update(update as protocol.GraphicsWindowContentUpdate); break
                 case 'grid': win.update(update as protocol.GridWindowContentUpdate); break
+            }
+        }
+    }
+
+    update_inputs(windows: protocol.InputUpdate[]) {
+        for (const update of windows) {
+            const win = this.get(update.id)
+            if (!win) {
+                throw new Error(`Got input update for window ${update.id}, which does not exist`)
+            }
+
+            const oldgen = win.inputs?.gen
+            win.inputs = update
+            if (update.type){
+                if (update.gen !== oldgen) {
+                    win.update_input()
+                }
+            }
+            else if (win.textinput) {
+                win.textinput.destroy()
+                delete win.textinput
             }
         }
     }
