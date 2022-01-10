@@ -24,6 +24,7 @@ export class TextInput {
             autocapitalize: 'off',
             class: 'Input',
             id: `win${this.window.id}_input`,
+            keypress: (ev: JQuery.KeyPressEvent) => this.keypress(ev),
             type: 'text',
         })
         if ('ontouchstart' in window) {
@@ -34,6 +35,28 @@ export class TextInput {
 
     destroy() {
         this.el.remove()
+    }
+
+    keypress(ev: JQuery.KeyPressEvent) {
+        const keycode = ev.which
+
+        // Submit line input
+        if (this.type === 'line' && keycode === 13) {
+            this.submit_line(ev.target.value)
+            return false
+        }
+    }
+
+    submit_line(val: string, terminator?: string) {
+        // TODO: history
+
+        this.window.send_event({
+            type: 'line',
+            gen: this.window.inputs!.gen!,
+            terminator,
+            value: val,
+            window: this.window.id,
+        })
     }
 
     update() {
@@ -52,9 +75,7 @@ export class TextInput {
             .attr({
                 maxlength: this.type === 'char' ? 1 : update.maxlen!
             })
-        if (update.initial) {
-            this.el.val(update.initial)
-        }
+            .val(update.initial || '')
 
         // TODO: set colours and reverse
     }
