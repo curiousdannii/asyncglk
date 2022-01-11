@@ -33,10 +33,14 @@ export interface CharEvent {
     /** Generation number */
     gen: number,
     /** Character that was received */
-    value: string,
+    value: SpecialKeyCode | string,
     /** Window ID */
     window: number,
 }
+
+export type SpecialKeyCode = 'delete' | 'down' | 'end' | 'escape' | 'func1' | 'func2' | 'func3'
+    | 'func4' | 'func5' | 'func6' | 'func7' | 'func8' | 'func9' | 'func10' | 'func11' | 'func12'
+    | 'home' | 'left' | 'pagedown' | 'pageup' | 'return' | 'right' | 'tab' | 'up'
 
 export interface DebugEvent {
     /** Event code */
@@ -82,7 +86,7 @@ export interface LineEvent {
     /** Generation number */
     gen: number,
     /** Terminator key */
-    terminator?: string,
+    terminator?: TerminatorCode,
     /** Line input */
     value: string,
     /** Window ID */
@@ -407,7 +411,7 @@ export interface InputUpdate {
     /** Mouse input requested */
     mouse?: boolean,
     /** Line input terminators */
-    terminators?: string[],
+    terminators?: TerminatorCode[],
     /** Textual input type */
     type: 'char' | 'line' | undefined,
     /** Grid window coordinate X */
@@ -415,6 +419,9 @@ export interface InputUpdate {
     /** Grid window coordinate Y */
     ypos?: number,
 }
+
+export type TerminatorCode = 'escape' | 'func1' | 'func2' | 'func3' | 'func4' | 'func5' | 'func6'
+    | 'func7' | 'func8' | 'func9' | 'func10' | 'func11' | 'func12'
 
 export interface SpecialInput {
     /** Special input type */

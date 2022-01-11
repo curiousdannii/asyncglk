@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "esModuleInterop": true,
+        "isolatedModules": true,
         "module": "ES2020",
         "moduleResolution": "Node",
         "outDir": "dist",

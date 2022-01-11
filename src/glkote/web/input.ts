@@ -9,7 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {OFFSCREEN_OFFSET} from '../../common/constants.js'
+import {KEY_CODES_TO_NAMES, KEY_NAMES_TO_CODES, OFFSCREEN_OFFSET} from '../../common/constants.js'
+import * as protocol from '../../common/protocol.js'
 
 import WindowManager, {Window} from './windows.js'
 
@@ -27,7 +28,6 @@ export class TextInput {
             'aria-live': 'off',
             autocapitalize: 'off',
             class: 'Input',
-            keypress: (ev: JQuery.KeyPressEvent) => this.onkeypress(ev),
             type: 'text',
         })
         window.frameel.append(this.el)
@@ -37,17 +37,69 @@ export class TextInput {
         this.el.remove()
     }
 
-    //onkeydown
-    // Don't propagate, so that document.keydown doesn't trigger
+    onkeydown(ev: JQuery.KeyDownEvent) {
+        // This input shouldn't be active
+        if (!this.window.inputs?.type) {
+            this.el.trigger('blur')
+            return false
+        }
+
+        const keycode = ev.which
+        if (!keycode) {
+            return
+        }
+
+        if (this.is_line) {
+            // History
+            if (keycode === KEY_NAMES_TO_CODES.down || keycode === KEY_NAMES_TO_CODES.up) {
+                // TODO
+            }
+
+            // Terminator for this input
+            else if (this.window.inputs!.terminators) {
+                const terminator = KEY_CODES_TO_NAMES[keycode] as protocol.TerminatorCode
+                if (this.window.inputs!.terminators.includes(KEY_CODES_TO_NAMES[keycode] as protocol.TerminatorCode)) {
+                    this.submit_line(ev.target.value, terminator)
+                    return false
+                }
+            }
+        }
+        // Character input
+        else {
+            const code = KEY_CODES_TO_NAMES[keycode]
+            if (code) {
+                this.submit_char(code)
+                return false
+            }
+        }
+
+        // Don't propagate, so that document.keydown doesn't trigger
+        ev.stopPropagation()
+    }
 
     onkeypress(ev: JQuery.KeyPressEvent) {
+        // This input shouldn't be active
+        if (!this.window.inputs?.type) {
+            this.el.trigger('blur')
+            return false
+        }
+
         const keycode = ev.which
+        if (!keycode) {
+            return
+        }
 
         // Submit line input
-        if (this.is_line && keycode === 13) {
-            const value = ev.target.value
-            this.reset()
-            this.submit_line(value)
+        if (this.is_line) {
+            if (keycode === KEY_NAMES_TO_CODES.return) {
+                this.submit_line(ev.target.value)
+                return false
+            }
+        }
+        // Character input
+        else {
+            const code = keycode === KEY_NAMES_TO_CODES.return ? 'return' : String.fromCharCode(keycode)
+            this.submit_char(code)
             return false
         }
     }
@@ -55,10 +107,23 @@ export class TextInput {
     reset() {
         this.el
             .css('left', OFFSCREEN_OFFSET)
+            .off('keydown keypress')
             .val('')
     }
 
-    submit_line(val: string, terminator?: string) {
+    submit_char(val: string) {
+        this.reset()
+        this.window_manager.send_event({
+            type: 'char',
+            gen: this.window.inputs!.gen!,
+            value: val,
+            window: this.window.id,
+        })
+    }
+
+    submit_line(val: string, terminator?: protocol.TerminatorCode) {
+        this.reset()
+
         // TODO: history
 
         this.window_manager.send_event({
@@ -76,9 +141,13 @@ export class TextInput {
             throw new Error(`Invalid input update given to TextInput for window ${this.window.id}`)
         }
         this.is_line = update.type === 'line'
-        this.el.attr({
-            maxlength: this.is_line ? update.maxlen! : 1
-        })
+
+        this.el
+            .attr({
+                maxlength: this.is_line ? update.maxlen! : 1
+            })
+            .on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
+            .on('keypress', (ev: JQuery.KeyPressEvent) => this.onkeypress(ev))
 
         // Stop here on character input
         if (!this.is_line) {
