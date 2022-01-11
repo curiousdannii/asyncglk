@@ -133,7 +133,7 @@ class BufferWindow extends TextualWindow {
         // TODO: detach character input?
 
         if (data.clear) {
-            this.frameel.empty()
+            this.frameel.children('.BufferLine').remove()
             this.lastline = undefined
         }
 
@@ -143,6 +143,7 @@ class BufferWindow extends TextualWindow {
         }
 
         // Remove the cursor
+        const oldscrolltop = (this.cursor?.position().top || 0) + this.frameel.scrollTop()! - 20
         if (this.cursor) {
             this.cursor.remove()
             delete this.cursor
@@ -192,6 +193,9 @@ class BufferWindow extends TextualWindow {
         if (this.lastline) {
             this.add_cursor()
         }
+
+        // Scroll down
+        this.frameel.scrollTop(oldscrolltop)
     }
 }
 
