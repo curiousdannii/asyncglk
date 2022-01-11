@@ -139,7 +139,7 @@ export interface TimerEvent {
     gen: number,
 }
 
-/** Screen and font metrics */
+/** Screen and font metrics - all potential options */
 export interface Metrics {
     /** Buffer character height */
     buffercharheight?: number,
@@ -196,6 +196,40 @@ export interface Metrics {
     spacingx?: number,
     /** Spacing Y */
     spacingy?: number,
+    width: number,
+}
+
+/** Normalised screen and font metrics */
+export interface NormalisedMetrics {
+    /** Buffer character height */
+    buffercharheight: number,
+    /** Buffer character width */
+    buffercharwidth: number,
+    /** Buffer window margin X */
+    buffermarginx: number,
+    /** Buffer window margin Y */
+    buffermarginy: number,
+    /** Graphics window margin X */
+    graphicsmarginx: number,
+    /** Graphics window margin Y */
+    graphicsmarginy: number,
+    /** Grid character height */
+    gridcharheight: number,
+    /** Grid character width */
+    gridcharwidth: number,
+    /** Grid window margin X */
+    gridmarginx: number,
+    /** Grid window margin Y */
+    gridmarginy: number,
+    height: number,
+    /** Inspacing X */
+    inspacingx: number,
+    /** Inspacing Y */
+    inspacingy: number,
+    /** Outspacing X */
+    outspacingx: number,
+    /** Outspacing Y */
+    outspacingy: number,
     width: number,
 }
 

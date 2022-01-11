@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import * as protocol from './protocol.js'
 
-export const DEFAULT_METRICS: protocol.Metrics = {
+export const DEFAULT_METRICS: protocol.NormalisedMetrics = {
     buffercharheight: 1,
     buffercharwidth: 1,
     buffermarginx: 0,
@@ -31,5 +31,8 @@ export const DEFAULT_METRICS: protocol.Metrics = {
 }
 
 export const NBSP = '\xa0'
+export const THINSPACE = '\u2009'
+
+export const OFFSCREEN_OFFSET = '-10000px'
 
 export const PACKAGE_VERSION = '0.1.0'

@@ -43,13 +43,15 @@ export class DOM {
     }
 
     /** Create an element, adding prefix to the ID */
-    create(tag: string, id: string, className?: string): JQuery<HTMLElement> {
-        const props: any = {
-            id: this.prefix + id,
+    create(tag: string, id: string, props?: string | any): JQuery<HTMLElement> {
+        props ??= {}
+        // Handle class name as props
+        if (typeof props === 'string') {
+            props = {
+                class: props,
+            }
         }
-        if (className) {
-            props['class'] = className
-        }
+        props.id = this.prefix + id
         return $(`<${tag}>`, props)
     }
 

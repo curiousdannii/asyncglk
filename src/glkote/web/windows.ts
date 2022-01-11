@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {NBSP} from '../../common/constants.js'
+import {NBSP, THINSPACE} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
@@ -17,47 +17,56 @@ import {create, DOM} from './shared.js'
 
 type EventFunc = (event: protocol.Event) => void
 
-type Window = BufferWindow | GraphicsWindow | GridWindow
+export type Window = BufferWindow | GraphicsWindow | GridWindow
+type WindowCodes = 'buffer' | 'graphics' | 'grid'
 
-export abstract class WindowBase {
+abstract class WindowBase {
     desired: boolean = true
     dom: DOM
     frameel: JQuery<HTMLElement>
     id: number
     inputs?: protocol.InputUpdate
-    metrics: protocol.Metrics
-    rock: number
-    send_event: EventFunc
-    textinput?: TextInput
-    abstract type: 'buffer' | 'graphics' | 'grid'
+    metrics: protocol.NormalisedMetrics
+    textinput: TextInput
+    type: WindowCodes
 
     constructor(options: {
         dom: DOM,
-        frameel: JQuery<HTMLElement>,
         id: number,
-        metrics: protocol.Metrics,
+        manager: Windows,
+        metrics: protocol.NormalisedMetrics,
         rock: number,
-        send_event: EventFunc,
+        type: WindowCodes,
     }) {
         this.dom = options.dom
-        this.frameel = options.frameel
         this.id = options.id
         this.metrics = options.metrics
-        this.rock = options.rock
-        this.send_event = options.send_event
+        this.type = options.type
+
+        this.frameel = this.dom.create('div', `window${options.id}`, {
+            class: `WindowFrame ${window_types[this.type]} WindowRock_${options.rock}`,
+            click: (ev: JQuery.ClickEvent) => this.onclick(ev),
+        })
+            .appendTo(this.dom.windowport())
+        // TODO: attach scrolling handler, etc
+
+        // (this as any as Window) is a silly hack to work around Typescript's abstract class rules
+        this.textinput = new TextInput(this as any as Window, options.manager)
     }
 
     destroy() {
-        if (this.textinput) {
-            this.textinput.destroy()
-        }
         this.frameel.remove()
+        this.textinput.destroy()
     }
 
-    update_input() {
-        if (!this.textinput) {
-            this.textinput = new TextInput(this)
+    onclick(ev: JQuery.ClickEvent) {
+        if (this.inputs?.type) {
+            this.textinput.el.trigger('focus')
+            return false
         }
+    }
+
+    update_textinput() {
         this.textinput.update()
     }
 }
@@ -80,14 +89,44 @@ abstract class TextualWindow extends WindowBase {
 
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
+    cursor?: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
 
-    add_cursor(): JQuery<HTMLElement> {
-        const cursor = this.dom.create('span', `win${this.id}_cursor`, 'InvisibleCursor')
-        cursor.append(NBSP)
+    constructor(options: any) {
+        super(options)
+        this.frameel.attr({
+            'aria-atomic': 'false',
+            'aria-live': 'polite',
+            'aria-relevant': 'additions',
+        })
+    }
+
+    add_cursor() {
+        if (this.cursor) {
+            this.cursor.remove()
+        }
+        const cursor = create('span', 'InvisibleCursor')
         const container = this.lastline || this.frameel
         container.append(cursor)
-        return cursor
+        if (this.lastline) {
+            cursor.append(THINSPACE)
+        }
+        this.cursor = cursor
+    }
+
+    iscursorvisible(): boolean {
+        const rect = this.cursor![0].getBoundingClientRect()
+        return rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight
+    }
+
+    onclick(ev: JQuery.ClickEvent) {
+        if (this.inputs?.type) {
+            // Check that the cursor is visible
+            if (this.cursor && this.iscursorvisible()) {
+                this.textinput.el.trigger('focus')
+                return false
+            }
+        }
     }
 
     update(data: protocol.BufferWindowContentUpdate) {
@@ -103,11 +142,11 @@ class BufferWindow extends TextualWindow {
             return
         }
 
-        // Detach input and remove the cursor
-        if (this.textinput) {
-            this.textinput.el.detach()
+        // Remove the cursor
+        if (this.cursor) {
+            this.cursor.remove()
+            delete this.cursor
         }
-        this.dom.id(`win${this.id}_cursor`).remove()
 
         for (const line of data.text) {
             const content = line.content
@@ -149,26 +188,10 @@ class BufferWindow extends TextualWindow {
             }
         }
 
-        // Attach a new cursor and the input if it exists
+        // Attach a new cursor
         if (this.lastline) {
-            const cursor = this.add_cursor()
-            if (this.textinput) {
-                cursor.append(this.textinput.el)
-            }
+            this.add_cursor()
         }
-    }
-
-    update_input() {
-        super.update_input()
-
-        let cursor = this.dom.id(`win${this.id}_cursor`)
-        if (!cursor.length) {
-            cursor = this.add_cursor()
-        }
-        const pos = cursor.position()
-        const width = Math.max(200, this.frameel.width()! - (this.metrics.buffermarginx! + pos.left + 2))
-        this.textinput!.el.css('width', `${width}px`)
-        cursor.append(this.textinput!.el)
     }
 }
 
@@ -227,14 +250,16 @@ const window_types: Record<string, string> = {
 
 export default class Windows extends Map<number, Window> {
     private dom: DOM
-    private metrics: protocol.Metrics
-    private send_event: EventFunc
+    private metrics: protocol.NormalisedMetrics
+    send_event: EventFunc
 
-    constructor(dom: DOM, send_event: EventFunc, metrics: protocol.Metrics) {
+    constructor(dom: DOM, send_event: EventFunc, metrics: protocol.NormalisedMetrics) {
         super()
         this.dom = dom
         this.metrics = metrics
         this.send_event = send_event
+
+        $(document).on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
     }
 
     cancel_inputs(windows: protocol.InputUpdate[]) {
@@ -247,9 +272,17 @@ export default class Windows extends Map<number, Window> {
             const update = newinputs[win.id]
             if (!update && win.inputs) {
                 delete win.inputs
-                if (win.textinput) {
-                    win.textinput.destroy()
-                    delete win.textinput
+            }
+        }
+    }
+
+    // on document.keypress events, trigger a window with active text input
+    onkeydown(ev: JQuery.KeyDownEvent) {
+        if (ev.target.nodeName !== 'input') {
+            for (const window of this.values()) {
+                if (window.inputs?.type) {
+                    window.frameel.trigger('click')
+                    break
                 }
             }
         }
@@ -269,30 +302,20 @@ export default class Windows extends Map<number, Window> {
 
             // Is there an existing window?
             let win = this.get(id)
-            let frameel
 
             // Create it if not
             if (!win) {
-                // GlkOte added class HasNoInputField - is it necessary?
-                frameel = this.dom.create('div', `window${id}`, `WindowFrame ${window_types[type]} WindowRock_${rock}`)
-                // TODO: attach mousedown handler, scrolling handler, etc
-
                 const options = {
                     dom: this.dom,
-                    frameel,
                     id,
+                    manager: this,
                     metrics: this.metrics,
                     rock,
-                    send_event: this.send_event,
+                    type,
                 }
 
                 switch (type) {
                     case 'buffer': {
-                        frameel.attr({
-                            'aria-atomic': 'false',
-                            'aria-live': 'polite',
-                            'aria-relevant': 'additions',
-                        })
                         win = new BufferWindow(options)
                         break
                     }
@@ -308,13 +331,11 @@ export default class Windows extends Map<number, Window> {
                 }
 
                 this.set(id, win)
-                this.dom.windowport().append(frameel)
             }
             else {
                 if (win.type !== type) {
                     throw new Error(`Window ${id} was created with type ${win.type}, but now is described as type ${type}`)
                 }
-                frameel = win.frameel
             }
             win.desired = true
 
@@ -339,7 +360,7 @@ export default class Windows extends Map<number, Window> {
             }
 
             // Update the position of the window
-            frameel.css({
+            win.frameel.css({
                 bottom: `${this.metrics.height - (update.top + update.height)}px`,
                 left: `${update.left}px`,
                 right: `${this.metrics.width - (update.left + update.width)}px`,
@@ -386,12 +407,8 @@ export default class Windows extends Map<number, Window> {
             win.inputs = update
             if (update.type){
                 if (update.gen !== oldgen) {
-                    win.update_input()
+                    win.update_textinput()
                 }
-            }
-            else if (win.textinput) {
-                win.textinput.destroy()
-                delete win.textinput
             }
         }
     }

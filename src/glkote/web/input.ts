@@ -9,48 +9,59 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {WindowBase} from './windows.js'
+import {OFFSCREEN_OFFSET} from '../../common/constants.js'
+
+import WindowManager, {Window} from './windows.js'
 
 export class TextInput {
     el: JQuery<HTMLElement>
-    type: 'char' | 'line' = 'char'
-    window: WindowBase
+    is_line = false
+    window: Window
+    window_manager: WindowManager
 
-    constructor(window: WindowBase) {
+    constructor(window: Window, manager: WindowManager) {
         this.window = window
+        this.window_manager = manager
 
         this.el = $('<input>', {
             'aria-live': 'off',
             autocapitalize: 'off',
             class: 'Input',
-            id: `win${this.window.id}_input`,
-            keypress: (ev: JQuery.KeyPressEvent) => this.keypress(ev),
+            keypress: (ev: JQuery.KeyPressEvent) => this.onkeypress(ev),
             type: 'text',
         })
-        if ('ontouchstart' in window) {
-            // TODO: internationalise?
-            this.el.attr('placeholder', 'Tap here to type')
-        }
+        window.frameel.append(this.el)
     }
 
     destroy() {
         this.el.remove()
     }
 
-    keypress(ev: JQuery.KeyPressEvent) {
+    //onkeydown
+    // Don't propagate, so that document.keydown doesn't trigger
+
+    onkeypress(ev: JQuery.KeyPressEvent) {
         const keycode = ev.which
 
         // Submit line input
-        if (this.type === 'line' && keycode === 13) {
-            this.submit_line(ev.target.value)
+        if (this.is_line && keycode === 13) {
+            const value = ev.target.value
+            this.reset()
+            this.submit_line(value)
             return false
         }
+    }
+
+    reset() {
+        this.el
+            .css('left', OFFSCREEN_OFFSET)
+            .val('')
     }
 
     submit_line(val: string, terminator?: string) {
         // TODO: history
 
-        this.window.send_event({
+        this.window_manager.send_event({
             type: 'line',
             gen: this.window.inputs!.gen!,
             terminator,
@@ -62,18 +73,46 @@ export class TextInput {
     update() {
         const update = this.window.inputs!
         if (update.type !== 'char' && update.type !== 'line') {
-            throw new Error(`Invalid input update given to TextInput win${this.window.id}_input`)
+            throw new Error(`Invalid input update given to TextInput for window ${this.window.id}`)
         }
-        if (update.type === 'line' && this.window.type === 'graphics') {
-            throw new Error(`Cannot request line input in graphcis window ${this.window.id}`)
+        this.is_line = update.type === 'line'
+        this.el.attr({
+            maxlength: this.is_line ? update.maxlen! : 1
+        })
+
+        // Stop here on character input
+        if (!this.is_line) {
+            return
         }
-        this.type = update.type
+        if (this.window.type === 'graphics') {
+            throw new Error(`Cannot request line input in graphics window ${this.window.id}`)
+        }
+
+        // Calculate the position
+        let left: number, top: number, width: number
+        switch (this.window.type) {
+            case 'buffer':
+                if (!this.window.cursor) {
+                    this.window.add_cursor()
+                }
+                const cursor = this.window.cursor!
+                const frameel = this.window.frameel
+                const pos = cursor.position()
+                left = pos.left + cursor.width()!
+                top = pos.top + frameel.scrollTop()!
+                width = Math.max(200, frameel.width()! - (this.window.metrics.buffermarginx + left + 2))
+                break
+            case 'grid':
+                // TODO
+                return
+                break
+        }
 
         this.el
-            .removeClass('CharInput LineInput')
-            .addClass(this.type === 'char' ? 'CharInput' : 'LineInput')
-            .attr({
-                maxlength: this.type === 'char' ? 1 : update.maxlen!
+            .css({
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${width}px`,
             })
             .val(update.initial || '')
 

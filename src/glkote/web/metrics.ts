@@ -9,6 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {create, DOM} from './shared.js'
@@ -22,10 +23,10 @@ function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
 
 export default class Metrics {
     // Shares the current_metrics and DOM of WebGlkOte
-    private metrics: protocol.Metrics
+    private metrics: protocol.NormalisedMetrics
     private dom: DOM
 
-    constructor(dom: DOM, metrics: protocol.Metrics) {
+    constructor(dom: DOM, metrics: protocol.NormalisedMetrics) {
         this.metrics = metrics
         this.dom = dom
     }
@@ -45,7 +46,7 @@ export default class Metrics {
         layout_test_pane.text('This should not be visible')
         layout_test_pane.css({
             // Make the test pane render, but invisibly and off-screen
-            left: '-1000px',
+            left: OFFSCREEN_OFFSET,
             position: 'absolute',
             visibility: 'hidden',
         })
