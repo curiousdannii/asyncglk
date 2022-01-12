@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import * as protocol from '../../common/protocol.js'
+
 /** Create an element with specified classes */
 export function create(tag: string, className:string): JQuery<HTMLElement> {
     return $(`<${tag}>`, {'class': className})
@@ -68,3 +70,5 @@ export class DOM {
         return $(`#${this.windowport_id}`, this.context_element)
     }
 }
+
+export type EventFunc = (event: Partial<protocol.Event>) => void

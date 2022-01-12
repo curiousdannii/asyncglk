@@ -13,7 +13,7 @@ import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
-import {DOM} from './shared.js'
+import {DOM, EventFunc} from './shared.js'
 import Windows from './windows.js'
 
 /** A GlkOte implementation for the web
@@ -46,8 +46,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     constructor() {
         super()
 
-        this.metrics_calculator = new Metrics(this.dom, this.current_metrics)
-        this.windows = new Windows(this.dom, event => this.send_event(event), this.current_metrics)
+        const send_event: EventFunc = event => this.send_event(event)
+        this.metrics_calculator = new Metrics(this.dom, this.current_metrics, send_event)
+        this.windows = new Windows(this.dom, this.current_metrics, send_event)
     }
 
     async init(options: GlkOte.GlkOteOptions) {

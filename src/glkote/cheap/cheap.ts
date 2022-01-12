@@ -137,7 +137,6 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
             const res = KEY_REPLACEMENTS[str] || str || key.name!.replace(/f(\d+)/, 'func$1')
             this.send_event({
                 type: 'char',
-                gen: this.generation,
                 window: this.window!.id,
                 value: res,
             })
@@ -153,7 +152,6 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
             this.detach_handlers()
             this.send_event({
                 type: 'line',
-                gen: this.generation,
                 window: this.window!.id,
                 value: line,
             })

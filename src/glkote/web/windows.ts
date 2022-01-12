@@ -13,9 +13,7 @@ import {NBSP, THINSPACE} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM} from './shared.js'
-
-type EventFunc = (event: protocol.Event) => void
+import {create, DOM, EventFunc} from './shared.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow
 type WindowCodes = 'buffer' | 'graphics' | 'grid'
@@ -257,7 +255,7 @@ export default class Windows extends Map<number, Window> {
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
 
-    constructor(dom: DOM, send_event: EventFunc, metrics: protocol.NormalisedMetrics) {
+    constructor(dom: DOM, metrics: protocol.NormalisedMetrics, send_event: EventFunc) {
         super()
         this.dom = dom
         this.metrics = metrics

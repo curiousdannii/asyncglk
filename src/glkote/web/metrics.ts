@@ -9,10 +9,12 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {throttle} from 'lodash-es'
+
 import {OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
-import {create, DOM} from './shared.js'
+import {create, DOM, EventFunc} from './shared.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
     return {
@@ -21,14 +23,29 @@ function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
     }
 }
 
+/** Compare two metrics to see if they differ enough to send an arrange event */
+function metrics_differ(newmetrics: protocol.NormalisedMetrics, oldmetrics: protocol.NormalisedMetrics): boolean {
+    return (oldmetrics.buffercharheight !== newmetrics.buffercharheight ||
+        oldmetrics.buffercharwidth !== newmetrics.buffercharwidth ||
+        oldmetrics.gridcharheight !== newmetrics.gridcharheight ||
+        oldmetrics.gridcharwidth !== newmetrics.gridcharwidth ||
+        oldmetrics.height !== newmetrics.height ||
+        oldmetrics.width !== newmetrics.width)
+}
+
 export default class Metrics {
     // Shares the current_metrics and DOM of WebGlkOte
     private metrics: protocol.NormalisedMetrics
     private dom: DOM
+    private send_event: EventFunc
 
-    constructor(dom: DOM, metrics: protocol.NormalisedMetrics) {
+    constructor(dom: DOM, metrics: protocol.NormalisedMetrics, send_event: EventFunc) {
         this.metrics = metrics
         this.dom = dom
+        this.send_event = send_event
+
+        const throttled_handler = throttle(() => this.onresize(), 200)
+        $(window).on('resize', throttled_handler)
     }
 
     async measure() {
@@ -112,5 +129,14 @@ export default class Metrics {
 
         // Clean up
         layout_test_pane.remove()
+    }
+
+    async onresize() {
+        const oldmetrics = Object.assign({}, this.metrics)
+        await this.measure()
+        if (metrics_differ(this.metrics, oldmetrics)) {
+            $(document).trigger('glkote-arrange')
+            this.send_event({type: 'arrange'})
+        }
     }
 }

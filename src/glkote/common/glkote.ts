@@ -87,23 +87,17 @@ export abstract class GlkOteBase implements GlkOte {
         this.is_inited = true
 
         // Send an init event, which if is received by GlkApi, will then result in VM.start() being called
-        this.send_event({
-            type: 'init',
-            gen: 0,
-            metrics: this.current_metrics,
-            support: this.capabilities(),
-        })
+        this.send_event({type: 'init'})
     }
 
     error(msg: any) {
         throw new Error(msg)
     }
 
-    extevent(val: any) {
+    extevent(value: any) {
         this.send_event({
             type: 'external',
-            gen: this.generation,
-            value: val,
+            value,
         })
     }
 
@@ -151,12 +145,7 @@ export abstract class GlkOteBase implements GlkOte {
                 return
             }
             if (data.type === 'retry') {
-                setTimeout(() => {
-                    this.send_event({
-                        type: 'refresh',
-                        gen: this.generation,
-                    })
-                }, 2000)
+                setTimeout(() => this.send_event({type: 'refresh'}), 2000)
                 return
             }
             if (data.type !== 'update') {
@@ -213,8 +202,22 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected exit() {}
 
-    protected send_event(event: protocol.Event) {
-        this.accept_func(event)
+    //protected send_event(type: string, val1?: any, val2?: any, val3?: any) {
+    protected send_event(ev: Partial<protocol.Event>) {
+        ev.gen = this.generation
+        switch (ev.type) {
+            case 'arrange':
+                ev.metrics = this.current_metrics
+                break
+            case 'init':
+                ev.metrics = this.current_metrics
+                ev.support = this.capabilities()
+                break
+            case 'specialresponse':
+                ev.response = 'fileref_prompt'
+                break
+        }
+        this.accept_func(ev as Required<protocol.Event>)
     }
 
     // Functions to be implemented in a subclass
