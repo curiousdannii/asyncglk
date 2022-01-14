@@ -37,6 +37,13 @@ export class TextInput {
         this.el.remove()
     }
 
+    /** The keydown and keypress inputs are unreliable in mobile browsers with soft keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
+    private oninput(ev: any) {
+        if (this.window.inputs?.type === 'char') {
+            this.submit_char(ev.target.value[0])
+        }
+    }
+
     private onkeydown(ev: JQuery.KeyDownEvent) {
         // This input shouldn't be active
         if (!this.window.inputs?.type) {
@@ -113,8 +120,12 @@ export class TextInput {
 
     reset() {
         this.el
-            .css('left', OFFSCREEN_OFFSET)
-            .off('keydown keypress')
+            .css({
+                'left': OFFSCREEN_OFFSET,
+                'top': '',
+                'width': '',
+            })
+            .off('input keydown keypress')
             .val('')
         if (!this.el.parent().is(this.window.frameel)) {
             this.el.appendTo(this.window.frameel)
@@ -157,6 +168,7 @@ export class TextInput {
             .attr({
                 maxlength: this.is_line ? update.maxlen! : 1
             })
+            .on('input', (ev: any) => this.oninput(ev))
             .on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
             .on('keypress', (ev: JQuery.KeyPressEvent) => this.onkeypress(ev))
 
@@ -174,8 +186,11 @@ export class TextInput {
                 (this.window.lastline || this.window.frameel).append(this.el)
                 break
             case 'grid':
-                // TODO
-                return
+                this.el.css({
+                    left: `${update.ypos! * this.window.metrics.gridcharwidth}px`,
+                    top: `${update.xpos! * this.window.metrics.gridcharheight}px`,
+                    width: `${update.maxlen}em`,
+                })
                 break
         }
         this.el.val(update.initial || '')
