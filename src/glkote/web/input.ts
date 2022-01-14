@@ -15,7 +15,6 @@ import * as protocol from '../../common/protocol.js'
 import WindowManager, {Window} from './windows.js'
 
 export class TextInput {
-    arrange_handler: (ev: any) => void
     el: JQuery<HTMLElement>
     is_line = false
     window: Window
@@ -32,17 +31,13 @@ export class TextInput {
             type: 'text',
         })
         window.frameel.append(this.el)
-
-        this.arrange_handler = () => this.position()
-        $(document).on('glkote-arrange', this.arrange_handler)
     }
 
     destroy() {
         this.el.remove()
-        $(document).off('glkote-arrange', this.arrange_handler)
     }
 
-    onkeydown(ev: JQuery.KeyDownEvent) {
+    private onkeydown(ev: JQuery.KeyDownEvent) {
         // This input shouldn't be active
         if (!this.window.inputs?.type) {
             this.el.trigger('blur')
@@ -53,6 +48,8 @@ export class TextInput {
         if (!keycode) {
             return
         }
+
+        // TODO: Don't capture up/down/pageup/pagedown if input is not in view
 
         if (this.is_line) {
             // History
@@ -82,7 +79,7 @@ export class TextInput {
         ev.stopPropagation()
     }
 
-    onkeypress(ev: JQuery.KeyPressEvent) {
+    private onkeypress(ev: JQuery.KeyPressEvent) {
         // This input shouldn't be active
         if (!this.window.inputs?.type) {
             this.el.trigger('blur')
@@ -109,34 +106,9 @@ export class TextInput {
         }
     }
 
-    position() {
-        // Calculate the position
-        let left: number, top: number, width: number
-        switch (this.window.type) {
-            case 'buffer':
-                if (!this.window.cursor) {
-                    this.window.add_cursor()
-                }
-                const cursor = this.window.cursor!
-                const frameel = this.window.frameel
-                const pos = cursor.position()
-                left = pos.left + cursor.width()!
-                top = pos.top + frameel.scrollTop()!
-                width = Math.max(200, frameel.width()! - (this.window.metrics.buffermarginx + left + 2))
-                break
-            case 'graphics':
-                throw new Error(`Cannot request line input in graphics window ${this.window.id}`)
-            case 'grid':
-                // TODO
-                return
-                break
-        }
-
-        this.el.css({
-            left: `${left}px`,
-            top: `${top}px`,
-            width: `${width}px`,
-        })
+    /** Refocus the input, but without scrolling */
+    refocus() {
+        this.el[0].focus({preventScroll: true})
     }
 
     reset() {
@@ -144,10 +116,14 @@ export class TextInput {
             .css('left', OFFSCREEN_OFFSET)
             .off('keydown keypress')
             .val('')
+        if (!this.el.parent().is(this.window.frameel)) {
+            this.el.appendTo(this.window.frameel)
+        }
     }
 
-    submit_char(val: string) {
+    private submit_char(val: string) {
         this.reset()
+        this.window_manager.active_window = this.window
         this.window_manager.send_event({
             type: 'char',
             value: val,
@@ -155,8 +131,9 @@ export class TextInput {
         })
     }
 
-    submit_line(val: string, terminator?: protocol.TerminatorCode) {
+    private submit_line(val: string, terminator?: protocol.TerminatorCode) {
         this.reset()
+        this.window_manager.active_window = this.window
 
         // TODO: history
 
@@ -171,7 +148,8 @@ export class TextInput {
     update() {
         const update = this.window.inputs!
         if (update.type !== 'char' && update.type !== 'line') {
-            throw new Error(`Invalid input update given to TextInput for window ${this.window.id}`)
+            this.reset()
+            return
         }
         this.is_line = update.type === 'line'
 
@@ -190,7 +168,16 @@ export class TextInput {
             throw new Error(`Cannot request line input in graphics window ${this.window.id}`)
         }
 
-        this.position()
+        // Position the input element within the window
+        switch (this.window.type) {
+            case 'buffer':
+                (this.window.lastline || this.window.frameel).append(this.el)
+                break
+            case 'grid':
+                // TODO
+                return
+                break
+        }
         this.el.val(update.initial || '')
 
         // TODO: set colours and reverse

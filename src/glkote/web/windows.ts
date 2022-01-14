@@ -57,7 +57,7 @@ abstract class WindowBase {
         this.textinput.destroy()
     }
 
-    onclick(ev: JQuery.ClickEvent) {
+    protected onclick(ev: JQuery.ClickEvent) {
         if (this.inputs?.type) {
             this.textinput.el.trigger('focus')
             return false
@@ -70,24 +70,20 @@ abstract class WindowBase {
 }
 
 abstract class TextualWindow extends WindowBase {
-    create_text_run(run: protocol.TextRun): JQuery<HTMLElement> {
-        const runel = create('span', `Style_${run.style}`)
+    create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
+        const el = create('span', `Style_${run.style}`)
+        const els = split_words
+            ? $(run.text.split(/(?<=\s)\b/g).map(text => el.clone().text(text)[0]))
+            : el.text(run.text)
         if (run.hyperlink) {
-            const ael = $('<a>')
-            ael.text(run.text)
-            // TODO: hyperlink onclick handler
-            runel.append(ael)
+            els.wrap($('<a>', {href: '#'}))
         }
-        else {
-            runel.text(run.text)
-        }
-        return runel
+        return els
     }
 }
 
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
-    cursor?: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
 
     constructor(options: any) {
@@ -99,28 +95,11 @@ class BufferWindow extends TextualWindow {
         })
     }
 
-    add_cursor() {
-        if (this.cursor) {
-            this.cursor.remove()
-        }
-        const cursor = create('span', 'InvisibleCursor')
-        const container = this.lastline || this.frameel
-        container.append(cursor)
-        if (this.lastline) {
-            cursor.append(THINSPACE)
-        }
-        this.cursor = cursor
-    }
-
-    iscursorvisible(): boolean {
-        const rect = this.cursor![0].getBoundingClientRect()
-        return rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight
-    }
-
-    onclick(ev: JQuery.ClickEvent) {
-        if (this.inputs?.type) {
-            // Check that the cursor is visible
-            if (this.cursor && this.iscursorvisible()) {
+    protected onclick(ev: JQuery.ClickEvent) {
+        if (this.inputs?.type && this.lastline) {
+            // Check that we've scrolled to the bottom
+            const rect = this.lastline[0].getBoundingClientRect()
+            if (rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight) {
                 this.textinput.el.trigger('focus')
                 return false
             }
@@ -128,8 +107,6 @@ class BufferWindow extends TextualWindow {
     }
 
     update(data: protocol.BufferWindowContentUpdate) {
-        // TODO: detach character input?
-
         if (data.clear) {
             this.frameel.children('.BufferLine').remove()
             this.lastline = undefined
@@ -140,20 +117,16 @@ class BufferWindow extends TextualWindow {
             return
         }
 
-        // Remove the cursor
-        const oldscrolltop = (this.cursor?.position().top || 0) + this.frameel.scrollTop()! - 20
-        if (this.cursor) {
-            this.cursor.remove()
-            delete this.cursor
-        }
+        // Calculate the last scroll height
+        const oldscrolltop = (this.lastline?.position()?.top || 0) + this.frameel.scrollTop()! - 20
 
-        for (const line of data.text) {
+        for (const [line_index, line] of data.text.entries()) {
             const content = line.content
             let divel: JQuery<HTMLElement> | undefined
-            if (line.append) {
+            if (line.append && this.lastline) {
                 divel = this.lastline
             }
-            if (!divel) {
+            else {
                 divel = create('div', 'BufferLine')
                 this.frameel.append(divel)
                 this.lastline = divel
@@ -167,13 +140,13 @@ class BufferWindow extends TextualWindow {
                 divel.addClass('FlowBreak')
             }
 
-            for (let i = 0; i < content.length; i++) {
+            for (let run_index = 0; run_index < content.length; run_index++) {
                 let run: protocol.TextRun
-                const instruction = content[i]
+                const instruction = content[run_index]
                 if (typeof instruction === 'string') {
                     run = {
-                        style: content[i++] as string,
-                        text: content[i] as string,
+                        style: content[run_index++] as string,
+                        text: content[run_index] as string,
                     }
                 }
                 else if ('special' in instruction && instruction.special === 'image') {
@@ -183,13 +156,8 @@ class BufferWindow extends TextualWindow {
                 else {
                     run = instruction as protocol.TextRun
                 }
-                divel.append(this.create_text_run(run))
+                divel.append(this.create_text_run(run, line_index === data.text.length))
             }
-        }
-
-        // Attach a new cursor
-        if (this.lastline) {
-            this.add_cursor()
         }
 
         // Scroll down
@@ -251,6 +219,7 @@ const window_types: Record<string, string> = {
 }
 
 export default class Windows extends Map<number, Window> {
+    active_window?: Window
     private dom: DOM
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
@@ -273,13 +242,16 @@ export default class Windows extends Map<number, Window> {
         for (const win of this.values()) {
             const update = newinputs[win.id]
             if (!update && win.inputs) {
+                if (!this.active_window && win.textinput.el.is(':focus')) {
+                    this.active_window = win
+                }
                 delete win.inputs
             }
         }
     }
 
     // on document.keypress events, trigger a window with active text input
-    onkeydown(ev: JQuery.KeyDownEvent) {
+    private onkeydown(ev: JQuery.KeyDownEvent) {
         if (ev.target.nodeName !== 'input') {
             for (const window of this.values()) {
                 if (window.inputs?.type) {
@@ -411,6 +383,18 @@ export default class Windows extends Map<number, Window> {
                 if (update.gen !== oldgen) {
                     win.update_textinput()
                 }
+            }
+        }
+
+        // Refocus an <input>
+        if (this.active_window) {
+            // Refocus the same window if it hasn't been deleted and still wants input
+            if (this.has(this.active_window.id) && this.active_window.inputs?.type) {
+                this.active_window.textinput.refocus()
+            }
+            // Look for any window with text input
+            else {
+                [...this.values()].filter(win => win.inputs?.type)[0]?.textinput.refocus()
             }
         }
     }

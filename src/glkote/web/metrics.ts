@@ -135,7 +135,6 @@ export default class Metrics {
         const oldmetrics = Object.assign({}, this.metrics)
         await this.measure()
         if (metrics_differ(this.metrics, oldmetrics)) {
-            $(document).trigger('glkote-arrange')
             this.send_event({type: 'arrange'})
         }
     }

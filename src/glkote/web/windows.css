@@ -40,6 +40,8 @@ https://github.com/curiousdannii/asyncglk
 }
 
 .BufferLine {
+    display: flex;
+    flex-wrap: wrap;
     white-space: pre-wrap; /* required for spaces to work right */
 }
 

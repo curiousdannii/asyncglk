@@ -9,10 +9,6 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-.InvisibleCursor {
-    display: inline-block;
-}
-
 input.Input {
     /* This class mimicks the Style_input class. It also eliminates the 
        usual decoration of an <input> field, as much as possible. */
@@ -31,6 +27,14 @@ input.Input {
     font-family: var(--glkote-prop-family);
     font-size: var(--glkote-buffer-size);
     line-height: 1.4;
+}
+
+/* Line inputs use the flexbox system for autosizing the input width */
+.BufferLine .Input {
+    display: inline-block;
+    flex-grow: 1;
+    min-width: 175px;
+    position: static;
 }
 
 .GridWindow .Input {
