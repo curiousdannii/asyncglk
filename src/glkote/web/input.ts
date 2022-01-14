@@ -114,8 +114,12 @@ export class TextInput {
     }
 
     /** Refocus the input, but without scrolling */
+    // Unfortunately, doesn't seem to work in Android
     refocus() {
         this.el[0].focus({preventScroll: true})
+        if (this.window.type === 'buffer') {
+            this.window.scrolltolastupdate()
+        }
     }
 
     reset() {

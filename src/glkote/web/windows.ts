@@ -85,6 +85,7 @@ abstract class TextualWindow extends WindowBase {
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
     lastline?: JQuery<HTMLElement>
+    oldscrolltop: number = 0
 
     constructor(options: any) {
         super(options)
@@ -106,6 +107,10 @@ class BufferWindow extends TextualWindow {
         }
     }
 
+    scrolltolastupdate() {
+        this.frameel.scrollTop(this.oldscrolltop)
+    }
+
     update(data: protocol.BufferWindowContentUpdate) {
         if (data.clear) {
             this.frameel.children('.BufferLine').remove()
@@ -118,7 +123,7 @@ class BufferWindow extends TextualWindow {
         }
 
         // Calculate the last scroll height
-        const oldscrolltop = (this.lastline?.position()?.top || 0) + this.frameel.scrollTop()! - 20
+        this.oldscrolltop = (this.lastline?.position()?.top || 0) + this.frameel.scrollTop()! - 20
 
         for (const [line_index, line] of data.text.entries()) {
             const content = line.content
@@ -161,7 +166,7 @@ class BufferWindow extends TextualWindow {
         }
 
         // Scroll down
-        this.frameel.scrollTop(oldscrolltop)
+        this.scrolltolastupdate()
     }
 }
 
