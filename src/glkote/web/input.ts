@@ -173,12 +173,12 @@ export class TextInput {
             .attr({
                 maxlength: this.is_line ? update.maxlen! : 1
             })
-            .on('input', (ev: any) => this.oninput(ev))
             .on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
             .on('keypress', (ev: JQuery.KeyPressEvent) => this.onkeypress(ev))
 
-        // Stop here on character input
+        // For character input attach the oninput handler, then stop
         if (!this.is_line) {
+            this.el.on('input', (ev: any) => this.oninput(ev))
             return
         }
         if (this.window.type === 'graphics') {

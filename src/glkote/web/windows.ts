@@ -265,6 +265,11 @@ export default class Windows extends Map<number, Window> {
             for (const window of this.values()) {
                 if (window.inputs?.type) {
                     window.frameel.trigger('click')
+                    // After focusing, the keypress event will fire, but not the keydown, meaning that function keys won't be recognised
+                    // So manually trigger the keydown event in the input (as long as it is actually focused)
+                    if (window.textinput.el.is(':focus')) {
+                        window.textinput.el.trigger(ev)
+                    }
                     break
                 }
             }
