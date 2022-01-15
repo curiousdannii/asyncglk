@@ -106,8 +106,8 @@ class BufferWindow extends TextualWindow {
             const rect = this.lastline[0].getBoundingClientRect()
             if (rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight) {
                 this.textinput.el.trigger('focus')
-                return false
             }
+            return false
         }
     }
 
@@ -240,6 +240,7 @@ export default class Windows extends Map<number, Window> {
         this.send_event = send_event
 
         $(document).on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
+        this.dom.gameport().on('click', () => this.onclick())
     }
 
     cancel_inputs(windows: protocol.InputUpdate[]) {
@@ -255,6 +256,16 @@ export default class Windows extends Map<number, Window> {
                     this.active_window = win
                 }
                 delete win.inputs
+            }
+        }
+    }
+
+    // If the gameport receives a click event, then find one window with active text input to focus
+    private onclick() {
+        for (const window of this.values()) {
+            if (window.inputs?.type) {
+                window.frameel.trigger('click')
+                break
             }
         }
     }
