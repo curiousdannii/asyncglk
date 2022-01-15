@@ -39,10 +39,19 @@ https://github.com/curiousdannii/asyncglk
     color: var(--glkote-buffer-reverse-fg);
 }
 
+/* We use a separate inner <div> so that the <input> for character input can be positioned at the bottom of the window */
+.BufferWindowInner {
+    position: relative;
+}
+
 .BufferLine {
+    white-space: pre-wrap; /* required for spaces to work right */
+}
+
+/* Use flexbox so that the <input> can be autosized */
+.BufferLine:last-child {
     display: flex;
     flex-wrap: wrap;
-    white-space: pre-wrap; /* required for spaces to work right */
 }
 
 .GraphicsWindow canvas {

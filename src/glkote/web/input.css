@@ -24,6 +24,7 @@ input.Input {
 }
 
 .BufferWindow .Input {
+    bottom: 0;
     font-family: var(--glkote-prop-family);
     font-size: var(--glkote-buffer-size);
     line-height: 1.4;

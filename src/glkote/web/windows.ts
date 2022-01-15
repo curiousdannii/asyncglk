@@ -84,6 +84,7 @@ abstract class TextualWindow extends WindowBase {
 
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
+    innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
     oldscrolltop: number = 0
 
@@ -94,6 +95,9 @@ class BufferWindow extends TextualWindow {
             'aria-live': 'polite',
             'aria-relevant': 'additions',
         })
+        this.innerel = create('div', 'BufferWindowInner')
+            .append(this.textinput.el)
+            .appendTo(this.frameel)
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
@@ -113,7 +117,7 @@ class BufferWindow extends TextualWindow {
 
     update(data: protocol.BufferWindowContentUpdate) {
         if (data.clear) {
-            this.frameel.children('.BufferLine').remove()
+            this.innerel.children('.BufferLine').remove()
             this.lastline = undefined
         }
 
@@ -133,7 +137,7 @@ class BufferWindow extends TextualWindow {
             }
             else {
                 divel = create('div', 'BufferLine')
-                this.frameel.append(divel)
+                this.innerel.append(divel)
                 this.lastline = divel
                 if (!content || !line.content.length) {
                     divel.addClass('BlankPara')
@@ -392,7 +396,9 @@ export default class Windows extends Map<number, Window> {
         }
 
         // Refocus an <input>
-        if (this.active_window) {
+        // On Android this forces the window to be scrolled down to the bottom, so disable for now
+        // Maybe in the future could be enabled only for iOS (if desired)?
+        /*if (this.active_window) {
             // Refocus the same window if it hasn't been deleted and still wants input
             if (this.has(this.active_window.id) && this.active_window.inputs?.type) {
                 this.active_window.textinput.refocus()
@@ -401,6 +407,6 @@ export default class Windows extends Map<number, Window> {
             else {
                 [...this.values()].filter(win => win.inputs?.type)[0]?.textinput.refocus()
             }
-        }
+        }*/
     }
 }
