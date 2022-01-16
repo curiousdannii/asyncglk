@@ -37,12 +37,22 @@ export default class Metrics {
     // Shares the current_metrics and DOM of WebGlkOte
     private metrics: protocol.NormalisedMetrics
     private dom: DOM
+    private loaded: Promise<void>
     private send_event: EventFunc
 
     constructor(dom: DOM, metrics: protocol.NormalisedMetrics, send_event: EventFunc) {
         this.metrics = metrics
         this.dom = dom
         this.send_event = send_event
+
+        // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the load event so that the CSS is finished
+        this.loaded = new Promise(resolve => {
+            const loadcallback = () => {
+                window.removeEventListener('load', loadcallback)
+                resolve()
+            }
+            window.addEventListener('load', loadcallback)
+        })
 
         const throttled_handler = throttle(() => this.onresize(), 200)
         $(window).on('resize', throttled_handler)
@@ -93,7 +103,9 @@ export default class Metrics {
         layout_test_pane.append(gridwin)
 
         gameport.append(layout_test_pane)
-        await document.fonts.ready
+
+        // Wait for the CSS and font(s) to be loaded
+        await this.loaded
 
         // Measure the gameport height/width, excluding border and padding
         this.metrics.height = gameport.height()!

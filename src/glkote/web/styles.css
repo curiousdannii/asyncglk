@@ -15,7 +15,7 @@ span.Style_emphasized {
     font-style: italic;
 }
 
-span.Style_preformatted {
+.BufferWindow span.Style_preformatted {
     font-family: var(--glkote-mono-family);
 }
 

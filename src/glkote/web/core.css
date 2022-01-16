@@ -19,6 +19,7 @@ https://github.com/curiousdannii/asyncglk
     --glkote-buffer-size: 15px;
     --glkote-grid-bg: #fff;
     --glkote-grid-fg: #000;
+    --glkote-grid-mono-family: monospace;
     --glkote-grid-reverse-bg: #000;
     --glkote-grid-reverse-fg: #fff;
     --glkote-grid-size: 14px;

@@ -62,7 +62,7 @@ https://github.com/curiousdannii/asyncglk
 .GridWindow {
     background: var(--glkote-grid-bg);
     color: var(--glkote-grid-fg);
-    font-family: var(--glkote-mono-family); /* necessary! */
+    font-family: var(--glkote-grid-mono-family); /* necessary! */
     font-size: var(--glkote-grid-size);
     overflow: hidden;
     padding: 6px 10px;
