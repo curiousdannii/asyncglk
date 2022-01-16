@@ -104,8 +104,11 @@ export default class Metrics {
 
         gameport.append(layout_test_pane)
 
-        // Wait for the CSS and font(s) to be loaded
+        // Wait first for the load event for the CSS to be loaded
         await this.loaded
+        // And then for the actual font(s) to be loaded
+        const font_family = getComputedStyle(gridwin[0]).getPropertyValue("--glkote-grid-mono-family").split(',')[0].replace(/"/g, '')
+        await document.fonts.load(`14px ${font_family}`)
 
         // Measure the gameport height/width, excluding border and padding
         this.metrics.height = gameport.height()!
