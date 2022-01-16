@@ -58,7 +58,7 @@ abstract class WindowBase {
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
-        if (this.inputs?.type) {
+        if ((window.getSelection() + '') === '' && this.inputs?.type) {
             this.textinput.el.trigger('focus')
             return false
         }
@@ -101,7 +101,7 @@ class BufferWindow extends TextualWindow {
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
-        if (this.inputs?.type && this.lastline) {
+        if ((window.getSelection() + '') === '' && this.inputs?.type && this.lastline) {
             // Check that we've scrolled to the bottom
             const rect = this.lastline[0].getBoundingClientRect()
             if (rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight) {
@@ -262,6 +262,9 @@ export default class Windows extends Map<number, Window> {
 
     // If the gameport receives a click event, then find one window with active text input to focus
     private onclick() {
+        if ((window.getSelection() + '') !== '') {
+            return
+        }
         for (const window of this.values()) {
             if (window.inputs?.type) {
                 window.frameel.trigger('click')
