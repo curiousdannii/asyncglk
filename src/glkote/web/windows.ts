@@ -57,6 +57,9 @@ abstract class WindowBase {
         this.textinput.destroy()
     }
 
+    // Dummy function which is only needed for buffer windows
+    measure_height() {}
+
     protected onclick(ev: JQuery.ClickEvent) {
         if ((window.getSelection() + '') === '' && this.inputs?.type) {
             this.textinput.el.trigger('focus')
@@ -84,9 +87,10 @@ abstract class TextualWindow extends WindowBase {
 
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
+    height: number
     innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
-    oldscrolltop: number = 0
+    updatescrolltop: number = 0
 
     constructor(options: any) {
         super(options)
@@ -98,6 +102,7 @@ class BufferWindow extends TextualWindow {
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
             .appendTo(this.frameel)
+        this.height = this.frameel.height()!
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
@@ -111,8 +116,12 @@ class BufferWindow extends TextualWindow {
         }
     }
 
+    measure_height() {
+        this.height = this.frameel.height()!
+    }
+
     scrolltolastupdate() {
-        this.frameel.scrollTop(this.oldscrolltop)
+        this.frameel.scrollTop(this.updatescrolltop)
     }
 
     update(data: protocol.BufferWindowContentUpdate) {
@@ -126,8 +135,8 @@ class BufferWindow extends TextualWindow {
             return
         }
 
-        // Calculate the last scroll height
-        this.oldscrolltop = (this.lastline?.position()?.top || 0) + this.frameel.scrollTop()! - 20
+        // Get the scrolltop for this update
+        this.updatescrolltop = Math.max(0, (this.lastline?.position().top || 0) - 20)
 
         for (const [line_index, line] of data.text.entries()) {
             const content = line.content
@@ -415,9 +424,8 @@ export default class Windows extends Map<number, Window> {
         }
 
         // Refocus an <input>
-        // On Android this forces the window to be scrolled down to the bottom, so disable for now
-        // Maybe in the future could be enabled only for iOS (if desired)?
-        /*if (this.active_window) {
+        // On Android this forces the window to be scrolled down to the bottom, so only refocus if the virtual keyboard doesn't make the window too small for the full update text to be seen
+        if (this.active_window) {
             // Refocus the same window if it hasn't been deleted and still wants input
             if (this.has(this.active_window.id) && this.active_window.inputs?.type) {
                 this.active_window.textinput.refocus()
@@ -426,6 +434,6 @@ export default class Windows extends Map<number, Window> {
             else {
                 [...this.values()].filter(win => win.inputs?.type)[0]?.textinput.refocus()
             }
-        }*/
+        }
     }
 }

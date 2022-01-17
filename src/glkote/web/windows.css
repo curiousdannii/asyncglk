@@ -22,7 +22,6 @@ https://github.com/curiousdannii/asyncglk
     font-size: var(--glkote-buffer-size);
     line-height: 1.4;
     overflow-x: hidden; /* hide the horizontal scrollbar */
-    padding: 6px 10px;
     scrollbar-gutter: stable; /* preserve space for the vertical scrollbar */
 }
 
@@ -41,6 +40,7 @@ https://github.com/curiousdannii/asyncglk
 
 /* We use a separate inner <div> so that the <input> for character input can be positioned at the bottom of the window */
 .BufferWindowInner {
+    padding: 6px 10px;
     position: relative;
 }
 
@@ -79,4 +79,15 @@ https://github.com/curiousdannii/asyncglk
 
 .GridLine {
     white-space: pre; /* required for spaces to work right */
+}
+
+/* A couple small adjustments for mobile devices */
+@media screen and (max-width: 767px) {
+    .BufferWindow::-webkit-scrollbar {
+        width: 0;
+    }
+
+    .GridWindow {
+        padding: 6px;
+    }
 }

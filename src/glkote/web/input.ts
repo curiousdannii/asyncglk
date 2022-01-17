@@ -37,7 +37,7 @@ export class TextInput {
         this.el.remove()
     }
 
-    /** The keydown and keypress inputs are unreliable in mobile browsers with soft keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
+    /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
     private oninput(ev: any) {
         if (this.window.inputs?.type === 'char') {
             this.submit_char(ev.target.value[0])
@@ -114,12 +114,15 @@ export class TextInput {
     }
 
     /** Refocus the input, but without scrolling */
-    // Unfortunately, doesn't seem to work in Android
+    // On Android this forces the window to be scrolled down to the bottom, so only refocus if the virtual keyboard doesn't make the window too small for the full update text to be seen
     refocus() {
-        this.el[0].focus({preventScroll: true})
         if (this.window.type === 'buffer') {
-            this.window.scrolltolastupdate()
+            const updateheight = this.window.innerel.outerHeight()! - this.window.updatescrolltop
+            if (updateheight > this.window.height) {
+                return
+            }
         }
+        this.el[0].focus({preventScroll: true})
     }
 
     reset() {
@@ -138,6 +141,8 @@ export class TextInput {
     }
 
     private submit_char(val: string) {
+        // Measure the height of the window, which should account for a virtual keyboard
+        this.window.measure_height()
         this.reset()
         this.window_manager.active_window = this.window
         this.window_manager.send_event({
@@ -148,6 +153,8 @@ export class TextInput {
     }
 
     private submit_line(val: string, terminator?: protocol.TerminatorCode) {
+        // Measure the height of the window, which should account for a virtual keyboard
+        this.window.measure_height()
         this.reset()
         this.window_manager.active_window = this.window
 

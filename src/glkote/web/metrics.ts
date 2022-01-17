@@ -107,7 +107,7 @@ export default class Metrics {
         // Wait first for the load event for the CSS to be loaded
         await this.loaded
         // And then for the actual font(s) to be loaded
-        const font_family = getComputedStyle(gridwin[0]).getPropertyValue("--glkote-grid-mono-family").split(',')[0].replace(/"/g, '')
+        const font_family = getComputedStyle(gridwin[0]).getPropertyValue('--glkote-grid-mono-family').split(',')[0].replace(/"/g, '')
         await document.fonts.load(`14px ${font_family}`)
 
         // Measure the gameport height/width, excluding border and padding
@@ -128,8 +128,8 @@ export default class Metrics {
         // Measure the graphics window
         const graphicswinsize = get_size(graphwin)
         const canvassize = get_size(graphcanvas)
-        this.metrics.gridmarginx = graphicswinsize.width - canvassize.width
-        this.metrics.gridmarginy = graphicswinsize.height - canvassize.height
+        this.metrics.graphicsmarginx = graphicswinsize.width - canvassize.width
+        this.metrics.graphicsmarginy = graphicswinsize.height - canvassize.height
 
         // Measure the grid window
         const gridwinsize = get_size(gridwin)
