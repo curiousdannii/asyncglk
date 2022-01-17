@@ -33,6 +33,10 @@ https://github.com/curiousdannii/asyncglk
     background: rgba(50%, 50%, 50%, 20%);
 }
 
+.BufferWindow:focus {
+    outline: 0;
+}
+
 .BufferWindow .reverse {
     background: var(--glkote-buffer-reverse-bg);
     color: var(--glkote-buffer-reverse-fg);

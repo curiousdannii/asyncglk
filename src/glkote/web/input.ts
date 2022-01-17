@@ -40,7 +40,14 @@ export class TextInput {
     /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
     private oninput(ev: any) {
         if (this.window.inputs?.type === 'char') {
-            this.submit_char(ev.target.value[0])
+            const char = ev.target.value[0]
+            this.submit_char(char)
+            // Even though we have reset and emptied the input, Android acts as though it still has spaces within it, and won't send backspace keydown events until the phantom spaces have all been deleted. Refocusing seems to fix it.
+            if (char === ' ') {
+                this.el.trigger('blur')
+                this.el.trigger('focus')
+            }
+            return false
         }
     }
 
@@ -55,8 +62,6 @@ export class TextInput {
         if (!keycode) {
             return
         }
-
-        // TODO: Don't capture up/down/pageup/pagedown if input is not in view
 
         if (this.is_line) {
             // History

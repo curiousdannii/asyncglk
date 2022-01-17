@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {NBSP, THINSPACE} from '../../common/constants.js'
+import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
@@ -98,6 +98,7 @@ class BufferWindow extends TextualWindow {
             'aria-atomic': 'false',
             'aria-live': 'polite',
             'aria-relevant': 'additions',
+            tabindex: -1,
         })
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
@@ -138,7 +139,9 @@ class BufferWindow extends TextualWindow {
         // Get the scrolltop for this update
         this.updatescrolltop = Math.max(0, (this.lastline?.position().top || 0) - 20)
 
-        for (const [line_index, line] of data.text.entries()) {
+        let line_index = 0
+        while (line_index < data.text.length) {
+            const line = data.text[line_index++]
             const content = line.content
             let divel: JQuery<HTMLElement> | undefined
             if (line.append && this.lastline) {
@@ -261,8 +264,9 @@ export default class Windows extends Map<number, Window> {
         for (const win of this.values()) {
             const update = newinputs[win.id]
             if (!update && win.inputs) {
-                if (!this.active_window && win.textinput.el.is(':focus')) {
+                if (win.textinput.el.is(':focus')) {
                     this.active_window = win
+                    win.textinput.el.trigger('blur')
                 }
                 delete win.inputs
             }
@@ -282,18 +286,23 @@ export default class Windows extends Map<number, Window> {
         }
     }
 
-    // on document.keypress events, trigger a window with active text input
+    // On document.keypress events, redirect to a window
     private onkeydown(ev: JQuery.KeyDownEvent) {
-        if (ev.target.nodeName !== 'input') {
-            for (const window of this.values()) {
-                if (window.inputs?.type) {
-                    window.frameel.trigger('click')
-                    // After focusing, the keypress event will fire, but not the keydown, meaning that function keys won't be recognised
-                    // So manually trigger the keydown event in the input (as long as it is actually focused)
-                    if (window.textinput.el.is(':focus')) {
-                        window.textinput.el.trigger(ev)
-                    }
-                    break
+        // Don't fire on inputs or focused buffer windows
+        if (ev.target.nodeName !== 'input' && !(ev.target.nodeName === 'div' && $(ev.target).is('.BufferWindow:focus'))) {
+            // Look first for a window with active text input, but as a fallback any buffer window
+            const windows = [...this.values()]
+            const window = windows.filter(win => win.inputs?.type)[0] || windows.filter(win => win.type === 'buffer')[0]
+            if (window) {
+                window.frameel.trigger('click')
+                // After focusing, the keypress event will fire, but not the keydown, meaning that function keys won't be recognised
+                // So manually trigger the keydown event in the input (as long as it is actually focused)
+                if (window.textinput.el.is(':focus')) {
+                    window.textinput.el.trigger(ev)
+                }
+                // Otherwise focus the window so that nav keys will work
+                else if (window.type === 'buffer') {
+                    window.frameel.trigger('focus')
                 }
             }
         }
