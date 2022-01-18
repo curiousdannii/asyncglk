@@ -87,10 +87,10 @@ abstract class TextualWindow extends WindowBase {
 
 class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
-    height: number
     innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
     updatescrolltop: number = 0
+    visibleheight: number
 
     constructor(options: any) {
         super(options)
@@ -103,7 +103,12 @@ class BufferWindow extends TextualWindow {
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
             .appendTo(this.frameel)
-        this.height = this.frameel.height()!
+        this.visibleheight = this.frameel.height()!
+    }
+
+    /** Measure the height of the window that is currently visible (excluding virtual keyboards for example) */
+    measure_height() {
+        this.visibleheight = this.frameel.height()!
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
@@ -115,10 +120,6 @@ class BufferWindow extends TextualWindow {
             }
             return false
         }
-    }
-
-    measure_height() {
-        this.height = this.frameel.height()!
     }
 
     scrolltolastupdate() {

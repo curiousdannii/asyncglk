@@ -44,8 +44,7 @@ export class TextInput {
             this.submit_char(char)
             // Even though we have reset and emptied the input, Android acts as though it still has spaces within it, and won't send backspace keydown events until the phantom spaces have all been deleted. Refocusing seems to fix it.
             if (char === ' ') {
-                this.el.trigger('blur')
-                this.el.trigger('focus')
+                this.el.trigger('blur').trigger('focus')
             }
             return false
         }
@@ -123,7 +122,7 @@ export class TextInput {
     refocus() {
         if (this.window.type === 'buffer') {
             const updateheight = this.window.innerel.outerHeight()! - this.window.updatescrolltop
-            if (updateheight > this.window.height) {
+            if (updateheight > this.window.visibleheight) {
                 return
             }
         }
