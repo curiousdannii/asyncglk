@@ -27,5 +27,8 @@
     "minimist": "^1.2.5",
     "mute-stream": "0.0.8",
     "typescript": "^4.5.4"
+  },
+  "scripts": {
+    "prepare": "tsc"
   }
 }
