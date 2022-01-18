@@ -75,9 +75,7 @@ abstract class WindowBase {
 abstract class TextualWindow extends WindowBase {
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
         const el = create('span', `Style_${run.style}`)
-        const els = split_words
-            ? $(run.text.split(/(?<=\s)\b/g).map(text => el.clone().text(text)[0]))
-            : el.text(run.text)
+        const els = el.text(run.text)
         if (run.hyperlink) {
             els.wrap($('<a>', {href: '#'}))
         }
