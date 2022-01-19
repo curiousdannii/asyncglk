@@ -13,6 +13,7 @@ https://github.com/curiousdannii/asyncglk
     background: var(--glkote-buffer-bg);
     box-sizing: border-box;
     margin: 0px;
+    overflow: hidden;
     position: absolute;
 }
 
@@ -21,7 +22,7 @@ https://github.com/curiousdannii/asyncglk
     font-family: var(--glkote-prop-family);
     font-size: var(--glkote-buffer-size);
     line-height: 1.4;
-    overflow-x: hidden; /* hide the horizontal scrollbar */
+    overflow-y: auto;
     scrollbar-gutter: stable; /* preserve space for the vertical scrollbar */
 }
 
@@ -68,7 +69,6 @@ https://github.com/curiousdannii/asyncglk
     color: var(--glkote-grid-fg);
     font-family: var(--glkote-grid-mono-family); /* necessary! */
     font-size: var(--glkote-grid-size);
-    overflow: hidden;
     padding: 6px 10px;
 }
 

@@ -54,8 +54,9 @@ export default class Metrics {
             window.addEventListener('load', loadcallback)
         })
 
-        const throttled_handler = throttle(() => this.onresize(), 200)
-        $(window).on('resize', throttled_handler)
+        const throttled_resize_handler = throttle(() => this.on_window_resize(), 200, {leading: false})
+        $(window).on('resize', throttled_resize_handler)
+        $(visualViewport).on('resize', () => this.on_visualViewport_resize())
     }
 
     async measure() {
@@ -146,7 +147,16 @@ export default class Metrics {
         layout_test_pane.remove()
     }
 
-    async onresize() {
+    on_visualViewport_resize() {
+        // The iOS virtual keyboard does not change the gameport height, but it does change the viewport
+        // Try to account for this by setting the gameport to the viewport height
+        this.dom.gameport().css('height', visualViewport.height)
+        // Safari might have scrolled weirdly, so try to put it right
+        window.scrollTo(0, 0)
+        this.on_window_resize()
+    }
+
+    async on_window_resize() {
         const oldmetrics = Object.assign({}, this.metrics)
         await this.measure()
         if (metrics_differ(this.metrics, oldmetrics)) {

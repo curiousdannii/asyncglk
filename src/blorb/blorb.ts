@@ -44,7 +44,6 @@ export interface ImageInfo extends BlorbChunk {
 export interface BlorbDataChunk {
     binary: boolean,
     data: Uint8Array,
-    type: string,
 }
 
 const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
@@ -179,7 +178,6 @@ export class Blorb {
         return {
             binary: chunk.binary!,
             data: chunk.content,
-            type: chunk.blorbtype,
         }
     }
     

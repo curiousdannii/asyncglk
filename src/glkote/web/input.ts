@@ -37,6 +37,13 @@ export class TextInput {
         this.el.remove()
     }
 
+    private onfocus() {
+        // Ensure a buffer window is scrolled down
+        if (this.window.type === 'buffer') {
+            this.window.frameel[0].scrollTo(0, this.window.innerel.height()!)
+        }
+    }
+
     /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
     private oninput(ev: any) {
         if (this.window.inputs?.type === 'char') {
@@ -117,7 +124,7 @@ export class TextInput {
         }
     }
 
-    /** Refocus the input, but without scrolling */
+    /** Refocus the input, if it wouldn't obscure part of the update */
     // On Android this forces the window to be scrolled down to the bottom, so only refocus if the virtual keyboard doesn't make the window too small for the full update text to be seen
     refocus() {
         if (this.window.type === 'buffer') {
@@ -126,7 +133,7 @@ export class TextInput {
                 return
             }
         }
-        this.el[0].focus({preventScroll: true})
+        this.el[0].focus()
     }
 
     reset() {
@@ -203,8 +210,8 @@ export class TextInput {
                 break
             case 'grid':
                 this.el.css({
-                    left: `${update.ypos! * this.window.metrics.gridcharwidth}px`,
-                    top: `${update.xpos! * this.window.metrics.gridcharheight}px`,
+                    left: update.ypos! * this.window.metrics.gridcharwidth,
+                    top: update.xpos! * this.window.metrics.gridcharheight,
                     width: `${update.maxlen}em`,
                 })
                 break
