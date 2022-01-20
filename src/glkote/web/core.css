@@ -30,6 +30,7 @@ https://github.com/curiousdannii/asyncglk
 
 #windowport {
     height: 100%;
+    position: relative;
     width: 100%;
 }
 
@@ -38,4 +39,12 @@ https://github.com/curiousdannii/asyncglk
     width: 100%;
     text-align: center;
     top: 20%;
+}
+
+/* iOS 15: When the virtual keyboard is active, the URL bar is not correctly accounted for in visualViewport.height
+   https://bugs.webkit.org/show_bug.cgi?id=229876
+   Should be fixed in iOS 15.1
+   Account for it by adding some padding to the #gameport */
+.ios15fix {
+    padding-bottom: 55px;
 }

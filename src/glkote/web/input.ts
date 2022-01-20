@@ -8,6 +8,7 @@ MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
+import {throttle} from 'lodash-es'
 
 import {KEY_CODES_TO_NAMES, KEY_NAMES_TO_CODES, OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
@@ -27,7 +28,12 @@ export class TextInput {
         this.el = $('<input>', {
             'aria-live': 'off',
             autocapitalize: 'off',
+            blur: () => this.onblur(),
             class: 'Input',
+            data: {
+                window,
+            },
+            focus: () => this.onfocus(),
             type: 'text',
         })
         window.frameel.append(this.el)
@@ -37,11 +43,17 @@ export class TextInput {
         this.el.remove()
     }
 
+    private onblur() {
+        scroll_window()
+    }
+
     private onfocus() {
         // Ensure a buffer window is scrolled down
         if (this.window.type === 'buffer') {
-            this.window.frameel[0].scrollTo(0, this.window.innerel.height()!)
+            this.window.frameel.scrollTop(this.window.innerel.height()!)
         }
+        // Scroll the browser window over the next 600ms
+        scroll_window()
     }
 
     /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
@@ -133,7 +145,7 @@ export class TextInput {
                 return
             }
         }
-        this.el[0].focus()
+        this.el[0].focus({preventScroll: true})
     }
 
     reset() {
@@ -221,3 +233,19 @@ export class TextInput {
         // TODO: set colours and reverse
     }
 }
+
+/* A little helper function to repeatedly scroll the window, because iOS sometimes scrolls badly
+   On iOS, when focusing the soft keyboard, the keyboard animates in over 500ms
+   This would normally cover up the focused input, so iOS cleverly tries to
+   scroll the top-level window down to bring the input into the view
+   But we know better: we want to scroll the input's window frame to the bottom,
+   without scrolling the top-level window at all. */
+const scroll_window = throttle(() => {
+    function do_scroll(count: number) {
+        window.scrollTo(0, 0)
+        if (count > 0) {
+            setTimeout(do_scroll, 50, count - 1)
+        }
+    }
+    do_scroll(12)
+}, 1000)
