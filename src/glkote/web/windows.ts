@@ -9,6 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import Blorb from '../../blorb/blorb.js'
 import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
@@ -19,6 +20,7 @@ export type Window = BufferWindow | GraphicsWindow | GridWindow
 type WindowCodes = 'buffer' | 'graphics' | 'grid'
 
 abstract class WindowBase {
+    blorb?: Blorb
     desired: boolean = true
     dom: DOM
     frameel: JQuery<HTMLElement>
@@ -29,6 +31,7 @@ abstract class WindowBase {
     type: WindowCodes
 
     constructor(options: {
+        blorb?: Blorb
         dom: DOM,
         id: number,
         manager: Windows,
@@ -36,6 +39,7 @@ abstract class WindowBase {
         rock: number,
         type: WindowCodes,
     }) {
+        this.blorb = options.blorb
         this.dom = options.dom
         this.id = options.id
         this.metrics = options.metrics
@@ -85,6 +89,14 @@ abstract class TextualWindow extends WindowBase {
         }
         return els
     }
+}
+
+const inline_alignment_classes: Record<string, string> = {
+    inlinecenter: 'ImageInlineCenter',
+    inlinedown: 'ImageInlineDown',
+    inlineup: 'ImageInlineUp',
+    marginleft: 'ImageMarginLeft',
+    marginright: 'ImageMarginRight',
 }
 
 class BufferWindow extends TextualWindow {
@@ -174,7 +186,15 @@ class BufferWindow extends TextualWindow {
                     }
                 }
                 else if ('special' in instruction && instruction.special === 'image') {
-                    // TODO: inline images
+                    const el = $('<img>', {
+                        alt: instruction.alttext || `Image ${instruction.image}`,
+                        class: inline_alignment_classes[instruction.alignment || 'inlineup'],
+                        height: instruction.height,
+                        src: this.blorb && this.blorb.get_image_url(instruction.image!) || instruction.url!,
+                        width: instruction.width,
+                    })
+                    // TODO hyperlink
+                    divel.append(el)
                     continue
                 }
                 else {
@@ -244,6 +264,7 @@ const window_types: Record<string, string> = {
 
 export default class Windows extends Map<number, Window> {
     active_window?: Window
+    blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
     private dom: DOM
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
@@ -329,6 +350,7 @@ export default class Windows extends Map<number, Window> {
             // Create it if not
             if (!win) {
                 const options = {
+                    blorb: this.blorb,
                     dom: this.dom,
                     id,
                     manager: this,

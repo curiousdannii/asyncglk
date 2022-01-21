@@ -57,7 +57,7 @@ const UNKNOWN_IMAGE_TYPE = '????'
 
 const utf8decoder = new TextDecoder()
 
-export class Blorb {
+export default class Blorb {
     classname = 'Blorb'
     /** Chunks are indexed with "USE:NUMBER" keys */
     chunks: Record<string, BlorbChunk> = {}

@@ -81,6 +81,10 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 this.dom.windowport_id = options.windowport
             }
 
+            if (options.Blorb) {
+                this.windows.blorb = options.Blorb
+            }
+
             // The windport is required to already exist
             const windowport = this.dom.windowport()
             if (!windowport.length) {
@@ -103,7 +107,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected capabilities(): string[] {
-        return []
+        return ['graphics']
     }
 
     protected disable(disable: boolean) {

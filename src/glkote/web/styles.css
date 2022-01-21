@@ -40,7 +40,7 @@ span.Style_note {
 }
 
 span.Style_blockquote {
-    background: var(--glkote-blockquote-bg);
+    /* TODO: decide what to do - paragraph style perhaps? */
 }
 
 span.Style_input {

@@ -375,7 +375,7 @@ export interface BufferWindowImage {
     /** Image alignment */
     alignment: 'inlinecenter' | 'inlinedown' | 'inlineup' | 'marginleft' | 'marginright' | undefined,
     /** Image alt text */
-    altext?: string,
+    alttext?: string,
     height: number,
     /** Hyperlink value */
     hyperlink?: number,

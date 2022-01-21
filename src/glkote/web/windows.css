@@ -59,6 +59,28 @@ https://github.com/curiousdannii/asyncglk
     flex-wrap: wrap;
 }
 
+/* Buffer window image classes */
+.FlowBreak {
+    clear: both;
+}
+.ImageInlineCenter {
+    vertical-align: middle;
+}
+.ImageInlineDown {
+    vertical-align: text-top;
+}
+.ImageInlineUp {
+    vertical-align: text-bottom;
+}
+.ImageMarginLeft {
+    float: left;
+    margin-right: 0.5em;
+}
+.ImageMarginRight {
+    float: right;
+    margin-left: 0.5em;
+}
+
 .GraphicsWindow canvas {
     background-color: var(--glkote-buffer-bg);
     display: block;
