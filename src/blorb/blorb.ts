@@ -65,6 +65,14 @@ export default class Blorb {
     private debugdata?: Uint8Array
     private is_inited = false
 
+    // The original Blorb library requires you to call init(), but I think it's better to pass the data into the constructor
+    constructor(data?: Uint8Array);
+    constructor(data?: Uint8Array) {
+        if (data) {
+            this.init(data)
+        }
+    }
+
     init(data: Uint8Array): void;
     init(data: Uint8Array) {
         if (data instanceof Uint8Array) {
@@ -101,7 +109,7 @@ export default class Blorb {
                         const view = new FileView(iff_chunk.data)
                         let i = 4
                         while (i < view.byteLength) {
-                            const usage = view.getFourCC(i)
+                            const usage = BLORB_RESOURCE_INDEX_USAGES[view.getFourCC(i)]
                             const resource_number = view.getUint32(i + 4)
                             const text_length = view.getUint32(i + 8)
                             const chunk = this.chunks[`${usage}:${resource_number}`]
@@ -144,7 +152,7 @@ export default class Blorb {
                             if (usage === 'Data') {
                                 chunk.binary = resource_chunk.type === 'BINA' || resource_chunk.type === 'FORM'
                             }
-                            this.chunks[`${usage}:${resource_number}`] = chunk
+                            this.chunks[`${chunk.usage}:${resource_number}`] = chunk
                         }
                         break
                     }
@@ -231,7 +239,8 @@ export default class Blorb {
         }
 
         if (chunk.type !== UNKNOWN_IMAGE_TYPE) {
-            return URL.createObjectURL(new Blob([chunk.content], {type: `image/${chunk.type}`}))
+            chunk.url = URL.createObjectURL(new Blob([chunk.content], {type: `image/${chunk.type}`}))
+            return chunk.url
         }
 
         return null

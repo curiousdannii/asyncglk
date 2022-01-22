@@ -438,9 +438,9 @@ export interface SpecialInput {
 export interface WindowUpdate {
     height: number,
     /** Graphics height (pixels) */
-    graphicsheight?: number,
+    graphheight?: number,
     /** Graphics width (pixels) */
-    graphicswidth?: number,
+    graphwidth?: number,
     /** Grid height (chars) */
     gridheight?: number,
     /** Grid width (chars) */

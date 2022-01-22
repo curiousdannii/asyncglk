@@ -211,11 +211,66 @@ class BufferWindow extends TextualWindow {
 
 class GraphicsWindow extends WindowBase {
     type: 'graphics' = 'graphics'
+    canvas: JQuery<HTMLCanvasElement>
+    context: CanvasRenderingContext2D
+    fillcolour = ''
     height = 0
     width = 0
 
-    update(data: protocol.GraphicsWindowContentUpdate) {
-        // TODO!
+    constructor(options: any) {
+        super(options)
+        const height = options.height
+        const width = options.width
+        this.height = height
+        this.width = width
+        this.canvas = this.dom.create('canvas', `win${options.id}_canvas`, {
+            attr: {height, width},
+            css: {height, width},
+        }) as JQuery<HTMLCanvasElement>
+        this.context = this.canvas[0].getContext('2d')!
+        this.frameel.append(this.canvas)
+    }
+
+    load_image(url: string): Promise<HTMLImageElement | null> {
+        return new Promise((resolve, reject) => {
+            const image = new Image()
+            image.onerror = () => resolve(null)
+            image.onload = () => resolve(image)
+            image.src = url
+        })
+    }
+
+    // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
+    async update(data: protocol.GraphicsWindowContentUpdate) {
+        if (!data.draw?.length) {
+            return
+        }
+
+        for (const op of data.draw) {
+            switch (op.special) {
+                case 'fill':
+                    this.context.fillStyle = op.color || this.fillcolour
+                    if (Number.isFinite(op.x)) {
+                        this.context.fillRect(op.x!, op.y!, op.width!, op.height!)
+                    }
+                    else {
+                        this.context.fillRect(0, 0, this.width, this.height)
+                    }
+                    break
+                case 'image':
+                    const url = op.url || this.blorb && this.blorb.get_image_url(op.image!)
+                    if (url) {
+                        const image = await this.load_image(url)
+                        if (image) {
+                            this.context.drawImage(image, op.x, op.y, op.width, op.height)
+                        }
+                    }
+                    break
+                case 'setcolor':
+                    this.fillcolour = op.color
+                    break
+            }
+        }
     }
 }
 
@@ -349,7 +404,7 @@ export default class Windows extends Map<number, Window> {
 
             // Create it if not
             if (!win) {
-                const options = {
+                const options: any = {
                     blorb: this.blorb,
                     dom: this.dom,
                     id,
@@ -365,7 +420,8 @@ export default class Windows extends Map<number, Window> {
                         break
                     }
                     case 'graphics': {
-                        //const canvas = this.dom.create('canvas', `win${id}_canvas`)
+                        options.height = update.graphheight
+                        options.width = update.graphwidth
                         win = new GraphicsWindow(options)
                         break
                     }
@@ -383,6 +439,17 @@ export default class Windows extends Map<number, Window> {
                 }
             }
             win.desired = true
+
+            // Ensure graphics windows are the right size
+            if (win.type === 'graphics') {
+                if (win.height !== update.graphheight || win.width !== update.graphwidth) {
+                    const height = update.graphheight!
+                    const width = update.graphwidth!
+                    win.height = height
+                    win.width = width
+                    win.canvas.attr({height, width}).css({height, width})
+                }
+            }
 
             // Ensure grid windows have the right number of lines
             if (win.type === 'grid') {

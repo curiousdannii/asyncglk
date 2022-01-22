@@ -107,7 +107,10 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected capabilities(): string[] {
-        return ['graphics']
+        return [
+            'graphics',
+            'graphicswin',
+        ]
     }
 
     protected disable(disable: boolean) {
