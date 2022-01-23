@@ -1,7 +1,7 @@
 /*
 
-Web Metrics
-===========
+Metrics and resize handlers
+===========================
 
 Copyright (c) 2022 Dannii Willis
 MIT licenced
@@ -47,12 +47,8 @@ export default class Metrics {
         this.send_event = send_event
 
         // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the load event so that the CSS is finished
-        this.loaded = new Promise(resolve => {
-            const loadcallback = () => {
-                window.removeEventListener('load', loadcallback)
-                resolve()
-            }
-            window.addEventListener('load', loadcallback)
+        this.loaded = new Promise((resolve: any) => {
+            window.addEventListener('load', resolve, {once: true})
         })
 
         $(document).on('scroll', this.on_document_scroll)

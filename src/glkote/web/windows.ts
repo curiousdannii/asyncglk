@@ -19,6 +19,10 @@ import {create, DOM, EventFunc} from './shared.js'
 export type Window = BufferWindow | GraphicsWindow | GridWindow
 type WindowCodes = 'buffer' | 'graphics' | 'grid'
 
+function no_text_selected(): boolean {
+    return (window.getSelection() + '') === ''
+}
+
 abstract class WindowBase {
     blorb?: Blorb
     desired: boolean = true
@@ -26,6 +30,7 @@ abstract class WindowBase {
     frameel: JQuery<HTMLElement>
     id: number
     inputs?: protocol.InputUpdate
+    manager: Windows
     metrics: protocol.NormalisedMetrics
     textinput: TextInput
     type: WindowCodes
@@ -42,6 +47,7 @@ abstract class WindowBase {
         this.blorb = options.blorb
         this.dom = options.dom
         this.id = options.id
+        this.manager = options.manager
         this.metrics = options.metrics
         this.type = options.type
 
@@ -53,7 +59,7 @@ abstract class WindowBase {
         // TODO: attach scrolling handler, etc
 
         // (this as any as Window) is a silly hack to work around Typescript's abstract class rules
-        this.textinput = new TextInput(this as any as Window, options.manager)
+        this.textinput = new TextInput(this as any as Window)
     }
 
     destroy() {
@@ -65,10 +71,23 @@ abstract class WindowBase {
     measure_height() {}
 
     protected onclick(ev: JQuery.ClickEvent) {
-        if ((window.getSelection() + '') === '' && this.inputs?.type) {
+        if (this.inputs?.type && no_text_selected()) {
             this.textinput.el.trigger('focus')
             return false
         }
+    }
+
+    send_text_event(ev: Partial<protocol.CharEvent | protocol.LineEvent>) {
+        // Measure the height of the window, which should account for a virtual keyboard
+        this.measure_height()
+        this.textinput.reset()
+        // Clear the input type so we won't accidentally send it again
+        this.inputs!.type = undefined
+        // We're the last active window
+        this.manager.active_window = this as any as Window
+        // Set the event's window prop and send it
+        ev.window = this.id
+        this.manager.send_event(ev)
     }
 
     update_textinput() {
@@ -126,7 +145,7 @@ class BufferWindow extends TextualWindow {
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
-        if ((window.getSelection() + '') === '' && this.inputs?.type && this.lastline) {
+        if (this.inputs?.type && this.lastline && no_text_selected()) {
             // Check that we've scrolled to the bottom
             const rect = this.lastline[0].getBoundingClientRect()
             if (rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight) {
@@ -240,6 +259,20 @@ class GraphicsWindow extends WindowBase {
         })
     }
 
+    onclick(ev: JQuery.ClickEvent) {
+        if (this.inputs?.mouse && ev.button === 0) {
+            this.inputs.mouse = false
+            this.manager.send_event({
+                type: 'mouse',
+                window: this.id,
+                x: Math.floor(ev.offsetX - this.metrics.graphicsmarginx / 2),
+                y: Math.floor(ev.offsetY - this.metrics.graphicsmarginy / 2),
+            })
+            return false
+        }
+        super.onclick(ev)
+    }
+
     // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
     async update(data: protocol.GraphicsWindowContentUpdate) {
         if (!data.draw?.length) {
@@ -279,6 +312,20 @@ class GridWindow extends TextualWindow {
     height = 0
     lines: JQuery<HTMLElement>[] = []
     width = 0
+
+    onclick(ev: JQuery.ClickEvent) {
+        if (this.inputs?.mouse && ev.button === 0 && no_text_selected()) {
+            this.inputs.mouse = false
+            this.manager.send_event({
+                type: 'mouse',
+                window: this.id,
+                x: Math.floor((ev.offsetX - this.metrics.gridmarginx / 2) / this.metrics.gridcharwidth),
+                y: Math.floor((ev.offsetY - this.metrics.gridmarginy / 2) / this.metrics.gridcharheight),
+            })
+            return false
+        }
+        super.onclick(ev)
+    }
 
     update(data: protocol.GridWindowContentUpdate) {
         for (const line of data.lines) {
@@ -354,7 +401,7 @@ export default class Windows extends Map<number, Window> {
 
     // If the gameport receives a click event, then find one window with active text input to focus
     private onclick() {
-        if ((window.getSelection() + '') !== '') {
+        if (no_text_selected()) {
             return
         }
         for (const window of this.values()) {

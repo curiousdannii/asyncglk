@@ -19,11 +19,9 @@ export class TextInput {
     el: JQuery<HTMLElement>
     is_line = false
     window: Window
-    window_manager: WindowManager
 
-    constructor(window: Window, manager: WindowManager) {
+    constructor(window: Window) {
         this.window = window
-        this.window_manager = manager
 
         this.el = $('<input>', {
             'aria-live': 'off',
@@ -58,7 +56,13 @@ export class TextInput {
 
     /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
     private oninput(ev: any) {
-        if (this.window.inputs?.type === 'char') {
+        // This input shouldn't be active
+        if (!this.window.inputs?.type) {
+            this.el.trigger('blur')
+            return false
+        }
+
+        if (this.window.inputs.type === 'char') {
             const char = ev.target.value[0]
             this.submit_char(char)
             // Even though we have reset and emptied the input, Android acts as though it still has spaces within it, and won't send backspace keydown events until the phantom spaces have all been deleted. Refocusing seems to fix it.
@@ -164,37 +168,28 @@ export class TextInput {
     }
 
     private submit_char(val: string) {
-        // Measure the height of the window, which should account for a virtual keyboard
-        this.window.measure_height()
-        this.reset()
-        this.window_manager.active_window = this.window
-        this.window_manager.send_event({
+        this.window.send_text_event({
             type: 'char',
             value: val,
-            window: this.window.id,
         })
     }
 
     private submit_line(val: string, terminator?: protocol.TerminatorCode) {
-        // Measure the height of the window, which should account for a virtual keyboard
-        this.window.measure_height()
-        this.reset()
-        this.window_manager.active_window = this.window
-
         // TODO: history
 
-        this.window_manager.send_event({
+        this.window.send_text_event({
             type: 'line',
             terminator,
             value: val,
-            window: this.window.id,
         })
     }
 
     update() {
+        // If this is called, then any existing input handlers are out of date and need to be removed
+        this.reset()
+
         const update = this.window.inputs!
         if (update.type !== 'char' && update.type !== 'line') {
-            this.reset()
             return
         }
         this.is_line = update.type === 'line'
