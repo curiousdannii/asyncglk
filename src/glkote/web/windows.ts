@@ -306,7 +306,7 @@ class GraphicsWindow extends WindowBase {
             })
             return false
         }
-        super.onclick(ev)
+        return super.onclick(ev)
     }
 
     // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
@@ -360,7 +360,7 @@ class GridWindow extends TextualWindow {
             })
             return false
         }
-        super.onclick(ev)
+        return super.onclick(ev)
     }
 
     update(data: protocol.GridWindowContentUpdate) {
@@ -437,7 +437,7 @@ export default class Windows extends Map<number, Window> {
 
     // If the gameport receives a click event, then find one window with active text input to focus
     private onclick() {
-        if (no_text_selected()) {
+        if (!no_text_selected()) {
             return
         }
         for (const window of this.values()) {

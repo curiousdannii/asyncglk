@@ -183,6 +183,24 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         }
     }
 
+    // Send partial line input values
+    protected send_event(ev: Partial<protocol.Event>) {
+        if (ev.type !== 'init' && ev.type !== 'refresh' && ev.type !== 'specialresponse') {
+            for (const win of this.windows.values()) {
+                if (win.inputs?.type) {
+                    const val = win.textinput.el.val() as string
+                    if (val) {
+                        if (!ev.partial) {
+                            ev.partial = {}
+                        }
+                        ev.partial[win.id] = val
+                    }
+                }
+            }
+        }
+        super.send_event(ev)
+    }
+
     setdomcontext(val: HTMLElement) {
         this.dom.context_element = val
     }

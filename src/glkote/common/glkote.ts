@@ -202,7 +202,6 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected exit() {}
 
-    //protected send_event(type: string, val1?: any, val2?: any, val3?: any) {
     protected send_event(ev: Partial<protocol.Event>) {
         ev.gen = this.generation
         switch (ev.type) {

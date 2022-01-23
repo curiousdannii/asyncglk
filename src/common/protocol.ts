@@ -18,20 +18,25 @@ https://github.com/curiousdannii/asyncglk
 export type Event = ArrangeEvent | CharEvent | DebugEvent | ExternalEvent | HyperlinkEvent |
     InitEvent | LineEvent | MouseEvent | RedrawEvent | RefreshEvent | SpecialEvent | TimerEvent
 
-export interface ArrangeEvent {
+interface EventBase {
     /** Event code */
-    type: 'arrange',
+    type: string,
     /** Generation number */
     gen: number,
+    /** Partial line input values */
+    partial?: Record<number, string>,
+}
+
+export interface ArrangeEvent extends EventBase {
+    /** Event code */
+    type: 'arrange',
     metrics: Metrics,
 }
 
 /** Character (single key) event */
-export interface CharEvent {
+export interface CharEvent extends EventBase {
     /** Event code */
     type: 'char',
-    /** Generation number */
-    gen: number,
     /** Character that was received */
     value: SpecialKeyCode | string,
     /** Window ID */
@@ -42,34 +47,28 @@ export type SpecialKeyCode = 'delete' | 'down' | 'end' | 'escape' | 'func1' | 'f
     | 'func4' | 'func5' | 'func6' | 'func7' | 'func8' | 'func9' | 'func10' | 'func11' | 'func12'
     | 'home' | 'left' | 'pagedown' | 'pageup' | 'return' | 'right' | 'tab' | 'up'
 
-export interface DebugEvent {
+export interface DebugEvent extends EventBase {
     /** Event code */
     type: 'debug',
-    /** Generation number */
-    gen: number,
     value: string,
 }
 
-export interface ExternalEvent {
+export interface ExternalEvent extends EventBase {
     /** Event code */
     type: 'external',
-    /** Generation number */
-    gen: number,
     value: any,
 }
 
-export interface HyperlinkEvent {
+export interface HyperlinkEvent extends EventBase {
     /** Event code */
     type: 'hyperlink',
-    /** Generation number */
-    gen: number,
     value: number,
     /** Window ID */
     window: number,
 }
 
 /** Initilisation event */
-export interface InitEvent {
+export interface InitEvent extends EventBase {
     /** Event code */
     type: 'init',
     /** Generation number */
@@ -80,11 +79,9 @@ export interface InitEvent {
 }
 
 /** Line (text) event */
-export interface LineEvent {
+export interface LineEvent extends EventBase {
     /** Event code */
     type: 'line',
-    /** Generation number */
-    gen: number,
     /** Terminator key */
     terminator?: TerminatorCode,
     /** Line input */
@@ -93,11 +90,9 @@ export interface LineEvent {
     window: number,
 }
 
-export interface MouseEvent {
+export interface MouseEvent extends EventBase {
     /** Event code */
     type: 'mouse',
-    /** Generation number */
-    gen: number,
     /** Window ID */
     window: number,
     /** Mouse click X */
@@ -106,27 +101,21 @@ export interface MouseEvent {
     y: number,
 }
 
-export interface RedrawEvent {
+export interface RedrawEvent extends EventBase {
     /** Event code */
     type: 'redraw',
-    /** Generation number */
-    gen: number,
     /** Window ID */
     window: number,
 }
 
-export interface RefreshEvent {
+export interface RefreshEvent extends EventBase {
     /** Event code */
     type: 'refresh',
-    /** Generation number */
-    gen: number,
 }
 
-export interface SpecialEvent {
+export interface SpecialEvent extends EventBase {
     /** Event code */
     type: 'specialresponse',
-    /** Generation number */
-    gen: number,
     /** Response type */
     response: 'fileref_prompt',
     /** Event value (file reference from Dialog) */
@@ -136,11 +125,9 @@ export interface SpecialEvent {
 /** File reference from Dialog */
 export type FileRef = any
 
-export interface TimerEvent {
+export interface TimerEvent extends EventBase {
     /** Event code */
     type: 'timer',
-    /** Generation number */
-    gen: number,
 }
 
 /** Screen and font metrics - all potential options */
