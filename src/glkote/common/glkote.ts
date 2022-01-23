@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'crypto'
 /*
 
 Generic GlkOte implementation
@@ -65,6 +64,7 @@ export abstract class GlkOteBase implements GlkOte {
     protected generation = 0
     protected is_inited = false
     protected options: GlkOteOptions = {} as GlkOteOptions
+    protected timer: ReturnType<typeof setTimeout> | null = null
 
     async init(options: GlkOteOptions) {
         if (!options) {
@@ -182,6 +182,16 @@ export abstract class GlkOteBase implements GlkOte {
                 this.disable(true)
             }
 
+            if (data.timer !== undefined) {
+                if (this.timer) {
+                    clearInterval(this.timer)
+                    this.timer = null
+                }
+                if (data.timer) {
+                    this.timer = setInterval(() => this.ontimer(), data.timer)
+                }
+            }
+
             if (data.specialinput) {
                 this.handle_specialinput(data.specialinput)
             }
@@ -197,10 +207,16 @@ export abstract class GlkOteBase implements GlkOte {
 
     // AsyncGlk specific implementation methods
     protected capabilities(): string[] {
-        return []
+        return ['timer']
     }
 
     protected exit() {}
+
+    protected ontimer() {
+        if (!this.disabled) {
+            this.send_event({type: 'timer'})
+        }
+    }
 
     protected send_event(ev: Partial<protocol.Event>) {
         ev.gen = this.generation

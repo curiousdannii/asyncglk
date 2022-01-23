@@ -111,6 +111,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             'graphics',
             'graphicswin',
             'hyperlinks',
+            'timer',
         ]
     }
 
