@@ -56,7 +56,6 @@ abstract class WindowBase {
             click: (ev: JQuery.ClickEvent) => this.onclick(ev),
         })
             .appendTo(this.dom.windowport())
-        // TODO: attach scrolling handler, etc
 
         // (this as any as Window) is a silly hack to work around Typescript's abstract class rules
         this.textinput = new TextInput(this as any as Window)
@@ -96,6 +95,13 @@ abstract class WindowBase {
 }
 
 abstract class TextualWindow extends WindowBase {
+    constructor(options: any) {
+        super(options)
+        // We need the `this` object provided by jQuery, so we can't use an arrow function handler like we normally do
+        const onlink = (target: HTMLElement) => this.onlink(target)
+        this.frameel.on('click', 'a', function() {onlink(this)})
+    }
+
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
         const el = create('span', `Style_${run.style}`)
         /*const els = split_words
@@ -104,9 +110,29 @@ abstract class TextualWindow extends WindowBase {
         // Safari doesn't support look behind regexs, so comment out for now
         const els = el.text(run.text)
         if (run.hyperlink) {
-            els.wrap($('<a>', {href: '#'}))
+            return $('<a>', {
+                data: {
+                    glklink: run.hyperlink,
+                },
+                href: '#',
+            })
+                .append(els)
         }
         return els
+    }
+
+    onlink(target: HTMLElement) {
+        const linkval = $(target).data('glklink')
+        if (linkval) {
+            if (this.inputs?.hyperlink) {
+                this.manager.send_event({
+                    type: 'hyperlink',
+                    value: linkval,
+                    window: this.id,
+                })
+            }
+            return false
+        }
     }
 }
 
@@ -212,7 +238,17 @@ class BufferWindow extends TextualWindow {
                         src: this.blorb && this.blorb.get_image_url(instruction.image!) || instruction.url!,
                         width: instruction.width,
                     })
-                    // TODO hyperlink
+                    if (instruction.hyperlink) {
+                        $('<a>', {
+                            data: {
+                                glklink: instruction.hyperlink,
+                            },
+                            href: '#',
+                        })
+                            .append(el)
+                            .appendTo(divel)
+                        continue
+                    }
                     divel.append(el)
                     continue
                 }

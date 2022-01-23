@@ -110,6 +110,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         return [
             'graphics',
             'graphicswin',
+            'hyperlinks',
         ]
     }
 
