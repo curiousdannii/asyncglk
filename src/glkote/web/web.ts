@@ -29,7 +29,7 @@ import Windows from './windows.js'
  * ```
  */
 export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
-    private dom: DOM = new DOM({
+    dom: DOM = new DOM({
         context_element: undefined,
         errorcontent_id: 'errorcontent',
         errorpane_id: 'errorpane',
@@ -46,9 +46,8 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     constructor() {
         super()
 
-        const send_event: EventFunc = event => this.send_event(event)
-        this.metrics_calculator = new Metrics(this.dom, this.current_metrics, send_event)
-        this.windows = new Windows(this.dom, this.current_metrics, send_event)
+        this.metrics_calculator = new Metrics(this)
+        this.windows = new Windows(this)
     }
 
     async init(options: GlkOte.GlkOteOptions) {
@@ -116,7 +115,10 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected disable(disable: boolean) {
-        throw new Error('disable not yet implemented')
+        for (const win of this.windows.values()) {
+            win.textinput.el.prop('disabled', disable)
+        }
+        this.disabled = disable
     }
 
     error(msg: any) {
@@ -158,10 +160,6 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         }
     }
 
-    protected handle_specialinput(data: protocol.SpecialInput) {
-        throw new Error('handle_specialinput not yet implemented')
-    }
-
     private hide_loading() {
         if (!this.showing_loading) {
             return
@@ -185,7 +183,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     // Send partial line input values
-    protected send_event(ev: Partial<protocol.Event>) {
+    send_event(ev: Partial<protocol.Event>) {
         if (ev.type !== 'init' && ev.type !== 'refresh' && ev.type !== 'specialresponse') {
             for (const win of this.windows.values()) {
                 if (win.inputs?.type) {

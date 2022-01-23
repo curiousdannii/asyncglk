@@ -15,6 +15,7 @@ import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
 import {create, DOM, EventFunc} from './shared.js'
+import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow
 type WindowCodes = 'buffer' | 'graphics' | 'grid'
@@ -404,14 +405,16 @@ export default class Windows extends Map<number, Window> {
     active_window?: Window
     blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
     private dom: DOM
+    private glkote: WebGlkOte
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
 
-    constructor(dom: DOM, metrics: protocol.NormalisedMetrics, send_event: EventFunc) {
+    constructor(glkote: WebGlkOte) {
         super()
-        this.dom = dom
-        this.metrics = metrics
-        this.send_event = send_event
+        this.dom = glkote.dom
+        this.glkote = glkote
+        this.metrics = glkote.current_metrics
+        this.send_event = ev => glkote.send_event(ev)
 
         $(document).on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
         this.dom.gameport().on('click', () => this.onclick())
@@ -437,13 +440,12 @@ export default class Windows extends Map<number, Window> {
 
     // If the gameport receives a click event, then find one window with active text input to focus
     private onclick() {
-        if (!no_text_selected()) {
-            return
-        }
-        for (const window of this.values()) {
-            if (window.inputs?.type) {
-                window.frameel.trigger('click')
-                break
+        if (!this.glkote.disabled && no_text_selected()) {
+            for (const window of this.values()) {
+                if (window.inputs?.type) {
+                    window.frameel.trigger('click')
+                    break
+                }
             }
         }
     }
@@ -451,7 +453,7 @@ export default class Windows extends Map<number, Window> {
     // On document.keypress events, redirect to a window
     private onkeydown(ev: JQuery.KeyDownEvent) {
         // Don't fire on inputs or focused buffer windows
-        if (ev.target.nodeName !== 'input' && !(ev.target.nodeName === 'div' && $(ev.target).is('.BufferWindow:focus'))) {
+        if (!this.glkote.disabled && ev.target.nodeName !== 'input' && !(ev.target.nodeName === 'div' && $(ev.target).is('.BufferWindow:focus'))) {
             // Look first for a window with active text input, but as a fallback any buffer window
             const windows = [...this.values()]
             const window = windows.filter(win => win.inputs?.type)[0] || windows.filter(win => win.type === 'buffer')[0]

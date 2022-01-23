@@ -14,7 +14,8 @@ import {throttle} from 'lodash-es'
 import {OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
-import {create, DOM, EventFunc} from './shared.js'
+import {create} from './shared.js'
+import WebGlkOte from './web.js'
 import {Window} from './windows.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
@@ -37,14 +38,12 @@ function metrics_differ(newmetrics: protocol.NormalisedMetrics, oldmetrics: prot
 export default class Metrics {
     // Shares the current_metrics and DOM of WebGlkOte
     private metrics: protocol.NormalisedMetrics
-    private dom: DOM
     private loaded: Promise<void>
-    private send_event: EventFunc
+    private glkote: WebGlkOte
 
-    constructor(dom: DOM, metrics: protocol.NormalisedMetrics, send_event: EventFunc) {
-        this.metrics = metrics
-        this.dom = dom
-        this.send_event = send_event
+    constructor(glkote: WebGlkOte) {
+        this.glkote = glkote
+        this.metrics = glkote.current_metrics
 
         // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the load event so that the CSS is finished
         this.loaded = new Promise((resolve: any) => {
@@ -58,16 +57,17 @@ export default class Metrics {
 
     async measure() {
         // Ensure #gameport exists
-        const gameport = this.dom.gameport()
+        const dom = this.glkote.dom
+        const gameport = dom.gameport()
         if (!gameport.length) {
-            throw new Error(`Cannot find gameport element #${this.dom.gameport_id}`)
+            throw new Error(`Cannot find gameport element #${dom.gameport_id}`)
         }
 
         // Old versions of GlkOte used a pre-existing #layouttestpane, remove it if it exists
-        this.dom.id('layouttestpane').remove()
+        dom.id('layouttestpane').remove()
 
         // Create a layout test pane
-        const layout_test_pane = this.dom.create('div', 'layout_test_pane')
+        const layout_test_pane = dom.create('div', 'layout_test_pane')
         layout_test_pane.text('This should not be visible')
         layout_test_pane.css({
             // Make the test pane render, but invisibly and off-screen
@@ -160,7 +160,7 @@ export default class Metrics {
         // Should be fixed in iOS 15.1
         // Account for it by adding some padding to the #gameport
         const input_is_active = document.activeElement?.tagName === 'INPUT'
-        this.dom.gameport()
+        this.glkote.dom.gameport()
             .toggleClass('ios15fix', input_is_active && /(iPad; CPU|iPhone) OS 15_0/i.test(navigator.userAgent))
             // And then set the outer height, to account for the padding
             .outerHeight(visualViewport.height)
@@ -179,10 +179,15 @@ export default class Metrics {
     }
 
     on_window_resize = throttle(async () => {
+        // Delay again if disabled
+        if (this.glkote.disabled) {
+            this.on_window_resize()
+            return
+        }
         const oldmetrics = Object.assign({}, this.metrics)
         await this.measure()
         if (metrics_differ(this.metrics, oldmetrics)) {
-            this.send_event({type: 'arrange'})
+            this.glkote.send_event({type: 'arrange'})
         }
     }, 200, {leading: false})
 }

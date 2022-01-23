@@ -158,35 +158,6 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
         }
     }
 
-    protected handle_specialinput(data: protocol.SpecialInput) {
-        if (data.type === 'fileref_prompt') {
-            const replyfunc = (ref: any) => this.send_event({
-                type: 'specialresponse',
-                gen: this.generation,
-                response: 'fileref_prompt',
-                value: ref,
-            })
-
-            try {
-                if (!this.Dialog) {
-                    setImmediate(() => replyfunc(null))
-                }
-                else {
-                    this.Dialog.open(data.filemode !== 'read', data.filetype, data.gameid, replyfunc)
-                }
-            }
-            catch (ex) {
-                this.log(`Unable to open file dialog: ${ex}`)
-                /* Return a failure. But we don't want to call send_response before
-                glkote_update has finished, so we defer the reply slightly. */
-                setImmediate(() => replyfunc(null))
-            }
-        }
-        else {
-            this.error( `Request for unknown special input type: ${data.type}` )
-        }
-    }
-
     save_allstate(): any {
         throw new Error('save_allstate not yet implemented')
     }

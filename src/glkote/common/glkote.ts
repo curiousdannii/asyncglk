@@ -58,9 +58,9 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected accept_func: (event: protocol.Event) => void = () => {}
     protected Blorb?: any
-    protected current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
+    current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
     protected Dialog?: any
-    protected disabled = false
+    disabled = false
     protected generation = 0
     protected is_inited = false
     protected options: GlkOteOptions = {} as GlkOteOptions
@@ -176,12 +176,6 @@ export abstract class GlkOteBase implements GlkOte {
                 this.update_inputs(data.input)
             }
 
-            // Disable everything if requested
-            this.disabled = false
-            if (data.disable || data.specialinput) {
-                this.disable(true)
-            }
-
             if (data.timer !== undefined) {
                 if (this.timer) {
                     clearInterval(this.timer)
@@ -194,6 +188,12 @@ export abstract class GlkOteBase implements GlkOte {
 
             if (data.specialinput) {
                 this.handle_specialinput(data.specialinput)
+            }
+
+            // Disable everything if requested
+            this.disabled = false
+            if (data.disable || data.specialinput) {
+                this.disable(true)
             }
         }
         catch (err) {
@@ -212,13 +212,44 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected exit() {}
 
+    protected handle_specialinput(data: protocol.SpecialInput) {
+        if (data.type === 'fileref_prompt') {
+            const replyfunc = (ref: any) => this.send_event({
+                type: 'specialresponse',
+                response: 'fileref_prompt',
+                value: ref,
+            })
+
+            try {
+                if (!this.Dialog) {
+                    setTimeout(() => replyfunc(null), 0)
+                }
+                else {
+                    this.Dialog.open(data.filemode !== 'read', data.filetype, data.gameid, replyfunc)
+                }
+            }
+            catch (ex) {
+                this.log(`Unable to open file dialog: ${ex}`)
+                /* Return a failure. But we don't want to call send_response before
+                glkote_update has finished, so we defer the reply slightly. */
+                setTimeout(() => replyfunc(null), 0)
+            }
+        }
+        else {
+            this.error( `Request for unknown special input type: ${data.type}` )
+        }
+    }
+
     protected ontimer() {
         if (!this.disabled) {
             this.send_event({type: 'timer'})
         }
     }
 
-    protected send_event(ev: Partial<protocol.Event>) {
+    send_event(ev: Partial<protocol.Event>) {
+        if (this.disabled && ev.type !== 'specialresponse') {
+            return
+        }
         ev.gen = this.generation
         switch (ev.type) {
             case 'arrange':
@@ -240,7 +271,6 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected abstract cancel_inputs(windows: protocol.InputUpdate[]): void
     protected abstract disable(disable: boolean): void
-    protected abstract handle_specialinput(data: protocol.SpecialInput): void
     protected abstract update_content(content: protocol.ContentUpdate[]): void
     protected abstract update_inputs(windows: protocol.InputUpdate[]): void
     protected abstract update_windows(windows: protocol.WindowUpdate[]): void
