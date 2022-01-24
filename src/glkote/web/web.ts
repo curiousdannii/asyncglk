@@ -14,7 +14,7 @@ import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
 import {DOM, EventFunc} from './shared.js'
-import Windows from './windows.js'
+import Windows, {GraphicsWindow} from './windows.js'
 
 /** A GlkOte implementation for the web
  * 
@@ -102,17 +102,28 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected autorestore(data: any) {
-        // Scroll all buffer windows
+        if (data.history) {
+            this.windows.history = data.history
+        }
+
         for (const win of this.windows.values()) {
+            // Scroll all buffer windows
             if (win.type === 'buffer') {
                 win.frameel.scrollTop(win.innerel.height()!)
             }
+            // Fix each window's reference to the history
+            win.textinput.history = this.windows.history
         }
 
-        // TODO history
-        // TODO graphics window colours
+        if (data.graphics_bg) {
+            for (const [winid, colour] of data.graphics_bg) {
+                (this.windows.get(winid) as GraphicsWindow).fillcolour = colour
+            }
+        }
 
         if (data.metrics && (data.metrics.height !== this.current_metrics.height || data.metrics.width !== this.current_metrics.width)) {
+            // Force a resize event
+            this.current_metrics.width += 2
             this.metrics_calculator.on_window_resize()
         }
     }
@@ -191,7 +202,16 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     save_allstate(): any {
+        const graphics_bg: any = []
+        for (const win of this.windows.values()) {
+            if (win.type === 'graphics') {
+                graphics_bg.push([win.id, win.fillcolour])
+            }
+        }
+
         return {
+            graphics_bg,
+            history: this.windows.history,
             metrics: {
                 height: this.current_metrics.height,
                 width: this.current_metrics.width,

@@ -153,6 +153,11 @@ export default class Metrics {
     }, 500, {leading: false})
 
     on_visualViewport_resize() {
+        // Don't do anything if the window is pinch zoomed
+        if (visualViewport.scale !== 1) {
+            return
+        }
+
         // The iOS virtual keyboard does not change the gameport height, but it does change the viewport
         // Try to account for this by setting the gameport to the viewport height
         const gameport = this.glkote.dom.gameport()

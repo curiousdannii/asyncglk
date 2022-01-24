@@ -391,7 +391,7 @@ class BufferWindow extends TextualWindow {
     }
 }
 
-class GraphicsWindow extends WindowBase {
+export class GraphicsWindow extends WindowBase {
     type: 'graphics' = 'graphics'
     canvas: JQuery<HTMLCanvasElement>
     canvascontext: CanvasRenderingContext2D
@@ -552,6 +552,7 @@ export default class Windows extends Map<number, Window> {
     blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
     private dom: DOM
     private glkote: WebGlkOte
+    history: string[] = []
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
 
