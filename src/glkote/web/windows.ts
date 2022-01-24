@@ -394,7 +394,9 @@ class BufferWindow extends TextualWindow {
 class GraphicsWindow extends WindowBase {
     type: 'graphics' = 'graphics'
     canvas: JQuery<HTMLCanvasElement>
-    context: CanvasRenderingContext2D
+    canvascontext: CanvasRenderingContext2D
+    buffer: JQuery<HTMLCanvasElement>
+    buffercontext: CanvasRenderingContext2D
     fillcolour = ''
     height = 0
     width = 0
@@ -405,12 +407,19 @@ class GraphicsWindow extends WindowBase {
         const width = options.width
         this.height = height
         this.width = width
+        // Create the canvas
         this.canvas = this.dom.create('canvas', `win${options.id}_canvas`, {
             attr: {height, width},
             css: {height, width},
         }) as JQuery<HTMLCanvasElement>
-        this.context = this.canvas[0].getContext('2d')!
+        this.canvascontext = this.canvas[0].getContext('2d')!
         this.frameel.append(this.canvas)
+        // And a buffer canvas to reduce flicker
+        this.buffer = this.dom.create('canvas', `buffer_canvas`, {
+            attr: {height, width},
+        }) as JQuery<HTMLCanvasElement>
+        this.buffercontext = this.canvas[0].getContext('2d')!
+        this.buffercontext.drawImage(this.canvas[0], 0, 0)
     }
 
     load_image(url: string): Promise<HTMLImageElement | null> {
@@ -445,12 +454,12 @@ class GraphicsWindow extends WindowBase {
         for (const op of data.draw) {
             switch (op.special) {
                 case 'fill':
-                    this.context.fillStyle = op.color || this.fillcolour
+                    this.buffercontext.fillStyle = op.color || this.fillcolour
                     if (Number.isFinite(op.x)) {
-                        this.context.fillRect(op.x!, op.y!, op.width!, op.height!)
+                        this.buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
                     }
                     else {
-                        this.context.fillRect(0, 0, this.width, this.height)
+                        this.buffercontext.fillRect(0, 0, this.width, this.height)
                     }
                     break
                 case 'image':
@@ -458,7 +467,7 @@ class GraphicsWindow extends WindowBase {
                     if (url) {
                         const image = await this.load_image(url)
                         if (image) {
-                            this.context.drawImage(image, op.x, op.y, op.width, op.height)
+                            this.buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
                         }
                     }
                     break
@@ -467,6 +476,8 @@ class GraphicsWindow extends WindowBase {
                     break
             }
         }
+        // Now that all operations are finished, draw the buffer to the main canvas
+        this.canvascontext.drawImage(this.buffer[0], 0, 0)
     }
 }
 
@@ -669,6 +680,7 @@ export default class Windows extends Map<number, Window> {
                     win.height = height
                     win.width = width
                     win.canvas.attr({height, width}).css({height, width})
+                    win.buffer.attr({height, width})
                 }
             }
 
