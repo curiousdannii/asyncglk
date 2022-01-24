@@ -252,6 +252,8 @@ export interface RetryUpdate {
 export interface StateUpdate {
     /** Update type */
     type: 'update',
+    /** Library specific autorestore data */
+    autorestore?: any,
     /** Content data */
     content?: ContentUpdate[],
     /** Debug output */

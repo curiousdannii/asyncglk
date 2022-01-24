@@ -101,6 +101,22 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         }
     }
 
+    protected autorestore(data: any) {
+        // Scroll all buffer windows
+        for (const win of this.windows.values()) {
+            if (win.type === 'buffer') {
+                win.frameel.scrollTop(win.innerel.height()!)
+            }
+        }
+
+        // TODO history
+        // TODO graphics window colours
+
+        if (data.metrics && (data.metrics.height !== this.current_metrics.height || data.metrics.width !== this.current_metrics.width)) {
+            this.metrics_calculator.on_window_resize()
+        }
+    }
+
     protected cancel_inputs(windows: protocol.InputUpdate[]) {
         this.windows.cancel_inputs(windows)
     }

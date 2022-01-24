@@ -196,6 +196,10 @@ export abstract class GlkOteBase implements GlkOte {
                 this.disable(true)
             }
 
+            if (data.autorestore) {
+                this.autorestore(data.autorestore)
+            }
+
             // Page background colour
             if (typeof data.page_bg !== 'undefined')
             {
@@ -212,6 +216,8 @@ export abstract class GlkOteBase implements GlkOte {
     }
 
     // AsyncGlk specific implementation methods
+    protected autorestore(data: any) {}
+
     protected capabilities(): string[] {
         return ['timer']
     }
@@ -252,6 +258,8 @@ export abstract class GlkOteBase implements GlkOte {
         }
     }
 
+    save_allstate(): any {}
+
     send_event(ev: Partial<protocol.Event>) {
         if (this.disabled && ev.type !== 'specialresponse') {
             return
@@ -275,8 +283,6 @@ export abstract class GlkOteBase implements GlkOte {
     protected set_page_bg(colour: string) {}
 
     // Functions to be implemented in a subclass
-    abstract save_allstate(): any
-
     protected abstract cancel_inputs(windows: protocol.InputUpdate[]): void
     protected abstract disable(disable: boolean): void
     protected abstract update_content(content: protocol.ContentUpdate[]): void

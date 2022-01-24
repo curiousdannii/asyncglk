@@ -284,12 +284,15 @@ class BufferWindow extends TextualWindow {
     }
 
     protected onclick(ev: JQuery.ClickEvent) {
-        if (this.inputs?.type && this.lastline && no_text_selected()) {
-            // Check that we've scrolled to the bottom
-            const rect = this.lastline[0].getBoundingClientRect()
-            if (rect.bottom >= 0 && rect.top <= document.documentElement.clientHeight) {
-                this.textinput.el.trigger('focus')
+        if (this.inputs?.type && no_text_selected()) {
+            // Check that we've scrolled to the bottom (if there is actually text in this window)
+            if (this.lastline && this.visibleheight) {
+                const rect = this.lastline[0].getBoundingClientRect()
+                if (rect.bottom < 0 || rect.top > document.documentElement.clientHeight) {
+                    return false
+                }
             }
+            this.textinput.el.trigger('focus')
             return false
         }
     }
@@ -321,6 +324,7 @@ class BufferWindow extends TextualWindow {
             let line_has_style
             if (line.append && this.lastline) {
                 divel = this.lastline
+                line_has_style = 1
             }
             else {
                 divel = create('div', 'BufferLine')
@@ -382,6 +386,8 @@ class BufferWindow extends TextualWindow {
 
         // Scroll down
         this.scrolltolastupdate()
+
+        // TODO: Trim log?
     }
 }
 
@@ -695,6 +701,7 @@ export default class Windows extends Map<number, Window> {
                 right: this.metrics.width - (update.left + update.width),
                 top: update.top,
             })
+            win.measure_height()
         }
 
         const windowstoclose: Window[] = []
