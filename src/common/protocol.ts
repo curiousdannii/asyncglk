@@ -261,6 +261,8 @@ export interface StateUpdate {
     gen: number,
     /** Windows with active input */
     input?: InputUpdate[],
+    /** Specify a colour to set the page to (outside of the gameport!) */
+    page_bg?: string,
     /** Special input */
     specialinput?: SpecialInput,
     timer: number | null | undefined,
@@ -273,12 +275,19 @@ export interface StateUpdate {
 /** Content update */
 export type ContentUpdate = BufferWindowContentUpdate | GraphicsWindowContentUpdate | GridWindowContentUpdate
 
-/** Buffer window content update */
-export interface BufferWindowContentUpdate {
+interface TextualWindowUpdate {
+    /** Background colour after clearing */
+    bg?: string,
+    /** Background colour after clearing */
+    fg?: string,
     /** Window ID */
     id: number,
     /** Clear the window */
     clear?: boolean,
+}
+
+/** Buffer window content update */
+export interface BufferWindowContentUpdate extends TextualWindowUpdate {
     /** text data */
     text: {
         /** Append to last input */
@@ -340,9 +349,7 @@ export interface SetcolorOperation {
 }
 
 /** Grid window content update */
-export interface GridWindowContentUpdate {
-    /** Window ID */
-    id: number,
+export interface GridWindowContentUpdate extends TextualWindowUpdate {
     /** Lines data */
     lines: {
         /** Line data */
@@ -375,8 +382,14 @@ export interface BufferWindowImage {
 
 /** Text run */
 export interface TextRun {
+    /** Background colour */
+    bg?: string,
+    /** Foreground colour */
+    fg?: string,
     /** Hyperlink value */
     hyperlink?: number,
+    /** Reverse style */
+    reverse?: boolean,
     /** Run style */
     style: string,
     /** Run content */
@@ -438,9 +451,13 @@ export interface WindowUpdate {
     left: number,
     /** Rock value */
     rock: number,
+    /** CSS styles */
+    stylehints?: StyleHints,
     /** Top position */
     top: number,
     /** Type */
     type: 'buffer' | 'graphics' | 'grid',
     width: number,
 }
+
+export type StyleHints = Record<number, Record<string, any>>
