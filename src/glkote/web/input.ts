@@ -160,6 +160,7 @@ export class TextInput {
                 'width': '',
             })
             .off('input keydown keypress')
+            .removeClass('LineInput')
             .val('')
         const inputparent = this.window.type === 'buffer' ? this.window.innerel : this.window.frameel
         if (!this.el.parent().is(inputparent)) {
@@ -213,7 +214,8 @@ export class TextInput {
         // Position the input element within the window
         switch (this.window.type) {
             case 'buffer':
-                (this.window.lastline || this.window.innerel).append(this.el)
+                this.el.addClass('LineInput')
+                ;(this.window.lastline || this.window.innerel).append(this.el)
                 break
             case 'grid':
                 this.el.css({

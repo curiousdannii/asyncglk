@@ -30,7 +30,7 @@ input.Input {
     line-height: 1.4;
 }
 
-/* Line inputs use the flexbox system for autosizing the input width */
+/* Line inputs in buffer windows use the flexbox system for autosizing the input width */
 .BufferLine .Input {
     display: inline-block;
     flex-grow: 1;

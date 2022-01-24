@@ -10,7 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import Blorb from '../../blorb/blorb.js'
-import {NBSP} from '../../common/constants.js'
+import {NBSP, STYLES_COUNT, STYLE_NAMES, STYLE_NAMES_TO_CODES} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
@@ -96,11 +96,91 @@ abstract class WindowBase {
 }
 
 abstract class TextualWindow extends WindowBase {
+    bg?: string
+    fg?: string
+    stylehints?: protocol.StyleHints
+
     constructor(options: any) {
         super(options)
+
         // We need the `this` object provided by jQuery, so we can't use an arrow function handler like we normally do
         const onlink = (target: HTMLElement) => this.onlink(target)
         this.frameel.on('click', 'a', function() {onlink(this)})
+
+        // Add stylehints
+        if (options.stylehints) {
+            this.stylehints = options.stylehints
+            this.add_stylehints()
+        }
+    }
+
+    /** Convert stylehints to CSS and add to a window */
+    add_stylehints() {
+        const css_rules = []
+        const windowid = `window${this.id}`
+        if (this.stylehints) {
+            for (let style_number = 0; style_number < 11; style_number++) {
+                const stylehints = this.stylehints![style_number]
+                if (!stylehints) {
+                    continue
+                }
+                const par_props = []
+                const span_props = []
+
+                for (const prop in stylehints) {
+                    if (prop === 'reverse' || (prop === 'font-family' && this.type !== 'buffer')) {
+                        continue
+                    }
+                    if (prop === 'margin-left' || prop === 'text-align' || prop === 'text-indent') {
+                        par_props.push(`${prop}: ${stylehints[prop]}`)
+                    }
+                    else {
+                        // If the whole style is reversed, then don't set colours here, set them below
+                        if ((prop === 'color' || prop === 'background-color') && stylehints.reverse) {
+                            continue
+                        }
+                        span_props.push(`${prop}: ${stylehints[prop]}`)
+                    }
+                }
+
+                const stylename = STYLE_NAMES[style_number]
+                if (par_props.length) {
+                    css_rules.push(`#${windowid} div.Style_${stylename} {${par_props.join('; ')}}`)
+                }
+                if (span_props.length) {
+                    css_rules.push(`#${windowid} span.Style_${stylename} {${span_props.join('; ')}}`)
+                    // Also output styles for the <input>
+                    // May not place nice with reverse!
+                    if (style_number === 8) {
+                        css_rules.push(`#${windowid} .LineInput {${span_props.join('; ')}}`)
+                    }
+                }
+
+                if (stylehints.color || stylehints['background-color']) {
+                    let css_props = []
+                    if (stylehints.color) {
+                        css_props.push(`background-color: ${stylehints.color}`)
+                    }
+                    if (stylehints['background-color']) {
+                        css_props.push(`color: ${stylehints['background-color']}`)
+                    }
+                    css_rules.push(`#${windowid} span.Style_${stylename}.reverse {${css_props.join('; ')}}`)
+                }
+            }
+        }
+
+        // Set window background colour
+        if (this.bg || this.fg || this.stylehints?.[0]?.['background-color']) {
+            css_rules.push(
+                `#${windowid} {background-color: ${this.bg || this.stylehints?.[0]?.['background-color'] || `var(--glkote-${this.type}-bg)`}}`,
+                `#${windowid}.reverse {background-color: ${this.fg || this.stylehints?.[0]?.['color'] || `var(--glkote-${this.type}-reverse-bg)`}}`
+            )
+        }
+
+        if (css_rules.length) {
+            this.frameel.children('style').remove()
+            this.frameel.prepend(`<style>${css_rules.join('\n')}</style>`)
+        }
     }
 
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
@@ -133,6 +213,24 @@ abstract class TextualWindow extends WindowBase {
                 })
             }
             return false
+        }
+    }
+
+    /** Refresh styles after a cleared window */
+    refresh_styles(bg?: string, fg?: string) {
+        if (this.stylehints) {
+            let styles_need_refreshing
+            if (typeof bg !== undefined) {
+                this.bg = bg
+                styles_need_refreshing = 1
+            }
+            if (typeof fg !== undefined) {
+                this.bg = fg
+                styles_need_refreshing = 1
+            }
+            if (styles_need_refreshing) {
+                this.add_stylehints()
+            }
         }
     }
 }
@@ -190,6 +288,7 @@ class BufferWindow extends TextualWindow {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
             this.lastline = undefined
+            this.refresh_styles(this.bg, this.fg)
         }
 
         // If the text field is missing, just do nothing
@@ -365,6 +464,10 @@ class GridWindow extends TextualWindow {
     }
 
     update(data: protocol.GridWindowContentUpdate) {
+        if (data.clear) {
+            this.refresh_styles(this.bg, this.fg)
+        }
+
         for (const line of data.lines) {
             const lineel = this.lines[line.line]
             if (!lineel.length) {
@@ -496,6 +599,7 @@ export default class Windows extends Map<number, Window> {
                     manager: this,
                     metrics: this.metrics,
                     rock,
+                    stylehints: update.stylehints,
                     type,
                 }
 
@@ -555,6 +659,8 @@ export default class Windows extends Map<number, Window> {
                 win.lines.length = win.height
                 win.width = update.gridwidth!
             }
+
+            // My original stylehints implementation also refreshed styles here, but I don't think it's necessary?
 
             // Update the position of the window
             win.frameel.css({

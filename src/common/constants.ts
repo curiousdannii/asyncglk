@@ -65,3 +65,31 @@ export const THINSPACE = '\u2009'
 export const OFFSCREEN_OFFSET = '-10000px'
 
 export const PACKAGE_VERSION = '0.1.0'
+
+export const STYLES_COUNT = 11
+export const STYLE_NAMES = [
+    'normal',
+    'emphasized',
+    'preformatted',
+    'header',
+    'subheader',
+    'alert',
+    'note',
+    'blockquote',
+    'input',
+    'user1',
+    'user2',
+]
+export const STYLE_NAMES_TO_CODES = {
+    normal: 0,
+    emphasized: 1,
+    preformatted: 2,
+    header: 3,
+    subheader: 4,
+    alert: 5,
+    note: 6,
+    blockquote: 7,
+    input: 8,
+    user1: 9,
+    user2: 10,
+}

@@ -35,6 +35,8 @@ function metrics_differ(newmetrics: protocol.NormalisedMetrics, oldmetrics: prot
         oldmetrics.width !== newmetrics.width)
 }
 
+const ios15_0 = /(iPad; CPU|iPhone) OS 15_0/i.test(navigator.userAgent)
+
 export default class Metrics {
     // Shares the current_metrics and DOM of WebGlkOte
     private metrics: protocol.NormalisedMetrics
@@ -153,17 +155,19 @@ export default class Metrics {
     on_visualViewport_resize() {
         // The iOS virtual keyboard does not change the gameport height, but it does change the viewport
         // Try to account for this by setting the gameport to the viewport height
+        const gameport = this.glkote.dom.gameport()
+        const input_is_active = document.activeElement?.tagName === 'INPUT'
 
         // But first...
         // iOS 15: When the virtual keyboard is active, the URL bar is not correctly accounted for in visualViewport.height
         // https://bugs.webkit.org/show_bug.cgi?id=229876
         // Should be fixed in iOS 15.1
         // Account for it by adding some padding to the #gameport
-        const input_is_active = document.activeElement?.tagName === 'INPUT'
-        this.glkote.dom.gameport()
-            .toggleClass('ios15fix', input_is_active && /(iPad; CPU|iPhone) OS 15_0/i.test(navigator.userAgent))
-            // And then set the outer height, to account for the padding
-            .outerHeight(visualViewport.height)
+        if (ios15_0) {
+            gameport.toggleClass('ios15fix', input_is_active)
+        }
+        // And then set the outer height, to account for the padding
+        gameport.outerHeight(visualViewport.height)
 
         // Safari might have scrolled weirdly, so try to put it right
         window.scrollTo(0, 0)

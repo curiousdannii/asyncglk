@@ -204,6 +204,10 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         this.dom.context_element = val
     }
 
+    protected set_page_bg(colour: string) {
+        $('body').css('background-color', colour)
+    }
+
     update(data: protocol.Update) {
         if (this.showing_loading) {
             this.hide_loading()

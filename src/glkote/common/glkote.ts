@@ -195,6 +195,12 @@ export abstract class GlkOteBase implements GlkOte {
             if (data.disable || data.specialinput) {
                 this.disable(true)
             }
+
+            // Page background colour
+            if (typeof data.page_bg !== 'undefined')
+            {
+                this.set_page_bg(data.page_bg)
+            }
         }
         catch (err) {
             this.error(err)
@@ -265,6 +271,8 @@ export abstract class GlkOteBase implements GlkOte {
         }
         this.accept_func(ev as Required<protocol.Event>)
     }
+
+    protected set_page_bg(colour: string) {}
 
     // Functions to be implemented in a subclass
     abstract save_allstate(): any
