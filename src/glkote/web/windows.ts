@@ -98,6 +98,7 @@ abstract class WindowBase {
 abstract class TextualWindow extends WindowBase {
     bg?: string
     fg?: string
+    last_textrun?: protocol.TextRun
     stylehints?: protocol.StyleHints
 
     constructor(options: any) {
@@ -184,12 +185,25 @@ abstract class TextualWindow extends WindowBase {
     }
 
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
-        const el = create('span', `Style_${run.style}`)
+        const reverse = run.reverse ?? (this.stylehints?.[STYLE_NAMES_TO_CODES[run.style]]?.reverse)
+        const el = create('span', `Style_${run.style}${reverse ? ' reverse' : ''}`)
         /*const els = split_words
             ? $(run.text.split(/(?<=\s)\b/g).map(text => el.clone().text(text)[0]))
             : el.text(run.text)*/
         // Safari doesn't support look behind regexs, so comment out for now
         const els = el.text(run.text)
+        const bg = run.bg
+        const fg = run.fg
+        if (bg || fg) {
+            const css_props: any = {}
+            if (bg) {
+                css_props[reverse ? 'color' : 'background-color'] = bg
+            }
+            if (fg) {
+                css_props[reverse ? 'background-color' : 'color'] = fg
+            }
+            el.css(css_props)
+        }
         if (run.hyperlink) {
             return $('<a>', {
                 data: {
@@ -225,7 +239,7 @@ abstract class TextualWindow extends WindowBase {
                 styles_need_refreshing = 1
             }
             if (typeof fg !== undefined) {
-                this.bg = fg
+                this.fg = fg
                 styles_need_refreshing = 1
             }
             if (styles_need_refreshing) {
@@ -288,7 +302,7 @@ class BufferWindow extends TextualWindow {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
             this.lastline = undefined
-            this.refresh_styles(this.bg, this.fg)
+            this.refresh_styles(data.bg, data.fg)
         }
 
         // If the text field is missing, just do nothing
@@ -304,6 +318,7 @@ class BufferWindow extends TextualWindow {
             const line = data.text[line_index++]
             const content = line.content
             let divel: JQuery<HTMLElement> | undefined
+            let line_has_style
             if (line.append && this.lastline) {
                 divel = this.lastline
             }
@@ -311,7 +326,7 @@ class BufferWindow extends TextualWindow {
                 divel = create('div', 'BufferLine')
                 this.innerel.append(divel)
                 this.lastline = divel
-                if (!content || !line.content.length) {
+                if (!content?.length) {
                     divel.addClass('BlankPara')
                     divel.append(create('span', 'BlankLineSpace').text(NBSP))
                     continue
@@ -355,7 +370,13 @@ class BufferWindow extends TextualWindow {
                 else {
                     run = instruction as protocol.TextRun
                 }
+                if (!line_has_style) {
+                    line_has_style = 1
+                    divel.addClass(`Style_${run.style}`)
+                }
                 divel.append(this.create_text_run(run, line_index === data.text.length))
+                // Store the last text run for setting styles in the input
+                this.last_textrun = run
             }
         }
 
@@ -465,7 +486,7 @@ class GridWindow extends TextualWindow {
 
     update(data: protocol.GridWindowContentUpdate) {
         if (data.clear) {
-            this.refresh_styles(this.bg, this.fg)
+            this.refresh_styles(data.bg, data.fg)
         }
 
         for (const line of data.lines) {
@@ -492,9 +513,14 @@ class GridWindow extends TextualWindow {
                         run = content[i] as protocol.TextRun
                     }
                     lineel.append(this.create_text_run(run))
+                    // Store the last text run for setting styles in the input
+                    this.last_textrun = run
                 }
             }
         }
+
+        // Apply the class of 'reverse' to the window if all the text in it is reversed
+        $(`#window${this.id}`).toggleClass('reverse', $(`#window${this.id} span:not(.reverse)`).length === 0)
     }
 }
 

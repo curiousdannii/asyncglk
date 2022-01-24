@@ -39,8 +39,8 @@ span.Style_note {
     font-style: italic;
 }
 
-span.Style_blockquote {
-    /* TODO: decide what to do - paragraph style perhaps? */
+div.Style_blockquote {
+    margin: 0 2em;
 }
 
 span.Style_input {

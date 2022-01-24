@@ -107,6 +107,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
 
     protected capabilities(): string[] {
         return [
+            'garglktext',
             'graphics',
             'graphicswin',
             'hyperlinks',

@@ -154,13 +154,15 @@ export class TextInput {
 
     reset() {
         this.el
+            .attr('class', 'Input')
             .css({
-                'left': OFFSCREEN_OFFSET,
-                'top': '',
-                'width': '',
+                'background-color': '',
+                color: '',
+                left: OFFSCREEN_OFFSET,
+                top: '',
+                width: '',
             })
             .off('input keydown keypress')
-            .removeClass('LineInput')
             .val('')
         const inputparent = this.window.type === 'buffer' ? this.window.innerel : this.window.frameel
         if (!this.el.parent().is(inputparent)) {
@@ -196,6 +198,7 @@ export class TextInput {
         this.is_line = update.type === 'line'
 
         this.el
+            .addClass('LineInput')
             .attr({
                 maxlength: this.is_line ? update.maxlen! : 1
             })
@@ -214,8 +217,7 @@ export class TextInput {
         // Position the input element within the window
         switch (this.window.type) {
             case 'buffer':
-                this.el.addClass('LineInput')
-                ;(this.window.lastline || this.window.innerel).append(this.el)
+                (this.window.lastline || this.window.innerel).append(this.el)
                 break
             case 'grid':
                 this.el.css({
@@ -227,7 +229,16 @@ export class TextInput {
         }
         this.el.val(update.initial || '')
 
-        // TODO: set colours and reverse
+        const textrun = this.window.last_textrun
+        if (textrun) {
+            this.el.toggleClass('reverse', !!textrun.reverse)
+            if (textrun.bg || textrun.fg) {
+                const css_props: any = {}
+                css_props[textrun.reverse ? 'background-color' : 'color'] = textrun.fg || ''
+                css_props[textrun.reverse ? 'color' : 'background-color'] = textrun.bg || ''
+                this.el.css(css_props)
+            }
+        }
     }
 }
 

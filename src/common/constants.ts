@@ -80,7 +80,7 @@ export const STYLE_NAMES = [
     'user1',
     'user2',
 ]
-export const STYLE_NAMES_TO_CODES = {
+export const STYLE_NAMES_TO_CODES: Record<string, number> = {
     normal: 0,
     emphasized: 1,
     preformatted: 2,
