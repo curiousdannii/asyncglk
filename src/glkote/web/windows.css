@@ -41,6 +41,7 @@ https://github.com/curiousdannii/asyncglk
 .BufferWindow .reverse {
     background: var(--glkote-buffer-reverse-bg);
     color: var(--glkote-buffer-reverse-fg);
+    display: inline-block;
 }
 
 /* We use a separate inner <div> so that the <input> for character input can be positioned at the bottom of the window */
@@ -101,6 +102,7 @@ https://github.com/curiousdannii/asyncglk
 .GridWindow .reverse {
     background: var(--glkote-grid-reverse-bg);
     color: var(--glkote-grid-reverse-fg);
+    display: inline-block;
 }
 
 .GridLine {
