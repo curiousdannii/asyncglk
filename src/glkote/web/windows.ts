@@ -395,8 +395,6 @@ export class GraphicsWindow extends WindowBase {
     type: 'graphics' = 'graphics'
     canvas: JQuery<HTMLCanvasElement>
     canvascontext: CanvasRenderingContext2D
-    buffer: JQuery<HTMLCanvasElement>
-    buffercontext: CanvasRenderingContext2D
     fillcolour = ''
     height = 0
     width = 0
@@ -414,12 +412,6 @@ export class GraphicsWindow extends WindowBase {
         }) as JQuery<HTMLCanvasElement>
         this.canvascontext = this.canvas[0].getContext('2d')!
         this.frameel.append(this.canvas)
-        // And a buffer canvas to reduce flicker
-        this.buffer = this.dom.create('canvas', `buffer_canvas`, {
-            attr: {height, width},
-        }) as JQuery<HTMLCanvasElement>
-        this.buffercontext = this.canvas[0].getContext('2d')!
-        this.buffercontext.drawImage(this.canvas[0], 0, 0)
     }
 
     load_image(url: string): Promise<HTMLImageElement | null> {
@@ -447,19 +439,30 @@ export class GraphicsWindow extends WindowBase {
 
     // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
     async update(data: protocol.GraphicsWindowContentUpdate) {
-        if (!data.draw?.length) {
+        // Do nothing if the window is collapsed, or if there's no actual drawing operations
+        if (!this.height || !this.width || !data.draw?.length) {
             return
         }
+
+        // Use a buffer canvas to reduce flicker
+        const buffer = this.dom.create('canvas', `buffer_canvas`, {
+            attr: {
+                height: this.height,
+                width: this.width,
+            },
+        }) as JQuery<HTMLCanvasElement>
+        const buffercontext = this.canvas[0].getContext('2d')!
+        buffercontext.drawImage(this.canvas[0], 0, 0)
 
         for (const op of data.draw) {
             switch (op.special) {
                 case 'fill':
-                    this.buffercontext.fillStyle = op.color || this.fillcolour
+                    buffercontext.fillStyle = op.color || this.fillcolour
                     if (Number.isFinite(op.x)) {
-                        this.buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
+                        buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
                     }
                     else {
-                        this.buffercontext.fillRect(0, 0, this.width, this.height)
+                        buffercontext.fillRect(0, 0, this.width, this.height)
                     }
                     break
                 case 'image':
@@ -467,7 +470,7 @@ export class GraphicsWindow extends WindowBase {
                     if (url) {
                         const image = await this.load_image(url)
                         if (image) {
-                            this.buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
+                            buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
                         }
                     }
                     break
@@ -477,7 +480,7 @@ export class GraphicsWindow extends WindowBase {
             }
         }
         // Now that all operations are finished, draw the buffer to the main canvas
-        this.canvascontext.drawImage(this.buffer[0], 0, 0)
+        this.canvascontext.drawImage(buffer[0], 0, 0)
     }
 }
 
@@ -681,7 +684,6 @@ export default class Windows extends Map<number, Window> {
                     win.height = height
                     win.width = width
                     win.canvas.attr({height, width}).css({height, width})
-                    win.buffer.attr({height, width})
                 }
             }
 
