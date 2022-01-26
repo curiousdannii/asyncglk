@@ -94,7 +94,7 @@ export class IFF {
         }
 
         // Now make the IFF file and return it
-        let view = new FileView(new ArrayBuffer(buffer_length))
+        const view = new FileView(new ArrayBuffer(buffer_length))
         view.setFourCC(0, 'FORM')
         view.setUint32(4, buffer_length - 8)
         view.setFourCC(8, this.type)

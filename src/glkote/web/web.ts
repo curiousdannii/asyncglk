@@ -13,7 +13,7 @@ import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
-import {DOM, EventFunc} from './shared.js'
+import {DOM} from './shared.js'
 import Windows, {GraphicsWindow} from './windows.js'
 
 /** A GlkOte implementation for the web
@@ -215,7 +215,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             metrics: {
                 height: this.current_metrics.height,
                 width: this.current_metrics.width,
-            }
+            },
         }
     }
 

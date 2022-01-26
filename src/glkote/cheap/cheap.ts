@@ -170,8 +170,7 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
             }
             const content = line.content
             if (content) {
-                for (let i = 0; i < content.length; i++)
-                {
+                for (let i = 0; i < content.length; i++) {
                     const run = content[i]
                     if (typeof run === 'string') {
                         i++

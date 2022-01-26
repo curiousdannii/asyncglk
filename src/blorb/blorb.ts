@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {FileView, IFF} from "./iff.js"
+import {FileView, IFF} from './iff.js'
 
 export interface ImageSize {
     height: number,
@@ -269,14 +269,14 @@ function get_jpeg_dimensions(data: Uint8Array): ImageSize | undefined {
             continue
         }
         const chunklength = view.getUint16(i)
-        if (marker >= 0xC0 && marker <= 0xCF && marker != 0xC8) {
+        if (marker >= 0xC0 && marker <= 0xCF && marker !== 0xC8) {
             if (chunklength < 7) {
                 // SOF block is too small
                 return
             }
             return {
                 height: view.getUint8(i + 3),
-                width: view.getUint8(i + 5)
+                width: view.getUint8(i + 5),
             }
         }
         i += chunklength

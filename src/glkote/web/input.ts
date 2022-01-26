@@ -245,7 +245,7 @@ export class TextInput {
             case 'buffer':
                 (this.window.lastline || this.window.innerel).append(this.el)
                 break
-            case 'grid':
+            case 'grid': {
                 const metrics = this.window.metrics
                 this.el.css({
                     left: update.xpos! * metrics.gridcharwidth + (metrics.gridmarginx / 2),
@@ -253,6 +253,7 @@ export class TextInput {
                     width: (update.maxlen || 1) * metrics.gridcharwidth,
                 })
                 break
+            }
         }
 
         // Set text style

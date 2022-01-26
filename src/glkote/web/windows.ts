@@ -28,7 +28,7 @@ function no_text_selected(): boolean {
 
 abstract class WindowBase {
     blorb?: Blorb
-    desired: boolean = true
+    desired = true
     dom: DOM
     frameel: JQuery<HTMLElement>
     id: number
@@ -160,7 +160,7 @@ abstract class TextualWindow extends WindowBase {
                 }
 
                 if (stylehints.color || stylehints['background-color']) {
-                    let css_props = []
+                    const css_props = []
                     if (stylehints.color) {
                         css_props.push(`background-color: ${stylehints.color}`)
                     }
@@ -263,7 +263,7 @@ class BufferWindow extends TextualWindow {
     type: 'buffer' = 'buffer'
     innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
-    updatescrolltop: number = 0
+    updatescrolltop = 0
     visibleheight: number
 
     constructor(options: any) {
@@ -285,7 +285,7 @@ class BufferWindow extends TextualWindow {
         this.visibleheight = this.frameel.height()!
     }
 
-    protected onclick(ev: JQuery.ClickEvent) {
+    protected onclick(_: JQuery.ClickEvent) {
         if (this.inputs?.type && no_text_selected()) {
             // Check that we've scrolled to the bottom (if there is actually text in this window)
             if (this.lastline && this.visibleheight) {
@@ -494,12 +494,13 @@ export class GraphicsWindow extends WindowBase {
                             buffercontext.fillRect(0, 0, this.width, this.height)
                         }
                         break
-                    case 'image':
+                    case 'image': {
                         const image = this.image_cache.get(op.url || op.image!)
                         if (image) {
                             buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
                         }
                         break
+                    }
                     case 'setcolor':
                         this.fillcolour = op.color
                         break
@@ -580,7 +581,7 @@ class GridWindow extends TextualWindow {
 const window_types: Record<string, string> = {
     buffer: 'BufferWindow',
     graphics: 'GraphicsWindow',
-    grid: 'GridWindow'
+    grid: 'GridWindow',
 }
 
 export default class Windows extends Map<number, Window> {

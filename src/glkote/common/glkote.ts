@@ -45,7 +45,7 @@ export interface GlkOteOptions {
     loadingpane?: string,
     max_buffer_length?: number,
     recording_format?: string,
-    recording_handler?: Function,
+    recording_handler?: any,
     recording_label?: string,
     recording_url?: string,
     regex_external_links?: RegExp,
@@ -201,8 +201,7 @@ export abstract class GlkOteBase implements GlkOte {
             }
 
             // Page background colour
-            if (typeof data.page_bg !== 'undefined')
-            {
+            if (typeof data.page_bg !== 'undefined') {
                 this.set_page_bg(data.page_bg)
             }
         }
