@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {debounce} from 'lodash-es'
+
 import Blorb from '../../blorb/blorb.js'
 import {NBSP, STYLES_COUNT, STYLE_NAMES, STYLE_NAMES_TO_CODES} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
@@ -120,7 +122,7 @@ abstract class TextualWindow extends WindowBase {
         const css_rules = []
         const windowid = `window${this.id}`
         if (this.stylehints) {
-            for (let style_number = 0; style_number < 11; style_number++) {
+            for (let style_number = 0; style_number < STYLES_COUNT; style_number++) {
                 const stylehints = this.stylehints![style_number]
                 if (!stylehints) {
                     continue
@@ -394,34 +396,37 @@ class BufferWindow extends TextualWindow {
 
 export class GraphicsWindow extends WindowBase {
     type: 'graphics' = 'graphics'
+    buffer: JQuery<HTMLCanvasElement>
     canvas: JQuery<HTMLCanvasElement>
-    canvascontext: CanvasRenderingContext2D
     fillcolour = ''
+    framequeue: protocol.GraphicsWindowOperation[][] = []
     height = 0
+    image_cache: Map<number | string, HTMLImageElement> = new Map()
     width = 0
 
     constructor(options: any) {
         super(options)
-        const height = options.height
-        const width = options.width
-        this.height = height
-        this.width = width
         // Create the canvas
-        this.canvas = this.dom.create('canvas', `win${options.id}_canvas`, {
-            attr: {height, width},
-            css: {height, width},
-        }) as JQuery<HTMLCanvasElement>
-        this.canvascontext = this.canvas[0].getContext('2d')!
+        this.canvas = this.dom.create('canvas', `win${options.id}_canvas`) as JQuery<HTMLCanvasElement>
         this.frameel.append(this.canvas)
+        // And a buffer canvas to reduce flicker
+        this.buffer = this.dom.create('canvas', `win${options.id}_buffer`) as JQuery<HTMLCanvasElement>
     }
 
-    load_image(url: string): Promise<HTMLImageElement | null> {
-        return new Promise((resolve, reject) => {
-            const image = new Image()
-            image.onerror = () => resolve(null)
-            image.onload = () => resolve(image)
-            image.src = url
-        })
+    // Clear the image cache 5 seconds after the last frame, so that the cache can be useful for animations, but we don't waste memory for images which are only updated each turn
+    clear_cache = debounce(() => {
+        this.image_cache.clear()
+    }, 5000)
+
+    // Decode and cache an image
+    decode_image(key: number | string, url: string): Promise<void> {
+        const image = new Image()
+        image.src = url
+        return image.decode()
+            .then(() => {
+                this.image_cache.set(key, image)
+            })
+            .catch(() => {})
     }
 
     onclick(ev: JQuery.ClickEvent) {
@@ -438,50 +443,76 @@ export class GraphicsWindow extends WindowBase {
         return super.onclick(ev)
     }
 
+    set_dimensions(height: number, width: number) {
+        this.height = height
+        this.width = width
+        this.buffer.attr({height, width})
+        this.canvas.attr({height, width}).css({height, width})
+    }
+
     // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
-    async update(data: protocol.GraphicsWindowContentUpdate) {
-        // Do nothing if the window is collapsed, or if there's no actual drawing operations
-        if (!this.height || !this.width || !data.draw?.length) {
-            return
-        }
+    async update() {
+        const buffercontext = this.buffer[0].getContext('2d')!
 
-        // Use a buffer canvas to reduce flicker
-        const buffer = this.dom.create('canvas', `buffer_canvas`, {
-            attr: {
-                height: this.height,
-                width: this.width,
-            },
-        }) as JQuery<HTMLCanvasElement>
-        const buffercontext = this.canvas[0].getContext('2d')!
-        buffercontext.drawImage(this.canvas[0], 0, 0)
+        // If we're slow loading images then more than one frame may have arrived, so go through the queue now
+        for (let i = 0; i < this.framequeue.length; i++) {
+            const frame = this.framequeue[i]
 
-        for (const op of data.draw) {
-            switch (op.special) {
-                case 'fill':
-                    buffercontext.fillStyle = op.color || this.fillcolour
-                    if (Number.isFinite(op.x)) {
-                        buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
+            // Stop if the window is collapsed
+            if (!this.height || !this.width) {
+                break
+            }
+            // There shouldn't be any empty frames, but check just in case
+            if (!frame.length) {
+                continue
+            }
+
+            // Preload images
+            const loading_images = []
+            for (const op of frame) {
+                if (op.special === 'image') {
+                    const key = op.url || op.image!
+                    if (this.image_cache.has(key)) {
+                        continue
                     }
-                    else {
-                        buffercontext.fillRect(0, 0, this.width, this.height)
-                    }
-                    break
-                case 'image':
                     const url = op.url || this.blorb && this.blorb.get_image_url(op.image!)
                     if (url) {
-                        const image = await this.load_image(url)
+                        loading_images.push(this.decode_image(key, url))
+                    }
+                }
+            }
+            await Promise.all(loading_images)
+
+            for (const op of frame) {
+                switch (op.special) {
+                    case 'fill':
+                        buffercontext.fillStyle = op.color || this.fillcolour
+                        if (Number.isFinite(op.x)) {
+                            buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
+                        }
+                        else {
+                            buffercontext.fillRect(0, 0, this.width, this.height)
+                        }
+                        break
+                    case 'image':
+                        const image = this.image_cache.get(op.url || op.image!)
                         if (image) {
                             buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
                         }
-                    }
-                    break
-                case 'setcolor':
-                    this.fillcolour = op.color
-                    break
+                        break
+                    case 'setcolor':
+                        this.fillcolour = op.color
+                        break
+                }
             }
         }
-        // Now that all operations are finished, draw the buffer to the main canvas
-        this.canvascontext.drawImage(buffer[0], 0, 0)
+        // Now that all operations/frames are finished, draw the buffer to the main canvas
+        this.canvas[0].getContext('2d')!.drawImage(this.buffer[0], 0, 0)
+
+        // Empty the queue
+        this.framequeue.length = 0
+        // And queue the cache to be cleared, if more frames don't arrive soon
+        this.clear_cache()
     }
 }
 
@@ -681,11 +712,7 @@ export default class Windows extends Map<number, Window> {
             // Ensure graphics windows are the right size
             if (win.type === 'graphics') {
                 if (win.height !== update.graphheight || win.width !== update.graphwidth) {
-                    const height = update.graphheight!
-                    const width = update.graphwidth!
-                    win.height = height
-                    win.width = width
-                    win.canvas.attr({height, width}).css({height, width})
+                    win.set_dimensions(update.graphheight!, update.graphwidth!)
                 }
             }
 
@@ -743,7 +770,13 @@ export default class Windows extends Map<number, Window> {
 
             switch (win.type) {
                 case 'buffer': win.update(update as protocol.BufferWindowContentUpdate); break
-                case 'graphics': win.update(update as protocol.GraphicsWindowContentUpdate); break
+                case 'graphics':
+                    // Queue this frame, but only run the update function if this is the only frame
+                    win.framequeue.push((update as protocol.GraphicsWindowContentUpdate).draw)
+                    if (win.framequeue.length === 1) {
+                        win.update()
+                    }
+                    break
                 case 'grid': win.update(update as protocol.GridWindowContentUpdate); break
             }
         }
