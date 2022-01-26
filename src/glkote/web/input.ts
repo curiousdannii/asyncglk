@@ -36,10 +36,16 @@ export class TextInput {
             data: {
                 window,
             },
-            focus: () => this.onfocus(),
+            on: {
+                focus: () => this.onfocus(),
+                input: (ev: any) => this.oninput(ev),
+                keydown: (ev: JQuery.KeyDownEvent) => this.onkeydown(ev),
+                keypress: (ev: JQuery.KeyPressEvent) => this.onkeypress(ev),
+            },
             type: 'text',
         })
-        window.frameel.append(this.el)
+            .prop('disabled', true)
+            .appendTo(window.frameel)
     }
 
     destroy() {
@@ -180,7 +186,7 @@ export class TextInput {
                 top: '',
                 width: '',
             })
-            .off('input keydown keypress')
+            .prop('disabled', true)
             .val('')
         const inputparent = this.window.type === 'buffer' ? this.window.innerel : this.window.frameel
         if (!this.el.parent().is(inputparent)) {
@@ -212,7 +218,7 @@ export class TextInput {
     }
 
     update() {
-        // If this is called, then any existing input handlers are out of date and need to be removed
+        // Start from a clean slate
         this.reset()
 
         const update = this.window.inputs!
@@ -221,21 +227,17 @@ export class TextInput {
         }
         this.is_line = update.type === 'line'
 
+        // Common options for both character and line input
         this.el
-            .addClass('LineInput')
-            .attr({
-                maxlength: this.is_line ? update.maxlen! : 1
-            })
-            .on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
-            .on('keypress', (ev: JQuery.KeyPressEvent) => this.onkeypress(ev))
+            .attr({maxlength: this.is_line ? update.maxlen! : 1})
+            .prop('disabled', false)
+            .val(update.initial || '')
 
-        // For character input attach the oninput handler, then stop
-        if (!this.is_line) {
-            this.el.on('input', (ev: any) => this.oninput(ev))
-            return
-        }
-        if (this.window.type === 'graphics') {
-            throw new Error(`Cannot request line input in graphics window ${this.window.id}`)
+        if (this.is_line) {
+            if (this.window.type === 'graphics') {
+                throw new Error(`Cannot request line input in graphics window ${this.window.id}`)
+            }
+            this.el.addClass('LineInput')
         }
 
         // Position the input element within the window
@@ -244,23 +246,26 @@ export class TextInput {
                 (this.window.lastline || this.window.innerel).append(this.el)
                 break
             case 'grid':
+                const metrics = this.window.metrics
                 this.el.css({
-                    left: update.ypos! * this.window.metrics.gridcharwidth,
-                    top: update.xpos! * this.window.metrics.gridcharheight,
-                    width: `${update.maxlen}em`,
+                    left: update.xpos! * metrics.gridcharwidth + (metrics.gridmarginx / 2),
+                    top: update.ypos! * metrics.gridcharheight + (metrics.gridmarginy / 2),
+                    width: (update.maxlen || 1) * metrics.gridcharwidth,
                 })
                 break
         }
-        this.el.val(update.initial || '')
 
-        const textrun = this.window.last_textrun
-        if (textrun) {
-            this.el.toggleClass('reverse', !!textrun.reverse)
-            if (textrun.bg || textrun.fg) {
-                const css_props: any = {}
-                css_props[textrun.reverse ? 'background-color' : 'color'] = textrun.fg || ''
-                css_props[textrun.reverse ? 'color' : 'background-color'] = textrun.bg || ''
-                this.el.css(css_props)
+        // Set text style
+        if (this.window.type !== 'graphics') {
+            const textrun = this.window.last_textrun
+            if (textrun) {
+                this.el.toggleClass('reverse', !!textrun.reverse)
+                if (textrun.bg || textrun.fg) {
+                    const css_props: any = {}
+                    css_props[textrun.reverse ? 'background-color' : 'color'] = textrun.fg || ''
+                    css_props[textrun.reverse ? 'color' : 'background-color'] = textrun.bg || ''
+                    this.el.css(css_props)
+                }
             }
         }
     }

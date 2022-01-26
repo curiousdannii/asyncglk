@@ -144,7 +144,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
 
     protected disable(disable: boolean) {
         for (const win of this.windows.values()) {
-            win.textinput.el.prop('disabled', disable)
+            win.textinput.el.prop('disabled', disable || !win.inputs?.type)
         }
         this.disabled = disable
     }

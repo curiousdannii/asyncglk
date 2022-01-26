@@ -305,6 +305,7 @@ class BufferWindow extends TextualWindow {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
             this.lastline = undefined
+            this.last_textrun = undefined
             this.refresh_styles(data.bg, data.fg)
         }
 
@@ -506,6 +507,7 @@ class GridWindow extends TextualWindow {
 
     update(data: protocol.GridWindowContentUpdate) {
         if (data.clear) {
+            this.last_textrun = undefined
             this.refresh_styles(data.bg, data.fg)
         }
 

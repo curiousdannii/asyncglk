@@ -21,6 +21,7 @@ input.Input {
     position: absolute;
     outline-style: none;
     outline-width: 0px;
+    width: 5px;
 }
 
 .BufferWindow .Input {
@@ -30,12 +31,15 @@ input.Input {
     line-height: 1.4;
 }
 
-/* Line inputs in buffer windows use the flexbox system for autosizing the input width */
 .BufferLine .Input {
     display: inline-block;
+    position: static;
+}
+
+/* Line inputs in buffer windows use the flexbox system for autosizing the input width */
+.BufferWindow .LineInput {
     flex-grow: 1;
     min-width: 175px;
-    position: static;
 }
 
 .GridWindow .Input {
