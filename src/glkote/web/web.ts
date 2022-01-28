@@ -91,6 +91,13 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             }
             windowport.empty()
 
+            // Prevent iOS from zooming in when focusing input, but allow Android to still pinch zoom
+            // As they handle the maximum-scale viewport meta option differently, we will conditionally add it only in iOS
+            // Idea from https://stackoverflow.com/a/62750441/2854284
+            if (/iPhone OS/i.test(navigator.userAgent)) {
+                (document.head.querySelector('meta[name="viewport"]')! as HTMLMetaElement).content = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1'
+            }
+
             await this.metrics_calculator.measure()
 
             // Note that this must be called last as it will result in VM.start() being called
