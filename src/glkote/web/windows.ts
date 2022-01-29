@@ -299,10 +299,6 @@ class BufferWindow extends TextualWindow {
         }
     }
 
-    scrolltolastupdate() {
-        this.frameel.scrollTop(this.updatescrolltop)
-    }
-
     update(data: protocol.BufferWindowContentUpdate) {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
@@ -388,7 +384,9 @@ class BufferWindow extends TextualWindow {
         }
 
         // Scroll down
-        this.scrolltolastupdate()
+        if (visualViewport.scale === 1) {
+            this.frameel.scrollTop(this.updatescrolltop)
+        }
 
         // TODO: Trim log?
     }

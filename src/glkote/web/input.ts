@@ -58,7 +58,7 @@ export class TextInput {
 
     private onfocus() {
         // Ensure a buffer window is scrolled down
-        if (this.window.type === 'buffer') {
+        if (this.window.type === 'buffer' && visualViewport.scale === 1) {
             this.window.frameel.scrollTop(this.window.innerel.height()!)
         }
         // Scroll the browser window over the next 600ms
