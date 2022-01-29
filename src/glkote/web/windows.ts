@@ -26,6 +26,20 @@ function no_text_selected(): boolean {
     return (window.getSelection() + '') === ''
 }
 
+// We can use a ResizeObserver to get true pixel dimensions for canvases, but it's not supported in all browsers, so test
+let devicePixelContentBoxSizeSupported = false
+if (window.ResizeObserver) {
+    (() => {
+        const testRO = new ResizeObserver((entries) => {
+            if (typeof entries?.[0].devicePixelContentBoxSize?.[0].blockSize !== 'undefined') {
+                devicePixelContentBoxSizeSupported = true
+            }
+            testRO.disconnect()
+        })
+        testRO.observe(document.body)
+    })()
+}
+
 abstract class WindowBase {
     blorb?: Blorb
     desired = true
@@ -398,15 +412,24 @@ export class GraphicsWindow extends WindowBase {
     canvas: JQuery<HTMLCanvasElement>
     fillcolour = ''
     framequeue: protocol.GraphicsWindowOperation[][] = []
+    /** Height in CSS pixels */
     height = 0
     image_cache: Map<number | string, HTMLImageElement> = new Map()
+    /** Width in CSS pixels */
     width = 0
 
     constructor(options: any) {
         super(options)
         // Create the canvas
-        this.canvas = this.dom.create('canvas', `win${options.id}_canvas`) as JQuery<HTMLCanvasElement>
+        this.canvas = this.dom.create('canvas', `win${options.id}_canvas`, {
+            data: {
+                window: this,
+            },
+        }) as JQuery<HTMLCanvasElement>
         this.frameel.append(this.canvas)
+        if (devicePixelContentBoxSizeSupported) {
+            this.manager.canvasResizeObserver!.observe(this.canvas[0])
+        }
         // And a buffer canvas to reduce flicker
         this.buffer = this.dom.create('canvas', `win${options.id}_buffer`) as JQuery<HTMLCanvasElement>
     }
@@ -427,6 +450,13 @@ export class GraphicsWindow extends WindowBase {
             .catch(() => {})
     }
 
+    destroy() {
+        if (devicePixelContentBoxSizeSupported) {
+            this.manager.canvasResizeObserver!.unobserve(this.canvas[0])
+        }
+        super.destroy()
+    }
+
     onclick(ev: JQuery.ClickEvent) {
         if (this.inputs?.mouse && ev.button === 0) {
             this.inputs.mouse = false
@@ -442,10 +472,17 @@ export class GraphicsWindow extends WindowBase {
     }
 
     set_dimensions(height: number, width: number) {
+        // First set the things which use CSS pixels
+        this.canvas.css({height, width})
         this.height = height
         this.width = width
+        // Then the canvas dimensions using devicePixelRatio
+        const dPR = devicePixelRatio
+        height = height * dPR
+        width = width * dPR
         this.buffer.attr({height, width})
-        this.canvas.attr({height, width}).css({height, width})
+        this.canvas.attr({height, width})
+        // The resize observer will handle setting true pixel sizes if supported
     }
 
     // This function is async because images must be loaded asynchrounously, and each operation painted in sequence, but the rest of GlkOte doesn't need to await it
@@ -481,21 +518,22 @@ export class GraphicsWindow extends WindowBase {
             }
             await Promise.all(loading_images)
 
+            const dPR = devicePixelRatio
             for (const op of frame) {
                 switch (op.special) {
                     case 'fill':
                         buffercontext.fillStyle = op.color || this.fillcolour
                         if (Number.isFinite(op.x)) {
-                            buffercontext.fillRect(op.x!, op.y!, op.width!, op.height!)
+                            buffercontext.fillRect(op.x! * dPR, op.y! * dPR, op.width! * dPR, op.height! * dPR)
                         }
                         else {
-                            buffercontext.fillRect(0, 0, this.width, this.height)
+                            buffercontext.fillRect(0, 0, parseInt(this.buffer.attr('width')!), parseInt(this.buffer.attr('height')!))
                         }
                         break
                     case 'image': {
                         const image = this.image_cache.get(op.url || op.image!)
                         if (image) {
-                            buffercontext.drawImage(image, op.x, op.y, op.width, op.height)
+                            buffercontext.drawImage(image, op.x * dPR, op.y * dPR, op.width * dPR, op.height * dPR)
                         }
                         break
                     }
@@ -585,6 +623,7 @@ const window_types: Record<string, string> = {
 export default class Windows extends Map<number, Window> {
     active_window?: Window
     blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
+    canvasResizeObserver?: ResizeObserver
     private dom: DOM
     private glkote: WebGlkOte
     history: string[] = []
@@ -596,6 +635,9 @@ export default class Windows extends Map<number, Window> {
         this.dom = glkote.dom
         this.glkote = glkote
         this.metrics = glkote.current_metrics
+        if (window.ResizeObserver) {
+            this.canvasResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => this.oncanvasresize(entries))
+        }
         this.send_event = ev => glkote.send_event(ev)
 
         $(document).on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
@@ -617,6 +659,18 @@ export default class Windows extends Map<number, Window> {
                 }
                 delete win.inputs
             }
+        }
+    }
+
+    // Use a resize observer to set true pixel sizes on graphics windows
+    private oncanvasresize(entries: ResizeObserverEntry[]) {
+        for (const entry of entries) {
+            const box = entry.devicePixelContentBoxSize![0]
+            const height = box.blockSize
+            const width = box.inlineSize
+            const win: GraphicsWindow = $(entry.target).data('window')
+            win.buffer.attr({height, width})
+            win.canvas.attr({height, width})
         }
     }
 
