@@ -105,7 +105,7 @@ export interface RedrawEvent extends EventBase {
     /** Event code */
     type: 'redraw',
     /** Window ID */
-    window: number,
+    window?: number,
 }
 
 export interface RefreshEvent extends EventBase {

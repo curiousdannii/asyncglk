@@ -672,6 +672,7 @@ export default class Windows extends Map<number, Window> {
             win.buffer.attr({height, width})
             win.canvas.attr({height, width})
         }
+        this.send_event({type: 'redraw'})
     }
 
     // If the gameport receives a click event, then find one window with active text input to focus

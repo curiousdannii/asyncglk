@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {throttle} from 'lodash-es'
+
 import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 
@@ -91,6 +93,8 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             }
             windowport.empty()
 
+            $(document).on('scroll', this.on_document_scroll)
+
             // Prevent iOS from zooming in when focusing input, but allow Android to still pinch zoom
             // As they handle the maximum-scale viewport meta option differently, we will conditionally add it only in iOS
             // Idea from https://stackoverflow.com/a/62750441/2854284
@@ -131,7 +135,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         if (data.metrics && (data.metrics.height !== this.current_metrics.height || data.metrics.width !== this.current_metrics.width)) {
             // Force a resize event
             this.current_metrics.width += 2
-            this.metrics_calculator.on_window_resize()
+            this.metrics_calculator.on_gameport_resize()
         }
     }
 
@@ -207,6 +211,12 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             loadingpane.style.display = 'none'
         }
     }
+
+    // iOS devices can scroll the window even though body/#gameport are set to height 100%
+    // Scroll back to the top if they try
+    on_document_scroll = throttle(async () => {
+        window.scrollTo(0, 0)
+    }, 500, {leading: false})
 
     save_allstate(): any {
         const graphics_bg: any = []

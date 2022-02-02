@@ -52,8 +52,15 @@ export default class Metrics {
             window.addEventListener('load', resolve, {once: true})
         })
 
-        $(document).on('scroll', this.on_document_scroll)
-        $(window).on('resize', () => this.on_window_resize())
+        // Use a resize observer on #gameport, or else a resize handler on window
+        const resizehandler = () => this.on_gameport_resize()
+        if (window.ResizeObserver) {
+            const gameportResizeObserver = new ResizeObserver(resizehandler)
+            gameportResizeObserver.observe(this.glkote.dom.gameport()[0])
+        }
+        else {
+            $(window).on('resize', resizehandler)
+        }
         $(visualViewport).on('resize', () => this.on_visualViewport_resize())
     }
 
@@ -146,11 +153,18 @@ export default class Metrics {
         layout_test_pane.remove()
     }
 
-    // iOS devices can scroll the window even though body/#gameport are set to height 100%
-    // Scroll back to the top if they try
-    on_document_scroll = throttle(async () => {
-        window.scrollTo(0, 0)
-    }, 500, {leading: false})
+    on_gameport_resize = throttle(async () => {
+        // Delay again if disabled
+        if (this.glkote.disabled) {
+            this.on_gameport_resize()
+            return
+        }
+        const oldmetrics = Object.assign({}, this.metrics)
+        await this.measure()
+        if (metrics_differ(this.metrics, oldmetrics)) {
+            this.glkote.send_event({type: 'arrange'})
+        }
+    }, 200, {leading: false})
 
     on_visualViewport_resize() {
         // Don't do anything if the window is pinch zoomed
@@ -184,19 +198,6 @@ export default class Metrics {
         }
 
         // Measure and send the new metrics
-        this.on_window_resize()
+        this.on_gameport_resize()
     }
-
-    on_window_resize = throttle(async () => {
-        // Delay again if disabled
-        if (this.glkote.disabled) {
-            this.on_window_resize()
-            return
-        }
-        const oldmetrics = Object.assign({}, this.metrics)
-        await this.measure()
-        if (metrics_differ(this.metrics, oldmetrics)) {
-            this.glkote.send_event({type: 'arrange'})
-        }
-    }, 200, {leading: false})
 }
