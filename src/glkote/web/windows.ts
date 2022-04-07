@@ -26,20 +26,6 @@ function no_text_selected(): boolean {
     return (window.getSelection() + '') === ''
 }
 
-// We can use a ResizeObserver to get true pixel dimensions for canvases, but it's not supported in all browsers, so test
-let devicePixelContentBoxSizeSupported = false
-if (window.ResizeObserver) {
-    (() => {
-        const testRO = new ResizeObserver((entries) => {
-            if (typeof entries?.[0].devicePixelContentBoxSize?.[0].blockSize !== 'undefined') {
-                devicePixelContentBoxSizeSupported = true
-            }
-            testRO.disconnect()
-        })
-        testRO.observe(document.body)
-    })()
-}
-
 abstract class WindowBase {
     blorb?: Blorb
     desired = true
@@ -427,9 +413,8 @@ export class GraphicsWindow extends WindowBase {
             },
         }) as JQuery<HTMLCanvasElement>
         this.frameel.append(this.canvas)
-        if (devicePixelContentBoxSizeSupported) {
-            this.manager.canvasResizeObserver!.observe(this.canvas[0])
-        }
+        this.manager.canvasResizeObserver?.observe(this.canvas[0])
+
         // And a buffer canvas to reduce flicker
         this.buffer = this.dom.create('canvas', `win${options.id}_buffer`) as JQuery<HTMLCanvasElement>
     }
@@ -451,9 +436,7 @@ export class GraphicsWindow extends WindowBase {
     }
 
     destroy() {
-        if (devicePixelContentBoxSizeSupported) {
-            this.manager.canvasResizeObserver!.unobserve(this.canvas[0])
-        }
+        this.manager.canvasResizeObserver?.unobserve(this.canvas[0])
         super.destroy()
     }
 
@@ -543,8 +526,10 @@ export class GraphicsWindow extends WindowBase {
                 }
             }
         }
-        // Now that all operations/frames are finished, draw the buffer to the main canvas
-        this.canvas[0].getContext('2d')!.drawImage(this.buffer[0], 0, 0)
+        // Now that all operations/frames are finished, draw the buffer to the main canvas (as long as it hasn't been collapsed)
+        if (this.height && this.width) {
+            this.canvas[0].getContext('2d')!.drawImage(this.buffer[0], 0, 0)
+        }
 
         // Empty the queue
         this.framequeue.length = 0
@@ -623,7 +608,7 @@ const window_types: Record<string, string> = {
 export default class Windows extends Map<number, Window> {
     active_window?: Window
     blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
-    canvasResizeObserver?: ResizeObserver
+    canvasResizeObserver?: ResizeObserver // Will only be created if the browser's ResizeObserver supports devicePixelContentBoxSize
     private dom: DOM
     private glkote: WebGlkOte
     history: string[] = []
@@ -636,7 +621,14 @@ export default class Windows extends Map<number, Window> {
         this.glkote = glkote
         this.metrics = glkote.current_metrics
         if (window.ResizeObserver) {
-            this.canvasResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => this.oncanvasresize(entries))
+            // We can use a ResizeObserver to get true pixel dimensions for canvases, but it's not supported in all browsers, so test
+            const testRO = new ResizeObserver((entries) => {
+                if (typeof entries?.[0].devicePixelContentBoxSize?.[0].blockSize !== 'undefined') {
+                    this.canvasResizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => this.oncanvasresize(entries))
+                }
+                testRO.disconnect()
+            })
+            testRO.observe(document.body)
         }
         this.send_event = ev => glkote.send_event(ev)
 

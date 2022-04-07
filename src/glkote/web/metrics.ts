@@ -11,7 +11,6 @@ https://github.com/curiousdannii/asyncglk
 
 import {throttle} from 'lodash-es'
 
-import {OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {create} from './shared.js'
@@ -48,9 +47,15 @@ export default class Metrics {
         this.metrics = glkote.current_metrics
 
         // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the load event so that the CSS is finished
-        this.loaded = new Promise((resolve: any) => {
-            window.addEventListener('load', resolve, {once: true})
-        })
+        // Note this doesn't seem to work in the file: protocol, so just fudge it
+        if (document.location.protocol === 'file:') {
+            this.loaded = Promise.resolve()
+        }
+        else {
+            this.loaded = new Promise((resolve: any) => {
+                window.addEventListener('load', resolve, {once: true})
+            })
+        }
 
         // Use a resize observer on #gameport, or else a resize handler on window
         const resizehandler = () => this.on_gameport_resize()
@@ -78,12 +83,6 @@ export default class Metrics {
         // Create a layout test pane
         const layout_test_pane = dom.create('div', 'layout_test_pane')
         layout_test_pane.text('This should not be visible')
-        layout_test_pane.css({
-            // Make the test pane render, but invisibly and off-screen
-            left: OFFSCREEN_OFFSET,
-            position: 'absolute',
-            visibility: 'hidden',
-        })
 
         // Create the test windows
         const line = $('<div>')

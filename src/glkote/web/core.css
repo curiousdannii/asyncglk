@@ -40,6 +40,13 @@ https://github.com/curiousdannii/asyncglk
     top: 20%;
 }
 
+/* Make the test pane render invisibly */
+#layout_test_pane {
+    position: absolute;
+    top: 0;
+    visibility: hidden;
+}
+
 /* iOS 15: When the virtual keyboard is active, the URL bar is not correctly accounted for in visualViewport.height
    https://bugs.webkit.org/show_bug.cgi?id=229876
    Should be fixed in iOS 15.1
