@@ -64,6 +64,7 @@ export default class Blorb {
     private coverimagenum?: number
     private debugdata?: Uint8Array
     private is_inited = false
+    private metadata: Record<string, string> = {}
 
     // The original Blorb library requires you to call init(), but I think it's better to pass the data into the constructor
     constructor(data?: Uint8Array);
@@ -75,6 +76,9 @@ export default class Blorb {
 
     init(data: Uint8Array): void;
     init(data: Uint8Array) {
+        if (this.is_inited) {
+            return
+        }
         if (data instanceof Uint8Array) {
             const iff = new IFF()
             iff.parse(data)
@@ -100,8 +104,13 @@ export default class Blorb {
                         break
                     }
                     case 'IFmd': {
-                        // Process the metadata chunk
-                        // TODO
+                        const html = utf8decoder.decode(iff_chunk.data)
+                        // TODO: Handle this in some way that doesn't rely on jQuery.
+                        const met = $('<metadata>').html(html)
+                        const bibels = met.find('bibliographic').children()
+                        for (const el of bibels) {
+                            this.metadata[el.tagName.toLowerCase()] = el.textContent!
+                        }
                         break
                     }
                     case 'RDes': {
@@ -246,7 +255,9 @@ export default class Blorb {
         return null
     }
 
-    /*get_metadata*/
+    get_metadata(field: string): string {
+        return this.metadata[field]
+    }
 
     inited(): boolean {
         return this.is_inited
@@ -275,8 +286,8 @@ function get_jpeg_dimensions(data: Uint8Array): ImageSize | undefined {
                 return
             }
             return {
-                height: view.getUint8(i + 3),
-                width: view.getUint8(i + 5),
+                height: view.getUint16(i + 3),
+                width: view.getUint16(i + 5),
             }
         }
         i += chunklength
