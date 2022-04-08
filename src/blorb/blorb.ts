@@ -22,8 +22,8 @@ export interface BlorbChunk {
     /** Whether a data chunk is binary */
     binary?: boolean,
     /** The original Chunk ID FourCC */
-    blorbtype: string,
-    content: Uint8Array,
+    blorbtype?: string,
+    content?: Uint8Array,
     /** Cached image dimensions */
     imagesize?: ImageSize,
     /** Image type */
@@ -45,6 +45,15 @@ export interface BlorbDataChunk {
     binary: boolean,
     data: Uint8Array,
 }
+
+// The infomap format
+interface InfoMapResource {
+    height: number,
+    image: number,
+    url: string,
+    width: number,
+}
+type InfoMap = Record<string, InfoMapResource>
 
 const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
     Data: 'data',
@@ -74,8 +83,10 @@ export default class Blorb {
         }
     }
 
+    init(data: Array<any>): void;
+    init(data: InfoMap, options: {format: 'infomap'}): void;
     init(data: Uint8Array): void;
-    init(data: Uint8Array) {
+    init(data: Array<any> | InfoMap | Uint8Array, options?: any) {
         if (this.is_inited) {
             return
         }
@@ -168,8 +179,32 @@ export default class Blorb {
                 }
             }
         }
+        // Process the infomap format
+        else if (options?.format === 'infomap') {
+            for (const key in data) {
+                if (!Number.isInteger(+key)) {
+                    continue
+                }
+                const chunk: any = Object.assign({}, (data as InfoMap)[key])
+                delete chunk.image
+                if (chunk.height && chunk.width) {
+                    chunk.imagesize = {
+                        height: chunk.height,
+                        width: chunk.width,
+                    }
+                    delete chunk.height
+                    delete chunk.width
+                }
+                chunk.type = chunk.url.endsWith('.png') ? 'png' : 'jpeg'
+                chunk.usage = 'pict'
+                this.chunks[`pict:${key}`] = chunk
+            }
+        }
+        else if (Array.isArray(data) && data.length === 0) {
+            // Empty data, do nothing
+        }
         else {
-            throw new Error('Resource maps not supported yet')
+            throw new Error('Unsupported Blorb.init data format')
         }
 
         this.is_inited = true
@@ -189,7 +224,7 @@ export default class Blorb {
 
     get_data_chunk(num: number): BlorbDataChunk | null {
         const chunk = this.chunks[`data:${num}`]
-        if (!chunk) {
+        if (!chunk?.content) {
             return null
         }
         return {
@@ -207,7 +242,7 @@ export default class Blorb {
      */
     get_exec_data(gametype?: 'GLUL' | 'ZCOD'): Uint8Array | null {
         const chunk = this.chunks['exec:0']
-        if (!chunk || (gametype && chunk.blorbtype !== gametype)) {
+        if (!chunk?.content || (gametype && chunk.blorbtype !== gametype)) {
             return null
         }
         return chunk.content
@@ -220,7 +255,7 @@ export default class Blorb {
         }
 
         // Try to extract the image sizes
-        if (!chunk.imagesize) {
+        if (!chunk.imagesize && chunk.content) {
             if (chunk.type === 'jpeg') {
                 chunk.imagesize = get_jpeg_dimensions(chunk.content)
             }
@@ -247,7 +282,7 @@ export default class Blorb {
             return chunk.url
         }
 
-        if (chunk.type !== UNKNOWN_IMAGE_TYPE) {
+        if (chunk.type !== UNKNOWN_IMAGE_TYPE && chunk.content) {
             chunk.url = URL.createObjectURL(new Blob([chunk.content], {type: `image/${chunk.type}`}))
             return chunk.url
         }
