@@ -113,8 +113,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected autorestore(data: any) {
-        if (data.history) {
-            this.windows.history = data.history
+        const history = data.history
+        if (history) {
+            this.windows.history = history
         }
 
         for (const win of this.windows.values()) {
@@ -123,7 +124,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 win.frameel.scrollTop(win.innerel.height()!)
             }
             // Fix each window's reference to the history
-            win.textinput.history = this.windows.history
+            if (history) {
+                win.textinput.history = history
+            }
         }
 
         if (data.graphics_bg) {
