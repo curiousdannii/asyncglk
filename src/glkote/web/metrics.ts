@@ -46,9 +46,9 @@ export default class Metrics {
         this.glkote = glkote
         this.metrics = glkote.current_metrics
 
-        // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the load event so that the CSS is finished
-        // Note this doesn't seem to work in the file: protocol, so just fudge it
-        if (document.location.protocol === 'file:') {
+        // AsyncGlk may have started after a DOMContentLoaded event, but Metrics needs the page to be fully loaded so that the CSS and fonts are in use
+        // If the page is fast and already loaded by the time we get here (or, apparently, always for file: pages) then just use an auto-resolved promise
+        if (document.readyState === 'complete') {
             this.loaded = Promise.resolve()
         }
         else {
