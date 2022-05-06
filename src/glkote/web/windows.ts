@@ -782,7 +782,10 @@ export default class Windows extends Map<number, Window> {
                 win.width = update.gridwidth!
             }
 
-            // My original stylehints implementation also refreshed styles here, but I don't think it's necessary?
+            // Set window background after an autorestore
+            if (win.type === 'buffer' || win.type === 'grid') {
+                win.refresh_styles(update.bg, update.fg)
+            }
 
             // Update the position of the window
             win.frameel.css({

@@ -438,7 +438,10 @@ export interface SpecialInput {
 
 /** Updates to window (new windows, or changes to their arrangements) */
 export interface WindowUpdate {
-    height: number,
+    /** Background colour after autorestoring */
+    bg?: string,
+    /** Background colour after autorestoring */
+    fg?: string,
     /** Graphics height (pixels) */
     graphheight?: number,
     /** Graphics width (pixels) */
@@ -447,6 +450,7 @@ export interface WindowUpdate {
     gridheight?: number,
     /** Grid width (chars) */
     gridwidth?: number,
+    height: number,
     /** Window ID */
     id: number,
     /** Left position */
