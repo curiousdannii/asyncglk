@@ -19,13 +19,11 @@ const MAX_HISTORY_LENGTH = 25
 
 export class TextInput {
     el: JQuery<HTMLElement>
-    history: string[]
     history_index = 0
     is_line = false
     window: Window
 
     constructor(window: Window) {
-        this.history = window.manager.history
         this.window = window
 
         this.el = $('<input>', {
@@ -99,17 +97,18 @@ export class TextInput {
         if (this.is_line) {
             // History
             if (keycode === KEY_NAMES_TO_CODES.down || keycode === KEY_NAMES_TO_CODES.up) {
+                const history = this.window.manager.history
                 let changed
                 if (keycode === KEY_NAMES_TO_CODES.down && this.history_index > 0) {
                     this.history_index--
                     changed = 1
                 }
-                else if (keycode === KEY_NAMES_TO_CODES.up && this.history_index < this.history.length) {
+                else if (keycode === KEY_NAMES_TO_CODES.up && this.history_index < history.length) {
                     this.history_index++
                     changed = 1
                 }
                 if (changed) {
-                    this.el.val(this.history_index === 0 ? '' : this.history[this.history_index - 1])
+                    this.el.val(this.history_index === 0 ? '' : history[this.history_index - 1])
                 }
                 return false
             }
@@ -203,10 +202,11 @@ export class TextInput {
 
     private submit_line(val: string, terminator?: protocol.TerminatorCode) {
         // Insert a history item if it's not blank and also not the same as the last one
-        if (val && val !== this.history[0]) {
-            this.history.unshift(val)
-            if (this.history.length > MAX_HISTORY_LENGTH) {
-                this.history.length = MAX_HISTORY_LENGTH
+        const history = this.window.manager.history
+        if (val && val !== history[0]) {
+            history.unshift(val)
+            if (history.length > MAX_HISTORY_LENGTH) {
+                history.length = MAX_HISTORY_LENGTH
             }
         }
 

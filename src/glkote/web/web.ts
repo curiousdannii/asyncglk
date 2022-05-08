@@ -18,6 +18,15 @@ import Metrics from './metrics.js'
 import {DOM} from './shared.js'
 import Windows, {GraphicsWindow} from './windows.js'
 
+interface AutosaveState {
+    graphics_bg?: Array<[number, string]>,
+    history?: Array<string>,
+    metrics?: {
+        height: number,
+        width: number,
+    }
+}
+
 /** A GlkOte implementation for the web
  * 
  * WebGlkOte requires the following HTML divs to be present (though the id names can be varied through the options):
@@ -112,20 +121,16 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         }
     }
 
-    protected autorestore(data: any) {
-        const history = data.history
-        if (history) {
-            this.windows.history = history
+    protected autorestore(data: AutosaveState) {
+        // erkyrath/glkote history is an object rather than an array
+        if (Array.isArray(data.history)) {
+            this.windows.history = data.history
         }
 
         for (const win of this.windows.values()) {
             // Scroll all buffer windows
             if (win.type === 'buffer') {
                 win.frameel.scrollTop(win.innerel.height()!)
-            }
-            // Fix each window's reference to the history
-            if (history) {
-                win.textinput.history = history
             }
         }
 
@@ -221,8 +226,8 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         window.scrollTo(0, 0)
     }, 500, {leading: false})
 
-    save_allstate(): any {
-        const graphics_bg: any = []
+    save_allstate(): AutosaveState {
+        const graphics_bg: Array<[number, string]> = []
         for (const win of this.windows.values()) {
             if (win.type === 'graphics') {
                 graphics_bg.push([win.id, win.fillcolour])
