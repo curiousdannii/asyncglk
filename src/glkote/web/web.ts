@@ -117,7 +117,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             return super.init(options)
         }
         catch (err) {
-            this.error(err as string)
+            this.error(err as Error)
         }
     }
 
@@ -168,13 +168,21 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         this.disabled = disable
     }
 
-    error(msg: any) {
-        msg ??= '???'
+    error(error: Error | string) {
+        error ??= '???'
+        let msg: string
+        if (typeof error === 'string') {
+            msg = error
+            error = new Error(error)
+        }
+        else {
+            msg = error.toString()
+        }
 
         // Don't use jQuery, because this is called if jQuery isn't present
         const errorcontent = document.getElementById(this.dom.errorcontent_id)
         if (!errorcontent) {
-            throw new Error(msg as string)
+            throw new Error(msg)
         }
         errorcontent.innerHTML = msg
 
@@ -185,7 +193,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         errorpane.style.display = ''
         this.showing_error = true
         this.hide_loading()
-        throw msg
+        console.error(error)
     }
 
     protected exit() {

@@ -339,6 +339,9 @@ class BufferWindow extends TextualWindow {
                 divel.addClass('FlowBreak')
             }
 
+            if (!content?.length) {
+                continue
+            }
             for (let run_index = 0; run_index < content.length; run_index++) {
                 let run: protocol.TextRun
                 const instruction = content[run_index]

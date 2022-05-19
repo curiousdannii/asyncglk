@@ -90,8 +90,8 @@ export abstract class GlkOteBase implements GlkOte {
         this.send_event({type: 'init'})
     }
 
-    error(msg: any) {
-        throw new Error(msg)
+    error(error: Error | string) {
+        throw (typeof error === 'string' ? new Error(error) : error)
     }
 
     extevent(value: any) {
@@ -206,7 +206,7 @@ export abstract class GlkOteBase implements GlkOte {
             }
         }
         catch (err) {
-            this.error(err)
+            this.error(err as Error)
         }
     }
 
