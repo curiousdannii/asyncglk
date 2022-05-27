@@ -261,8 +261,8 @@ export interface StateUpdate {
     gen: number,
     /** Windows with active input */
     input?: InputUpdate[],
-    /** Specify a colour to set the page to (outside of the gameport!) */
-    page_bg?: string,
+    /** Background colour for the page margin (ie, outside of the gameport) */
+    page_margin_bg?: string,
     /** Special input */
     specialinput?: SpecialInput,
     timer: number | null | undefined,
@@ -276,14 +276,14 @@ export interface StateUpdate {
 export type ContentUpdate = BufferWindowContentUpdate | GraphicsWindowContentUpdate | GridWindowContentUpdate
 
 interface TextualWindowUpdate {
-    /** Background colour after clearing */
-    bg?: string,
-    /** Background colour after clearing */
-    fg?: string,
     /** Window ID */
     id: number,
     /** Clear the window */
     clear?: boolean,
+    /** Background colour after clearing */
+    bg?: string,
+    /** Foreground colour after clearing */
+    fg?: string,
 }
 
 /** Buffer window content update */
@@ -382,14 +382,10 @@ export interface BufferWindowImage {
 
 /** Text run */
 export interface TextRun {
-    /** Background colour */
-    bg?: string,
-    /** Foreground colour */
-    fg?: string,
+    /** Additional CSS styles */
+    css_styles?: CSSProperties,
     /** Hyperlink value */
     hyperlink?: number,
-    /** Reverse style */
-    reverse?: boolean,
     /** Run style */
     style: string,
     /** Run content */
@@ -451,8 +447,8 @@ export interface WindowUpdate {
     left: number,
     /** Rock value */
     rock: number,
-    /** CSS styles */
-    stylehints?: StyleHints,
+    /** Window styles */
+    styles?: WindowStyles,
     /** Top position */
     top: number,
     /** Type */
@@ -460,4 +456,15 @@ export interface WindowUpdate {
     width: number,
 }
 
-export type StyleHints = Record<number, Record<string, any>>
+/** CSS Properties
+ * CSS property names and values, with one special property:
+ * `reverse` enables reverse mode. If you provide colours then do not pre-reverse them.
+ * Ex: `background-color: #FFF, color: #000, reverse: 1` will be displayed as white text on a black background
+ */
+export type CSSProperties = Record<string, string | number>
+
+/** CSS styles
+ * Keys will usually be for Glk styles, ex: `div.Style_header` or `span.Style_user1`
+ * But they can be anything else. Use a blank string to target the window itself.
+*/
+export type WindowStyles = Record<string, CSSProperties>
