@@ -201,8 +201,8 @@ export abstract class GlkOteBase implements GlkOte {
             }
 
             // Page background colour
-            if (typeof data.page_bg !== 'undefined') {
-                this.set_page_bg(data.page_bg)
+            if (typeof data.page_margin_bg !== 'undefined') {
+                this.set_page_bg(data.page_margin_bg)
             }
         }
         catch (err) {

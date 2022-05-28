@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {debounce} from 'lodash-es'
 
 import Blorb from '../../blorb/blorb.js'
-import {NBSP, STYLES_COUNT, STYLE_NAMES, STYLE_NAMES_TO_CODES} from '../../common/constants.js'
+import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
@@ -24,6 +24,17 @@ type WindowCodes = 'buffer' | 'graphics' | 'grid'
 
 function no_text_selected(): boolean {
     return (window.getSelection() + '') === ''
+}
+
+interface WindowConstructorOptions {
+    blorb?: Blorb
+    dom: DOM,
+    id: number,
+    manager: Windows,
+    metrics: protocol.NormalisedMetrics,
+    rock: number,
+    styles?: protocol.WindowStyles,
+    type: WindowCodes,
 }
 
 abstract class WindowBase {
@@ -38,15 +49,7 @@ abstract class WindowBase {
     textinput: TextInput
     type: WindowCodes
 
-    constructor(options: {
-        blorb?: Blorb
-        dom: DOM,
-        id: number,
-        manager: Windows,
-        metrics: protocol.NormalisedMetrics,
-        rock: number,
-        type: WindowCodes,
-    }) {
+    constructor(options: WindowConstructorOptions) {
         this.blorb = options.blorb
         this.dom = options.dom
         this.id = options.id
@@ -97,13 +100,38 @@ abstract class WindowBase {
     }
 }
 
+// Apply text run styles, accounting for reverse mode
+export function apply_text_run_styles(orig_styles: protocol.CSSProperties, reverse: boolean, el: JQuery<HTMLElement>) {
+    // Make a copy of the styles, I'm not sure this is strictly necessary but better to be safe
+    const styles = Object.assign({}, orig_styles)
+    // Swap colours if reverse mode
+    if (reverse) {
+        const bg = styles['background-color']
+        const fg = styles.color
+        if (bg) {
+            styles.color = bg
+        }
+        else {
+            delete styles.color
+        }
+        if (fg) {
+            styles['background-color'] = fg
+        }
+        else {
+            delete styles['background-color']
+        }
+        delete styles.reverse
+    }
+    el.css(styles)
+}
+
 abstract class TextualWindow extends WindowBase {
     bg?: string
     fg?: string
-    last_textrun?: protocol.TextRun
-    stylehints?: protocol.StyleHints
+    last_run_styles?: protocol.CSSProperties
+    styles?: protocol.WindowStyles
 
-    constructor(options: any) {
+    constructor(options: WindowConstructorOptions) {
         super(options)
 
         // We need the `this` object provided by jQuery, so we can't use an arrow function handler like we normally do
@@ -111,100 +139,89 @@ abstract class TextualWindow extends WindowBase {
         this.frameel.on('click', 'a', function() {onlink(this)})
 
         // Add stylehints
-        if (options.stylehints) {
-            this.stylehints = options.stylehints
+        if (options.styles) {
+            this.styles = options.styles
             this.add_stylehints()
         }
     }
 
-    /** Convert stylehints to CSS and add to a window */
+    /** Format CSS rules and add to the window */
     add_stylehints() {
-        const css_rules = []
-        const windowid = `window${this.id}`
-        if (this.stylehints) {
-            for (let style_number = 0; style_number < STYLES_COUNT; style_number++) {
-                const stylehints = this.stylehints![style_number]
-                if (!stylehints) {
-                    continue
-                }
-                const par_props = []
-                const span_props = []
+        const windowid = `#window${this.id}`
+        const styles: protocol.WindowStyles = {}
+        if (this.styles) {
+            // Copy all the styles
+            for (const [selector, original_styles] of Object.entries(this.styles)) {
+                const css_styles = styles[`${windowid} ${selector}`.trim()] = Object.assign({}, original_styles)
 
-                for (const prop in stylehints) {
-                    if (prop === 'reverse' || (prop === 'font-family' && this.type !== 'buffer')) {
-                        continue
-                    }
-                    if (prop === 'margin-left' || prop === 'text-align' || prop === 'text-indent') {
-                        par_props.push(`${prop}: ${stylehints[prop]}`)
-                    }
-                    else {
-                        // If the whole style is reversed, then don't set colours here, set them below
-                        if ((prop === 'color' || prop === 'background-color') && stylehints.reverse) {
-                            continue
+                // Create a .reverse rule for when text runs are reverse mode
+                if (selector) {
+                    const bg = css_styles['background-color']
+                    const fg = css_styles.color
+                    if (bg || fg) {
+                        const reverse_styles: protocol.CSSProperties = styles[`${windowid} ${selector}.reverse`] = {}
+                        if (bg) {
+                            reverse_styles.color = bg
                         }
-                        span_props.push(`${prop}: ${stylehints[prop]}`)
+                        if (fg) {
+                            reverse_styles['background-color'] = fg
+                        }
                     }
-                }
 
-                const stylename = STYLE_NAMES[style_number]
-                if (par_props.length) {
-                    css_rules.push(`#${windowid} div.Style_${stylename} {${par_props.join('; ')}}`)
-                }
-                if (span_props.length) {
-                    css_rules.push(`#${windowid} span.Style_${stylename} {${span_props.join('; ')}}`)
-                    // Also output styles for the <input>
-                    // May not place nice with reverse!
-                    if (style_number === 8) {
-                        css_rules.push(`#${windowid} .LineInput {${span_props.join('; ')}}`)
+                    // In reverse mode don't set colour styles
+                    if (css_styles.reverse) {
+                        delete css_styles['background-color']
+                        delete css_styles.color
+                        delete css_styles.reverse
                     }
                 }
+            }
 
-                if (stylehints.color || stylehints['background-color']) {
-                    const css_props = []
-                    if (stylehints.color) {
-                        css_props.push(`background-color: ${stylehints.color}`)
-                    }
-                    if (stylehints['background-color']) {
-                        css_props.push(`color: ${stylehints['background-color']}`)
-                    }
-                    css_rules.push(`#${windowid} span.Style_${stylename}.reverse {${css_props.join('; ')}}`)
-                }
+            // Copy styles for the <input>
+            // May not play nice with reverse
+            if (styles[`${windowid} span.Style_input`]) {
+                styles[`${windowid} .LineInput`] = styles[`${windowid} span.Style_input`]
             }
         }
 
-        // Set window background colour
-        if (this.bg || this.fg || this.stylehints?.[0]?.['background-color']) {
-            css_rules.push(
-                `#${windowid} {background-color: ${this.bg || this.stylehints?.[0]?.['background-color'] || `var(--glkote-${this.type}-bg)`}}`,
-                `#${windowid}.reverse {background-color: ${this.fg || this.stylehints?.[0]?.['color'] || `var(--glkote-${this.type}-reverse-bg)`}}`
-            )
+        // Set window background colour, for normal and reverse mode
+        const normal_styles = styles[`${windowid} span.Style_normal`]
+        const bg = this.bg || normal_styles?.['background-color']
+        const fg = this.fg || normal_styles?.color
+        if (bg || fg) {
+            if (!styles[windowid]) {
+                styles[windowid] = {}
+            }
+            styles[windowid]['background-color'] = bg || `var(--glkote-${this.type}-bg)`
+            styles[`${windowid}.reverse`] = {
+                'background-color': fg || `var(--glkote-${this.type}-reverse-bg)`,
+            }
         }
 
-        if (css_rules.length) {
+        // Finally output the styles
+        if (Object.keys(styles).length) {
             this.frameel.children('style').remove()
-            this.frameel.prepend(`<style>${css_rules.join('\n')}</style>`)
+            this.frameel.prepend(`<style>${Object.entries(styles).map(rule => {
+                const [selector, properties] = rule
+                return `${selector} {${Object.entries(properties).map(property => {
+                    const [name, value] = property
+                    return `${name}: ${value}`
+                }).join('; ')}}`
+            }).join('\n')}</style>`)
         }
     }
 
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
-        const reverse = run.reverse ?? (this.stylehints?.[STYLE_NAMES_TO_CODES[run.style]]?.reverse)
+        // Is this run or this style reverse mode?
+        const reverse = run.css_styles?.reverse ?? this.styles?.[`span.Style_${run.style}`]?.reverse
         const el = create('span', `Style_${run.style}${reverse ? ' reverse' : ''}`)
         /*const els = split_words
             ? $(run.text.split(/(?<=\s)\b/g).map(text => el.clone().text(text)[0]))
             : el.text(run.text)*/
         // Safari doesn't support look behind regexs, so comment out for now
         const els = el.text(run.text)
-        const bg = run.bg
-        const fg = run.fg
-        if (bg || fg) {
-            const css_props: any = {}
-            if (bg) {
-                css_props[reverse ? 'color' : 'background-color'] = bg
-            }
-            if (fg) {
-                css_props[reverse ? 'background-color' : 'color'] = fg
-            }
-            el.css(css_props)
+        if (run.css_styles) {
+            apply_text_run_styles(run.css_styles, !!reverse, el)
         }
         if (run.hyperlink) {
             return $('<a>', {
@@ -234,19 +251,17 @@ abstract class TextualWindow extends WindowBase {
 
     /** Refresh styles after a cleared window */
     refresh_styles(bg?: string, fg?: string) {
-        if (this.stylehints) {
-            let styles_need_refreshing
-            if (typeof bg !== undefined) {
-                this.bg = bg
-                styles_need_refreshing = 1
-            }
-            if (typeof fg !== undefined) {
-                this.fg = fg
-                styles_need_refreshing = 1
-            }
-            if (styles_need_refreshing) {
-                this.add_stylehints()
-            }
+        let styles_need_refreshing
+        if (typeof bg !== undefined && bg !== this.bg) {
+            this.bg = bg
+            styles_need_refreshing = 1
+        }
+        if (typeof fg !== undefined && fg !== this.fg) {
+            this.fg = fg
+            styles_need_refreshing = 1
+        }
+        if (styles_need_refreshing) {
+            this.add_stylehints()
         }
     }
 }
@@ -266,7 +281,7 @@ class BufferWindow extends TextualWindow {
     updatescrolltop = 0
     visibleheight: number
 
-    constructor(options: any) {
+    constructor(options: WindowConstructorOptions) {
         super(options)
         this.frameel.attr({
             'aria-atomic': 'false',
@@ -303,7 +318,7 @@ class BufferWindow extends TextualWindow {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
             this.lastline = undefined
-            this.last_textrun = undefined
+            this.last_run_styles = undefined
             this.refresh_styles(data.bg, data.fg)
         }
 
@@ -382,7 +397,7 @@ class BufferWindow extends TextualWindow {
                 }
                 divel.append(this.create_text_run(run, line_index === data.text.length))
                 // Store the last text run for setting styles in the input
-                this.last_textrun = run
+                this.last_run_styles = run.css_styles
             }
         }
 
@@ -407,7 +422,7 @@ export class GraphicsWindow extends WindowBase {
     /** Width in CSS pixels */
     width = 0
 
-    constructor(options: any) {
+    constructor(options: WindowConstructorOptions) {
         super(options)
         // Create the canvas
         this.canvas = this.dom.create('canvas', `win${options.id}_canvas`, {
@@ -563,7 +578,7 @@ class GridWindow extends TextualWindow {
 
     update(data: protocol.GridWindowContentUpdate) {
         if (data.clear) {
-            this.last_textrun = undefined
+            this.last_run_styles = undefined
             this.refresh_styles(data.bg, data.fg)
         }
 
@@ -592,7 +607,7 @@ class GridWindow extends TextualWindow {
                     }
                     lineel.append(this.create_text_run(run))
                     // Store the last text run for setting styles in the input
-                    this.last_textrun = run
+                    this.last_run_styles = run.css_styles
                 }
             }
         }
@@ -600,6 +615,12 @@ class GridWindow extends TextualWindow {
         // Apply the class of 'reverse' to the window if all the text in it is reversed
         $(`#window${this.id}`).toggleClass('reverse', $(`#window${this.id} span:not(.reverse)`).length === 0)
     }
+}
+
+const window_classes: Record<string, new (opt: WindowConstructorOptions) => Window> = {
+    buffer: BufferWindow,
+    graphics: GraphicsWindow,
+    grid: GridWindow,
 }
 
 const window_types: Record<string, string> = {
@@ -713,7 +734,6 @@ export default class Windows extends Map<number, Window> {
         // Go through each window in this update
         for (const update of windows) {
             const id = update.id
-            const rock = update.rock
             const type = update.type
 
             // Is there an existing window?
@@ -721,34 +741,16 @@ export default class Windows extends Map<number, Window> {
 
             // Create it if not
             if (!win) {
-                const options: any = {
+                win = new (window_classes[type])({
                     blorb: this.blorb,
                     dom: this.dom,
                     id,
                     manager: this,
                     metrics: this.metrics,
-                    rock,
-                    stylehints: update.stylehints,
+                    rock: update.rock,
+                    styles: update.styles,
                     type,
-                }
-
-                switch (type) {
-                    case 'buffer': {
-                        win = new BufferWindow(options)
-                        break
-                    }
-                    case 'graphics': {
-                        options.height = update.graphheight
-                        options.width = update.graphwidth
-                        win = new GraphicsWindow(options)
-                        break
-                    }
-                    case 'grid': {
-                        win = new GridWindow(options)
-                        break
-                    }
-                }
-
+                })
                 this.set(id, win)
             }
             else {
@@ -783,11 +785,6 @@ export default class Windows extends Map<number, Window> {
                 win.height = update.gridheight!
                 win.lines.length = win.height
                 win.width = update.gridwidth!
-            }
-
-            // Set window background after an autorestore
-            if (win.type === 'buffer' || win.type === 'grid') {
-                win.refresh_styles(update.bg, update.fg)
             }
 
             // Update the position of the window

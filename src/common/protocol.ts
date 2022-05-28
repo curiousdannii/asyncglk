@@ -434,10 +434,6 @@ export interface SpecialInput {
 
 /** Updates to window (new windows, or changes to their arrangements) */
 export interface WindowUpdate {
-    /** Background colour after autorestoring */
-    bg?: string,
-    /** Background colour after autorestoring */
-    fg?: string,
     /** Graphics height (pixels) */
     graphheight?: number,
     /** Graphics width (pixels) */

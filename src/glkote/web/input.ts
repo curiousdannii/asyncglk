@@ -13,7 +13,7 @@ import {throttle} from 'lodash-es'
 import {KEY_CODES_TO_NAMES, KEY_NAMES_TO_CODES, OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
-import {Window} from './windows.js'
+import {Window, apply_text_run_styles} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
 
@@ -258,15 +258,11 @@ export class TextInput {
 
         // Set text style
         if (this.window.type !== 'graphics') {
-            const textrun = this.window.last_textrun
-            if (textrun) {
-                this.el.toggleClass('reverse', !!textrun.reverse)
-                if (textrun.bg || textrun.fg) {
-                    const css_props: any = {}
-                    css_props[textrun.reverse ? 'background-color' : 'color'] = textrun.fg || ''
-                    css_props[textrun.reverse ? 'color' : 'background-color'] = textrun.bg || ''
-                    this.el.css(css_props)
-                }
+            const css_styles = this.window.last_run_styles
+            if (css_styles) {
+                const reverse = !!css_styles.reverse
+                this.el.toggleClass('reverse', reverse)
+                apply_text_run_styles(css_styles, reverse, this.el)
             }
         }
     }
