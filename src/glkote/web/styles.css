@@ -16,7 +16,9 @@ span.Style_emphasized {
 }
 
 .BufferWindow span.Style_preformatted {
+    display: inline-block;
     font-family: var(--glkote-mono-family);
+    padding: 0;
 }
 
 span.Style_header {

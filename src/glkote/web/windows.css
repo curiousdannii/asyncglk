@@ -21,7 +21,7 @@ https://github.com/curiousdannii/asyncglk
     color: var(--glkote-buffer-fg);
     font-family: var(--glkote-prop-family);
     font-size: var(--glkote-buffer-size);
-    line-height: 1.4;
+    line-height: var(--glkote-buffer-line-height);
     overflow-y: auto;
     scrollbar-gutter: stable; /* preserve space for the vertical scrollbar */
 }
@@ -38,12 +38,6 @@ https://github.com/curiousdannii/asyncglk
     outline: 0;
 }
 
-.BufferWindow .reverse {
-    background: var(--glkote-buffer-reverse-bg);
-    color: var(--glkote-buffer-reverse-fg);
-    display: inline-block;
-}
-
 /* We use a separate inner <div> so that the <input> for character input can be positioned at the bottom of the window */
 .BufferWindowInner {
     padding: 6px 10px;
@@ -52,6 +46,28 @@ https://github.com/curiousdannii/asyncglk
 
 .BufferLine {
     white-space: pre-wrap; /* required for spaces to work right */
+}
+
+.BufferLine span {
+    padding: var(--glkote-prop-half-leading) 0;
+    vertical-align: bottom;
+}
+
+.BufferLine span.monospace {
+    display: inline-block;
+    font-family: var(--glkote-mono-family);
+    padding: 0;
+}
+
+.BufferLine span.Style_preformatted.proportional {
+    display: inline;
+    font-family: var(--glkote-prop-family);
+    padding: var(--glkote-prop-half-leading) 0;
+}
+
+.BufferLine span.reverse {
+    background: var(--glkote-buffer-reverse-bg);
+    color: var(--glkote-buffer-reverse-fg);
 }
 
 /* Use flexbox so that the <input> can be autosized */
@@ -92,6 +108,7 @@ https://github.com/curiousdannii/asyncglk
     color: var(--glkote-grid-fg);
     font-family: var(--glkote-grid-mono-family); /* necessary! */
     font-size: var(--glkote-grid-size);
+    line-height: var(--glkote-grid-line-height);
     padding: 6px 10px;
 }
 
@@ -99,14 +116,17 @@ https://github.com/curiousdannii/asyncglk
     background: var(--glkote-grid-reverse-bg);
 }
 
-.GridWindow .reverse {
-    background: var(--glkote-grid-reverse-bg);
-    color: var(--glkote-grid-reverse-fg);
+.GridLine {
+    white-space: pre; /* required for spaces to work right */
+}
+
+.GridLine span {
     display: inline-block;
 }
 
-.GridLine {
-    white-space: pre; /* required for spaces to work right */
+.GridWindow span.reverse {
+    background: var(--glkote-grid-reverse-bg);
+    color: var(--glkote-grid-reverse-fg);
 }
 
 /* A couple small adjustments for mobile devices */

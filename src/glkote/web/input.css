@@ -28,7 +28,7 @@ input.Input {
     bottom: 0;
     font-family: var(--glkote-prop-family);
     font-size: var(--glkote-buffer-size);
-    line-height: 1.4;
+    line-height: var(--glkote-buffer-line-height);
 }
 
 .BufferLine .Input {
@@ -43,6 +43,7 @@ input.Input {
 }
 
 .GridWindow .Input {
-    font-family: var(--glkote-mono-family);
+    font-family: var(--glkote-grid-mono-family);
     font-size: var(--glkote-grid-size);
+    line-height: var(--glkote-grid-line-height);
 }

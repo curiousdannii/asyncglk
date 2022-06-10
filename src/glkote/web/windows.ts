@@ -125,6 +125,23 @@ export function apply_text_run_styles(orig_styles: protocol.CSSProperties, rever
     el.css(styles)
 }
 
+// Split a string into words, with whitespace included after the words it follows
+function split_after_spaces(text: string): string[] {
+    const res: string[] = ['']
+    const whitespace = /\s/
+    let prev_whitespace = false
+    for (const c of text) {
+        const is_whitespace = whitespace.test(c)
+        if (!is_whitespace && prev_whitespace) {
+            res.unshift('')
+        }
+        res[0] += c
+        prev_whitespace = is_whitespace
+    }
+    res.reverse()
+    return res
+}
+
 abstract class TextualWindow extends WindowBase {
     bg?: string
     fg?: string
@@ -152,14 +169,15 @@ abstract class TextualWindow extends WindowBase {
         if (this.styles) {
             // Copy all the styles
             for (const [selector, original_styles] of Object.entries(this.styles)) {
-                const css_styles = styles[`${windowid} ${selector}`.trim()] = Object.assign({}, original_styles)
+                const full_selector = `${windowid} ${selector}`.trim()
+                const css_styles = styles[full_selector] = Object.assign({}, original_styles)
 
                 // Create a .reverse rule for when text runs are reverse mode
                 if (selector) {
                     const bg = css_styles['background-color']
                     const fg = css_styles.color
                     if (bg || fg) {
-                        const reverse_styles: protocol.CSSProperties = styles[`${windowid} ${selector}.reverse`] = {}
+                        const reverse_styles: protocol.CSSProperties = styles[`${full_selector}.reverse`] = {}
                         if (bg) {
                             reverse_styles.color = bg
                         }
@@ -168,11 +186,19 @@ abstract class TextualWindow extends WindowBase {
                         }
                     }
 
+                    // Monospace mode - handled in create_text_run
+                    delete css_styles.monospace
+
                     // In reverse mode don't set colour styles
                     if (css_styles.reverse) {
                         delete css_styles['background-color']
                         delete css_styles.color
-                        delete css_styles.reverse
+                    }
+                    delete css_styles.reverse
+
+                    // Check if we have any properties left
+                    if (Object.keys(css_styles).length === 0) {
+                        delete styles[full_selector]
                     }
                 }
             }
@@ -212,17 +238,36 @@ abstract class TextualWindow extends WindowBase {
     }
 
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
+        const run_style = run.style
+        // Is this run or this style monospace mode?
+        const monospace_val = run.css_styles?.monospace ?? this.styles?.[`span.Style_${run_style}`]?.monospace
+        let monospace_class = ''
+        // Only add the class if we're changing the default font-family for this style
+        if (typeof monospace_val !== 'undefined') {
+            if (run_style === 'preformatted') {
+                if (!monospace_val) {
+                    monospace_class = ' proportional'
+                }
+            }
+            else if (monospace_val) {
+                monospace_class = ' monospace'
+            }
+        }
         // Is this run or this style reverse mode?
-        const reverse = run.css_styles?.reverse ?? this.styles?.[`span.Style_${run.style}`]?.reverse
-        const el = create('span', `Style_${run.style}${reverse ? ' reverse' : ''}`)
-        /*const els = split_words
-            ? $(run.text.split(/(?<=\s)\b/g).map(text => el.clone().text(text)[0]))
-            : el.text(run.text)*/
-        // Safari doesn't support look behind regexs, so comment out for now
-        const els = el.text(run.text)
+        const reverse = run.css_styles?.reverse ?? this.styles?.[`span.Style_${run_style}`]?.reverse
+        // Create a template span and apply classes and styles
+        const el = create('span', `Style_${run_style}${reverse ? ' reverse' : ''}${monospace_class}`)
         if (run.css_styles) {
             apply_text_run_styles(run.css_styles, !!reverse, el)
         }
+        // Split words if instructed to, or if this text run is monospaced
+        if (typeof split_words === 'undefined') {
+            split_words = !!monospace_val || run_style === 'preformatted'
+        }
+        const els = split_words
+            ? $(split_after_spaces(run.text).map(text => el.clone().text(text)[0]))
+            : el.text(run.text)
+        // Wrap in a link
         if (run.hyperlink) {
             return $('<a>', {
                 data: {
@@ -395,7 +440,7 @@ class BufferWindow extends TextualWindow {
                     line_has_style = 1
                     divel.addClass(`Style_${run.style}`)
                 }
-                divel.append(this.create_text_run(run, line_index === data.text.length))
+                divel.append(this.create_text_run(run, line_index === data.text.length ? true : undefined))
                 // Store the last text run for setting styles in the input
                 this.last_run_styles = run.css_styles
             }
@@ -605,7 +650,7 @@ class GridWindow extends TextualWindow {
                     else {
                         run = content[i] as protocol.TextRun
                     }
-                    lineel.append(this.create_text_run(run))
+                    lineel.append(this.create_text_run(run, false))
                     // Store the last text run for setting styles in the input
                     this.last_run_styles = run.css_styles
                 }
