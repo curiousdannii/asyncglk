@@ -459,9 +459,11 @@ export interface WindowUpdate {
 }
 
 /** CSS Properties
- * CSS property names and values, with one special property:
- * `reverse` enables reverse mode. If you provide colours then do not pre-reverse them.
- * Ex: `background-color: #FFF, color: #000, reverse: 1` will be displayed as white text on a black background
+ *
+ * CSS property names and values, with a few special property:
+ * - `monospace`: sets a run to be monospaced, but adding class `monospace` to the `span`. Should only be used for `span`s, may misbehave if set on a `div`.
+ * - `reverse`: enables reverse mode. If you provide colours then do not pre-reverse them.
+ *   Ex: `background-color: #FFF, color: #000, reverse: 1` will be displayed as white text on a black background
  */
 export type CSSProperties = Record<string, string | number>
 
