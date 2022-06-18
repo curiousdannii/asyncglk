@@ -16,6 +16,7 @@ import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
 import {DOM} from './shared.js'
+import TranscriptRecorder from './transcript-recorder.js'
 import Windows, {GraphicsWindow} from './windows.js'
 
 interface AutosaveState {
@@ -24,7 +25,8 @@ interface AutosaveState {
     metrics?: {
         height: number,
         width: number,
-    }
+    },
+    transcript_recorder_session?: string,
 }
 
 /** A GlkOte implementation for the web
@@ -52,6 +54,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     private metrics_calculator: Metrics
     private showing_error = false
     private showing_loading = true
+    private transcript_recorder?: TranscriptRecorder
     private windows: Windows
 
     constructor() {
@@ -113,6 +116,24 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
 
             await this.metrics_calculator.measure()
 
+            // Set up transcript recording
+            if (options.recording_url || options.recording_handler) {
+                if (options.recording_format && options.recording_format !== 'simple') {
+                    console.warn('GlkOte: only the "simple" recording_format is supported')
+                }
+                else {
+                    // Check if the user has opted out
+                    const query_feedback = (new URLSearchParams(document.location.search)).get('feedback')
+                    const cookie_name = options.recording_cookie || 'transcript_recording_opt_out'
+                    if ((query_feedback && query_feedback !== '1') || document.cookie.includes(`${cookie_name}=1`)) {
+                        console.log('User has opted out of transcript recording.')
+                    }
+                    else {
+                        this.transcript_recorder = new TranscriptRecorder(options, this.windows)
+                    }
+                }
+            }
+
             // Note that this must be called last as it will result in VM.start() being called
             return super.init(options)
         }
@@ -144,6 +165,11 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             // Force a resize event
             this.current_metrics.width += 2
             this.metrics_calculator.on_gameport_resize()
+        }
+
+        if (data.transcript_recorder_session && this.transcript_recorder) {
+            this.transcript_recorder.session = data.transcript_recorder_session
+            console.log(`Resuming autosaved transcript recording session: ${data.transcript_recorder_session}`)
         }
     }
 
@@ -249,6 +275,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 height: this.current_metrics.height,
                 width: this.current_metrics.width,
             },
+            transcript_recorder_session: this.transcript_recorder?.session,
         }
     }
 
@@ -267,6 +294,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 }
             }
         }
+        if (this.transcript_recorder?.enabled) {
+            this.transcript_recorder.record_event(ev)
+        }
         super.send_event(ev)
     }
 
@@ -283,6 +313,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             this.hide_loading()
         }
         super.update(data)
+        if (this.transcript_recorder?.enabled && data.type === 'update' && !data.autorestore) {
+            this.transcript_recorder.record_update(data)
+        }
     }
 
     protected update_content(content: protocol.ContentUpdate[]) {

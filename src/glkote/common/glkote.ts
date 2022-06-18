@@ -9,6 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import Blorb from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
@@ -19,7 +20,7 @@ export interface GlkOte {
     getdomcontext(): HTMLElement | undefined,
     getdomid(name: string): string,
     getinterface(): GlkOteOptions,
-    getlibrary(name: string): any,
+    getlibrary(name: string): Blorb | null | any,
     init(options: GlkOteOptions): void,
     inited(): boolean,
     log(msg: string): void,
@@ -32,7 +33,7 @@ export interface GlkOte {
 
 export interface GlkOteOptions {
     accept(event: protocol.Event): void,
-    Blorb?: any,
+    Blorb?: Blorb,
     debug_commands?: boolean,
     detect_external_links?: string | boolean,
     Dialog?: any,
@@ -44,12 +45,36 @@ export interface GlkOteOptions {
     Glk?: any,
     loadingpane?: string,
     max_buffer_length?: number,
+    /** Cookie name to opt out of transcript recording. Default: `transcript_recording_opt_out` */
+    recording_cookie?: string,
+    /** Transcript recording service protocol format. Only `simple` is supported by AsyncGlk */
     recording_format?: string,
-    recording_handler?: any,
+    /** Custom transcript recording handler function */
+    recording_handler?: (state: TranscriptRecordingData) => void,
+    /** Transcript recording label for this story */
     recording_label?: string,
+    /** URL for the transcript recording service */
     recording_url?: string,
     regex_external_links?: RegExp,
     windowport?: string,
+}
+
+/** Format of the transcript recorder data */
+export interface TranscriptRecordingData {
+    /** The transcript record format is always 'simple */
+    format: 'simple',
+    /** Player input for char and line events */
+    input: string,
+    /** The label given to this story at the beginning */
+    label: string,
+    /** Combined output from buffer windows */
+    output: string,
+    /** Timestamp from when output returned to GlkOte (milliseconds) */
+    outtimestamp: number,
+    /** Session ID */
+    sessionId: string,
+    /** Timestamp from when GlkOte event was sent to VM (milliseconds) */
+    timestamp: number,
 }
 
 export abstract class GlkOteBase implements GlkOte {
