@@ -14,6 +14,7 @@ input.Input {
        usual decoration of an <input> field, as much as possible. */
     background: none;
     border: none;
+    color: var(--glkote-input-fg);
     font-weight: bold;
     left: -10000px;
     margin: 0px;

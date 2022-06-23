@@ -24,7 +24,7 @@ https://github.com/curiousdannii/asyncglk
     --glkote-grid-reverse-bg: #000;
     --glkote-grid-reverse-fg: #fff;
     --glkote-grid-size: 14px;
-    --glkote-input-fg: #300000;
+    --glkote-input-fg: #000;
     /* These styles are all for buffer windows */
     --glkote-mono-family: "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", monospace;
     --glkote-prop-family: Georgia, "AsyncGlk Serif", serif;
