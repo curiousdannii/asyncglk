@@ -12,6 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import Blorb from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
+import {Dialog, FileRef} from '../../dialog/common/interface.js'
 
 export interface GlkOte {
     classname: string,
@@ -20,7 +21,7 @@ export interface GlkOte {
     getdomcontext(): HTMLElement | undefined,
     getdomid(name: string): string,
     getinterface(): GlkOteOptions,
-    getlibrary(name: string): Blorb | null | any,
+    getlibrary(name: string): Blorb | Dialog | null | undefined,
     init(options: GlkOteOptions): void,
     inited(): boolean,
     log(msg: string): void,
@@ -36,7 +37,7 @@ export interface GlkOteOptions {
     Blorb?: Blorb,
     debug_commands?: boolean,
     detect_external_links?: string | boolean,
-    Dialog?: any,
+    Dialog?: Dialog,
     dialog_dom_prefix?: string,
     dom_prefix?: string,
     errorcontent?: string,
@@ -82,9 +83,9 @@ export abstract class GlkOteBase implements GlkOte {
     version = Constants.PACKAGE_VERSION
 
     protected accept_func: (event: protocol.Event) => void = () => {}
-    protected Blorb?: any
+    protected Blorb?: Blorb
     current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
-    protected Dialog?: any
+    protected Dialog?: Dialog
     disabled = false
     protected generation = 0
     protected is_inited = false
@@ -138,7 +139,7 @@ export abstract class GlkOteBase implements GlkOte {
         return this.options
     }
 
-    getlibrary(name: string): any {
+    getlibrary(name: string): Blorb | Dialog | null | undefined {
         switch (name) {
             case 'Blorb': return this.Blorb
             case 'Dialog': return this.Dialog
@@ -250,7 +251,7 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected handle_specialinput(data: protocol.SpecialInput) {
         if (data.type === 'fileref_prompt') {
-            const replyfunc = (ref: any) => this.send_event({
+            const replyfunc = (ref: FileRef | null) => this.send_event({
                 type: 'specialresponse',
                 response: 'fileref_prompt',
                 value: ref,

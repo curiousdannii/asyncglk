@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {FileRef} from '../dialog/common/interface.js'
+
 /** The GlkOte protocol has two parts:
  * 1. GlkOte sends events to GlkApi/RemGlk
  * 2. GlkApi/RemGlk send content updates to GlkOte
@@ -119,11 +121,8 @@ export interface SpecialEvent extends EventBase {
     /** Response type */
     response: 'fileref_prompt',
     /** Event value (file reference from Dialog) */
-    value: FileRef,
+    value: FileRef | null,
 }
-
-/** File reference from Dialog */
-export type FileRef = any
 
 export interface TimerEvent extends EventBase {
     /** Event code */
