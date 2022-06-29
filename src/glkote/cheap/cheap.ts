@@ -14,15 +14,9 @@ import MuteStream from 'mute-stream'
 import * as readline from 'readline'
 import * as TTY from 'tty'
 
+import {get_stdio, HackableReadline} from './stdio.js'
 import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
-
-// We dig around in the internals of ReadLine
-// TODO: see if we can remove these hacks?
-interface HackableReadline extends readline.ReadLine {
-    _line_buffer: any,
-    line: string,
-}
 
 const KEY_REPLACEMENTS: Record<string, string> = {
     '\x7F': 'delete',
@@ -31,21 +25,20 @@ const KEY_REPLACEMENTS: Record<string, string> = {
 
 export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
     private current_input_type: 'char' | 'line' | null = null
-    private handle_char_input_callback: (str: string, key: readline.Key) => void
-    private handle_line_input_callback: (line: string) => void
+    private handle_char_input_callback: (str: string, key: readline.Key) => void = (str: string, key: readline.Key) => this.handle_char_input(str, key)
+    private handle_line_input_callback: (line: string) => void = (line: string) => this.handle_line_input(line)
     private rl: HackableReadline
     private stdin: TTY.ReadStream
     private stdout: MuteStream
     private window: protocol.WindowUpdate | null = null
 
-    constructor(options: any) {
+    constructor() {
         super()
 
-        this.handle_char_input_callback = (str: string, key: readline.Key) => this.handle_char_input(str, key)
-        this.handle_line_input_callback = (line: string) => this.handle_line_input(line)
-        this.rl = options.rl
-        this.stdin = options.stdin
-        this.stdout = options.stdout
+        const cheap_stdio = get_stdio()
+        this.rl = cheap_stdio.rl
+        this.stdin = cheap_stdio.stdin
+        this.stdout = cheap_stdio.stdout
     }
 
     async init(options: GlkOte.GlkOteOptions) {
@@ -64,21 +57,12 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
             }
         }
 
-        // Prepare to receive input events
-        if (process.stdin.isTTY) {
-            this.stdin.setRawMode(true)
-        }
-        readline.emitKeypressEvents(this.stdin)
         this.rl.resume()
 
         if (process.stdout.isTTY) {
             this.current_metrics.height = process.stdout.rows
             this.current_metrics.width = process.stdout.columns
         }
-
-        // Event callbacks
-        this.handle_char_input_callback = (str: string, key: readline.Key) => this.handle_char_input(str, key)
-        this.handle_line_input_callback = (line: string) => this.handle_line_input(line)
 
         // Note that this must be called last as it will result in VM.start() being called
         super.init(options)

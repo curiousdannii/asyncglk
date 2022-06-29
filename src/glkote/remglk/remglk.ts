@@ -19,11 +19,11 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
     private stdin: TTY.ReadStream
     private stdout: TTY.WriteStream
 
-    constructor(options: any) {
+    constructor() {
         super()
 
-        this.stdin = options.stdin
-        this.stdout = options.stdout
+        this.stdin = process.stdin
+        this.stdout = process.stdout
 
         if (this.stdin.isTTY) {
             this.stdin.setRawMode(true)
