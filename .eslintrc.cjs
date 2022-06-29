@@ -15,6 +15,8 @@ module.exports = {
         eqeqeq: ['error', 'always', {null: 'ignore'}],
         indent: ['error', 4, {SwitchCase: 1}],
         'linebreak-style': ['error', 'unix'],
+        'no-constant-condition': ['error', {checkLoops: false}],
+        'no-empty': ['error', {allowEmptyCatch: true}],
         quotes: ['error', 'single'],
         semi: ['error', 'never'],
         '@typescript-eslint/no-empty-function': ['off'],

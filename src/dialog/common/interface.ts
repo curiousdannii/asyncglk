@@ -23,7 +23,7 @@ export type FileRef = {
     dirent?: string,
     filename: string,
     gameid?: string,
-    usage?: string,
+    usage?: string | null,
 }
 
 export interface DialogOptions {
@@ -53,7 +53,7 @@ interface ClassicDialogBase {
     /** Has this Dialog instance been init()ed? */
     inited(): boolean,
     /** Open a file choosing dialog */
-    open(save: boolean, usage: string | null, gameid: string | null | undefined, callback: (fref: FileRef) => void): void,
+    open(save: boolean, usage: string | null, gameid: string | null | undefined, callback: (fref: FileRef | null) => void): void,
     /** Whether or not this Dialog instance uses the streaming API */
     streaming: boolean,
 }
@@ -80,16 +80,42 @@ export interface ClassicStreamingDialog extends ClassicDialogBase {
 
 /** A file stream */
 export interface FileStream {
+    /** A reference to a buffer class */
+    BufferClass: BufferConstructor,
     /** Close this stream */
     fclose(): void,
     /** Flush the stream */
     fflush(): void,
-    /** Read bytes from a file */
+    /** Read bytes from a file
+     *
+     * Up to buf.length bytes are read into the given buffer. If the len
+     * argument is given, up to len bytes are read; the buffer must be at least
+     * len bytes long. Returns the number of bytes read, or 0 if end-of-file. */
     fread(buf: Buffer, len: number): number,
     /** Seek to position */
     fseek(pos: number, seekmode: number): void
     /** Get the current stream position */
     ftell(): number,
-    /** Write bytes to a file */
+    /** Write bytes to a file
+     *
+     * buf.length bytes are written to the stream. If the len argument is
+     * given, that many bytes are written; the buffer must be at least len
+     * bytes long. Return the number of bytes written. */
     fwrite(buf: Buffer, len: number): number,
+}
+
+/** Construct a file-filter list for a given usage type. */
+export function filters_for_usage(usage: string | null) {
+    switch (usage) {
+        case 'data': 
+            return [ { name: 'Glk Data File', extensions: ['glkdata'] } ]
+        case 'save': 
+            return [ { name: 'Glk Save File', extensions: ['glksave'] } ]
+        case 'transcript': 
+            return [ { name: 'Transcript File', extensions: ['txt'] } ]
+        case 'command': 
+            return [ { name: 'Command File', extensions: ['txt'] } ]
+        default:
+            return []
+    }
 }

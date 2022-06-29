@@ -147,8 +147,8 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
     }
 
     protected update_content(content: protocol.ContentUpdate[]) {
-        const window_content = content.filter(content => content.id === this.window!.id)[0] as protocol.BufferWindowContentUpdate
-        for (const line of window_content.text || []) {
+        const window_content = content.filter(content => content.id === this.window!.id)[0] as protocol.BufferWindowContentUpdate | undefined
+        for (const line of window_content?.text || []) {
             if (!line.append) {
                 this.stdout.write('\n')
             }

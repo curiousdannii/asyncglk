@@ -7,8 +7,8 @@ import GlkOteTerm from 'glkote-term'
 import minimist from 'minimist'
 import ZVM from 'ifvms'
 
+import {CheapStreamingDialog} from '../dist/dialog/node/cheap.js'
 import CheapGlkOte from '../dist/glkote/cheap/cheap.js'
-import {get_stdio} from '../dist/glkote/cheap/stdio.js'
 import RemGlk from '../dist/glkote/remglk/remglk.js'
 
 const argv = minimist(process.argv.slice(2))
@@ -19,7 +19,7 @@ const vm = new ZVM.ZVM()
 
 const options = {
     vm: vm,
-    Dialog: new GlkOteTerm.DumbGlkOte.Dialog(get_stdio()),
+    Dialog: new CheapStreamingDialog(),
     Glk: GlkOteTerm.Glk,
     GlkOte: new GlkOte(),
 }
