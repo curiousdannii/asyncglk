@@ -16,7 +16,7 @@ import os from 'os'
 import path from 'path'
 
 import {GlkOte} from '../../glkote/common/glkote.js'
-import {AutosaveData, ClassicStreamingDialog, DialogOptions, FileRef, FileStream} from '../common/interface.js'
+import {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions, FileRef} from '../common/interface.js'
 
 import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, seekmode_Current, seekmode_End, fileusage_Data, fileusage_SavedGame, fileusage_Transcript, fileusage_InputRecord} from '../../common/constants.js'
 
@@ -277,7 +277,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
 // The size of our stream buffering.
 const BUFFER_SIZE = 256
 
-export class NodeFileStream implements FileStream {
+export class NodeFileStream implements ClassicFileStream {
     BufferClass = Buffer
     private buffer = Buffer.alloc(BUFFER_SIZE)
     /** How much of the buffer is used */
@@ -291,15 +291,15 @@ export class NodeFileStream implements FileStream {
     private bufuse = 0
     fd: number | null
     private filename: string
-    private fmode: number
+    //private fmode: number
     private GlkOte: GlkOte
     /** Position in file */
     mark = 0
 
-    constructor(fd: number, filename: string, fmode: number, GlkOte: GlkOte) {
+    constructor(fd: number, filename: string, _fmode: number, GlkOte: GlkOte) {
         this.fd = fd
         this.filename = filename
-        this.fmode = fmode
+        //this.fmode = fmode
         this.GlkOte = GlkOte
     }
 
@@ -331,7 +331,7 @@ export class NodeFileStream implements FileStream {
         this.bufmark = 0
     }
 
-    fread(buf: Buffer, len?: number): number {
+    fread(buf: Uint8Array, len?: number): number {
         if (len === undefined) {
             len = buf.length
         }
@@ -348,7 +348,7 @@ export class NodeFileStream implements FileStream {
                         want = this.buflen - this.bufmark
                     }
                     if (want > 0) {
-                        this.buffer.copy(buf, got, this.bufmark, this.bufmark + want)
+                        buf.set(this.buffer.subarray(this.bufmark, this.bufmark + want), got)
                         this.bufmark += want
                         got += want
                     }
@@ -419,7 +419,7 @@ export class NodeFileStream implements FileStream {
         }
     }
 
-    fwrite(buf: Buffer, len?: number): number {
+    fwrite(buf: Uint8Array, len?: number): number {
         if (len === undefined) {
             len = buf.length
         }
@@ -433,7 +433,7 @@ export class NodeFileStream implements FileStream {
                     want = BUFFER_SIZE - this.buflen
                 }
                 if (want > 0) {
-                    buf.copy(this.buffer, this.buflen, from, from + want)
+                    this.buffer.set(buf.subarray(from, from + want), this.buflen)
                     this.buflen += want
                     from += want
                 }

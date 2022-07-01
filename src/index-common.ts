@@ -17,7 +17,7 @@ export {FileView, IFF} from './blorb/iff.js'
 export * as constants from './common/constants.js'
 export * as protocol from './common/protocol.js'
 
-export type {AutosaveData, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogOptions, FileRef, FileStream} from './dialog/common/interface.js'
+export type {AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogOptions, FileRef} from './dialog/common/interface.js'
 export {filters_for_usage} from './dialog/common/interface.js'
 
 export type {GlkOte, GlkOteOptions, TranscriptRecordingData} from './glkote/common/glkote.js'
