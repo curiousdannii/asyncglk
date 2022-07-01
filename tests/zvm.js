@@ -7,21 +7,22 @@ import GlkOteTerm from 'glkote-term'
 import minimist from 'minimist'
 import ZVM from 'ifvms'
 
-import {CheapStreamingDialog} from '../dist/dialog/node/cheap.js'
-import CheapGlkOte from '../dist/glkote/cheap/cheap.js'
-import RemGlk from '../dist/glkote/remglk/remglk.js'
+import {CheapGlkOte, CheapStreamingDialog, RemGlk} from '../dist/index-node.js'
 
 const argv = minimist(process.argv.slice(2))
 const storyfile = argv._[0]
 const GlkOte = argv.rem ? RemGlk : CheapGlkOte
 
+const glkote = new GlkOte()
+const dialog = new CheapStreamingDialog()
+await new Promise(resolve => dialog.init_async({Glkote: glkote}, resolve))
 const vm = new ZVM.ZVM()
 
 const options = {
     vm: vm,
-    Dialog: new CheapStreamingDialog(),
+    Dialog: dialog,
     Glk: GlkOteTerm.Glk,
-    GlkOte: new GlkOte(),
+    GlkOte: glkote,
 }
 
 vm.prepare(fs.readFileSync(storyfile), options)

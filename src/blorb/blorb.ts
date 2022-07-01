@@ -47,13 +47,13 @@ export interface BlorbDataChunk {
 }
 
 // The infomap format
-interface InfoMapResource {
+export interface InfoMapResource {
     height: number,
     image: number,
     url: string,
     width: number,
 }
-type InfoMap = Record<string, InfoMapResource>
+export type InfoMap = Record<string, InfoMapResource>
 
 const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
     Data: 'data',
