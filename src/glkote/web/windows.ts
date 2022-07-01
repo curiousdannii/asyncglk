@@ -329,9 +329,7 @@ class BufferWindow extends TextualWindow {
     constructor(options: WindowConstructorOptions) {
         super(options)
         this.frameel.attr({
-            'aria-atomic': 'false',
             'aria-live': 'polite',
-            'aria-relevant': 'additions',
             tabindex: -1,
         })
         this.innerel = create('div', 'BufferWindowInner')
@@ -371,6 +369,9 @@ class BufferWindow extends TextualWindow {
         if (!data.text) {
             return
         }
+
+        // Tell ARIA that we're busy while we're updating the window
+        this.frameel.attr('aria-busy', 'true')
 
         // Get the scrolltop for this update
         this.updatescrolltop = Math.max(0, (this.lastline?.position().top || 0) - 20)
@@ -452,6 +453,8 @@ class BufferWindow extends TextualWindow {
         }
 
         // TODO: Trim log?
+
+        this.frameel.attr('aria-busy', 'false')
     }
 }
 
