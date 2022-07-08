@@ -330,6 +330,7 @@ class BufferWindow extends TextualWindow {
         super(options)
         this.frameel.attr({
             'aria-live': 'polite',
+            role: 'log',
             tabindex: -1,
         })
         this.innerel = create('div', 'BufferWindowInner')
@@ -610,6 +611,15 @@ class GridWindow extends TextualWindow {
     lines: JQuery<HTMLElement>[] = []
     width = 0
 
+    constructor(options: WindowConstructorOptions) {
+        super(options)
+        this.frameel.attr({
+            'aria-atomic': 'true',
+            'aria-live': 'off',
+            role: 'status',
+        })
+    }
+
     onclick(ev: JQuery.ClickEvent) {
         if (this.inputs?.mouse && ev.button === 0 && no_text_selected()) {
             this.inputs.mouse = false
@@ -629,6 +639,9 @@ class GridWindow extends TextualWindow {
             this.last_run_styles = undefined
             this.refresh_styles(data.bg, data.fg)
         }
+
+        // Tell ARIA that we're busy while we're updating the window
+        this.frameel.attr('aria-busy', 'true')
 
         for (const line of data.lines) {
             const lineel = this.lines[line.line]
@@ -661,7 +674,13 @@ class GridWindow extends TextualWindow {
         }
 
         // Apply the class of 'reverse' to the window if all the text in it is reversed
-        $(`#window${this.id}`).toggleClass('reverse', $(`#window${this.id} span:not(.reverse)`).length === 0)
+        this.frameel.toggleClass('reverse', $(`#window${this.id} span:not(.reverse)`).length === 0)
+
+        // If there are more than 4 lines, set aria-live to polite
+            .attr({
+                'aria-busy': 'false',
+                'aria-live': this.lines.length > 3 ? 'polite' : 'off',
+            })
     }
 }
 

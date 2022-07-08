@@ -27,7 +27,7 @@ export class TextInput {
         this.window = window
 
         this.el = $('<input>', {
-            'aria-live': 'off',
+            'aria-hidden': 'true',
             autocapitalize: 'off',
             blur: () => this.onblur(),
             class: 'Input',
@@ -177,7 +177,10 @@ export class TextInput {
     reset() {
         this.history_index = 0
         this.el
-            .attr('class', 'Input')
+            .attr({
+                'aria-hidden': 'true',
+                class: 'Input',
+            })
             .css({
                 'background-color': '',
                 color: '',
@@ -229,7 +232,10 @@ export class TextInput {
 
         // Common options for both character and line input
         this.el
-            .attr({maxlength: this.is_line ? update.maxlen! : 1})
+            .attr({
+                'aria-hidden': 'false',
+                maxlength: this.is_line ? update.maxlen! : 1,
+            })
             .prop('disabled', false)
             .val(update.initial || '')
 
