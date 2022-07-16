@@ -856,10 +856,10 @@ export default class Windows extends Map<number, Window> {
 
             // Update the position of the window
             win.frameel.css({
-                bottom: this.metrics.height - (update.top + update.height),
+                height: update.height,
                 left: update.left,
-                right: this.metrics.width - (update.left + update.width),
                 top: update.top,
+                width: update.width,
             })
             win.measure_height()
         }
