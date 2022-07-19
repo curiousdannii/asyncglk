@@ -18,7 +18,18 @@ import path from 'path'
 import {GlkOte} from '../../glkote/common/glkote.js'
 import {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions, FileRef} from '../common/interface.js'
 
-import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, seekmode_Current, seekmode_End, fileusage_Data, fileusage_SavedGame, fileusage_Transcript, fileusage_InputRecord} from '../../common/constants.js'
+import {
+    filemode_Read,
+    filemode_ReadWrite,
+    filemode_Write,
+    filemode_WriteAppend,
+    fileusage_Data,
+    fileusage_InputRecord,
+    fileusage_SavedGame,
+    fileusage_Transcript,
+    seekmode_Current,
+    seekmode_End,
+} from '../../glkapi/constants.js'
 
 export default abstract class NodeStreamingDialog implements ClassicStreamingDialog {
     abstract classname: string

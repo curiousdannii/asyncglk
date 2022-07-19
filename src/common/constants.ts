@@ -30,19 +30,6 @@ export const DEFAULT_METRICS: protocol.NormalisedMetrics = {
     width: 80,
 }
 
-// Dialog file constants
-export const filemode_Write = 0x01
-export const filemode_Read = 0x02
-export const filemode_ReadWrite = 0x03
-export const filemode_WriteAppend = 0x05
-export const seekmode_Start = 0
-export const seekmode_Current = 1
-export const seekmode_End = 2
-export const fileusage_Data = 0x00
-export const fileusage_SavedGame = 0x01
-export const fileusage_Transcript = 0x02
-export const fileusage_InputRecord = 0x03
-
 export const KEY_NAMES_TO_CODES: Record<protocol.SpecialKeyCode, number> = {
     delete: 8, // Backspace to be precise
     down: 40,
