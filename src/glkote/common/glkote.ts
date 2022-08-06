@@ -57,6 +57,8 @@ export interface GlkOteOptions {
     /** URL for the transcript recording service */
     recording_url?: string,
     regex_external_links?: RegExp,
+    /** Whether or not to set the <body> background colour to the page_margin_bg */
+    set_body_to_page_bg?: boolean | number,
     windowport?: string,
 }
 
@@ -227,7 +229,7 @@ export abstract class GlkOteBase implements GlkOte {
             }
 
             // Page background colour
-            if (typeof data.page_margin_bg !== 'undefined') {
+            if (typeof data.page_margin_bg !== 'undefined' && this.options.set_body_to_page_bg) {
                 this.set_page_bg(data.page_margin_bg)
             }
         }

@@ -61,9 +61,9 @@ interface ClassicDialogBase {
 /** Synchronous Dialog library for browsers */
 export interface ClassicSyncDialog extends ClassicDialogBase {
     /** Read a file */
-    file_read(fref: FileRef, parse_json: boolean): string | any | null,
+    file_read(fref: FileRef, parse_json: boolean): Uint8Array | null,
     /** Write a file */
-    file_write(fref: FileRef, content: string | any, raw_string: boolean): boolean,
+    file_write(fref: FileRef, content: Uint8Array | '', raw_string: boolean): boolean,
     /** Initialise the library */
     init(options: DialogOptions): void,
     streaming: false,

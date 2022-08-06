@@ -243,6 +243,6 @@ export interface GlkApiAsync extends GlkApi {
     glk_select_async(ev: RefStruct): Promise<void>,
     glk_stream_open_file_async(fref: FileRef, mode: number, rock: number): Promise<GlkStream | null>,
     glk_stream_open_file_uni_async(fref: FileRef, mode: number, rock: number): Promise<GlkStream | null>,
-    restore_allstate(state: any): Promise<boolean>,
+    restore_allstate_async(state: any): Promise<boolean>,
     save_allstate_async(): Promise<any>,
 }
