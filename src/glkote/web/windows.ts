@@ -320,7 +320,7 @@ const inline_alignment_classes: Record<string, string> = {
 }
 
 class BufferWindow extends TextualWindow {
-    type: 'buffer' = 'buffer'
+    type = 'buffer' as const
     innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
     updatescrolltop = 0
@@ -460,7 +460,7 @@ class BufferWindow extends TextualWindow {
 }
 
 export class GraphicsWindow extends WindowBase {
-    type: 'graphics' = 'graphics'
+    type = 'graphics' as const
     buffer: JQuery<HTMLCanvasElement>
     canvas: JQuery<HTMLCanvasElement>
     fillcolour = ''
@@ -606,7 +606,7 @@ export class GraphicsWindow extends WindowBase {
 }
 
 class GridWindow extends TextualWindow {
-    type: 'grid' = 'grid'
+    type = 'grid' as const
     height = 0
     lines: JQuery<HTMLElement>[] = []
     width = 0
