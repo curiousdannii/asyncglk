@@ -13,7 +13,7 @@ import {throttle} from 'lodash-es'
 
 import * as protocol from '../../common/protocol.js'
 
-import {create} from './shared.js'
+import {create, is_pinch_zoomed} from './shared.js'
 import WebGlkOte from './web.js'
 import {Window} from './windows.js'
 
@@ -66,7 +66,9 @@ export default class Metrics {
         else {
             $(window).on('resize', resizehandler)
         }
-        $(visualViewport).on('resize', () => this.on_visualViewport_resize())
+        if (visualViewport) {
+            $(visualViewport).on('resize', () => this.on_visualViewport_resize())
+        }
     }
 
     async measure() {
@@ -167,7 +169,7 @@ export default class Metrics {
 
     on_visualViewport_resize() {
         // Don't do anything if the window is pinch zoomed
-        if (visualViewport.scale !== 1) {
+        if (is_pinch_zoomed()){
             return
         }
 
@@ -185,7 +187,7 @@ export default class Metrics {
             gameport.toggleClass('ios15fix', input_is_active)
         }
         // And then set the outer height, to account for the padding
-        gameport.outerHeight(visualViewport.height)
+        gameport.outerHeight(visualViewport!.height)
 
         // Safari might have scrolled weirdly, so try to put it right
         window.scrollTo(0, 0)

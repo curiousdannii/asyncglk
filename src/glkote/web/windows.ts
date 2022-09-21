@@ -16,7 +16,7 @@ import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM, EventFunc} from './shared.js'
+import {create, DOM, EventFunc, is_pinch_zoomed} from './shared.js'
 import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow
@@ -320,7 +320,7 @@ const inline_alignment_classes: Record<string, string> = {
 }
 
 class BufferWindow extends TextualWindow {
-    type: 'buffer' = 'buffer'
+    type = 'buffer' as const
     innerel: JQuery<HTMLElement>
     lastline?: JQuery<HTMLElement>
     updatescrolltop = 0
@@ -449,7 +449,7 @@ class BufferWindow extends TextualWindow {
         }
 
         // Scroll down
-        if (visualViewport.scale === 1) {
+        if (!is_pinch_zoomed()) {
             this.frameel.scrollTop(this.updatescrolltop)
         }
 
@@ -460,7 +460,7 @@ class BufferWindow extends TextualWindow {
 }
 
 export class GraphicsWindow extends WindowBase {
-    type: 'graphics' = 'graphics'
+    type = 'graphics' as const
     buffer: JQuery<HTMLCanvasElement>
     canvas: JQuery<HTMLCanvasElement>
     fillcolour = ''
@@ -606,7 +606,7 @@ export class GraphicsWindow extends WindowBase {
 }
 
 class GridWindow extends TextualWindow {
-    type: 'grid' = 'grid'
+    type = 'grid' as const
     height = 0
     lines: JQuery<HTMLElement>[] = []
     width = 0

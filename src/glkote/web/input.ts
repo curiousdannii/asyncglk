@@ -13,6 +13,7 @@ import {throttle} from 'lodash-es'
 import {KEY_CODES_TO_NAMES, KEY_NAMES_TO_CODES, OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
+import {is_pinch_zoomed} from './shared.js'
 import {Window, apply_text_run_styles} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
@@ -56,7 +57,7 @@ export class TextInput {
 
     private onfocus() {
         // Ensure a buffer window is scrolled down
-        if (this.window.type === 'buffer' && visualViewport.scale === 1) {
+        if (this.window.type === 'buffer' && !is_pinch_zoomed()) {
             this.window.frameel.scrollTop(this.window.innerel.height()!)
         }
         // Scroll the browser window over the next 600ms

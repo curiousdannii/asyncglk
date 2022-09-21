@@ -36,7 +36,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
     private extfilepath: string
     private GlkOte?: GlkOte
     private is_inited = false
-    streaming: true = true
+    streaming = true as const
     private userpath: string
 
     constructor() {
