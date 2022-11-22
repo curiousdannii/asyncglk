@@ -186,8 +186,8 @@ export default class Metrics {
         if (ios15_0) {
             gameport.toggleClass('ios15fix', input_is_active)
         }
-        // And then set the outer height, to account for the padding
-        gameport.outerHeight(visualViewport!.height)
+        // And then set the outer height to the viewport height, accounting for any padding or margin
+        gameport.outerHeight(visualViewport!.height, true)
 
         // Safari might have scrolled weirdly, so try to put it right
         window.scrollTo(0, 0)
