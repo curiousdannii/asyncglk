@@ -93,6 +93,7 @@ export abstract class GlkOteBase implements GlkOte {
     protected is_inited = false
     protected options: GlkOteOptions = {} as GlkOteOptions
     protected timer: ReturnType<typeof setTimeout> | null = null
+    protected waiting_for_update = false
 
     async init(options: GlkOteOptions) {
         if (!options) {
@@ -163,6 +164,8 @@ export abstract class GlkOteBase implements GlkOte {
 
     update(data: protocol.Update) {
         try {
+            this.waiting_for_update = false
+
             if (data.type === 'error') {
                 return this.error(data.message)
             }
@@ -291,6 +294,11 @@ export abstract class GlkOteBase implements GlkOte {
         if (this.disabled && ev.type !== 'specialresponse') {
             return
         }
+        if (this.waiting_for_update) {
+            console.log('Trying to send even when waiting for input', ev)
+            return
+        }
+        this.waiting_for_update = true
         ev.gen = this.generation
         switch (ev.type) {
             case 'arrange':

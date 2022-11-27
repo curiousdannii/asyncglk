@@ -4,14 +4,18 @@ on: [push, pull_request]
 
 jobs:
   test:
+    strategy:
+      matrix:
+        node: [18, 19]
+    name: test (Node v${{ matrix.node }})
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run lint
-      - run: npm test
+      - run: ./tests/runtests.sh

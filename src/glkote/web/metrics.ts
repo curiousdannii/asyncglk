@@ -155,8 +155,8 @@ export default class Metrics {
     }
 
     on_gameport_resize = throttle(async () => {
-        // Delay again if disabled
-        if (this.glkote.disabled) {
+        // Delay again if not yet inited or disabled
+        if (this.glkote.disabled || !this.glkote.inited()) {
             this.on_gameport_resize()
             return
         }
