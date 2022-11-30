@@ -124,6 +124,7 @@ export const filemode_Write = 0x01
 export const filemode_Read = 0x02
 export const filemode_ReadWrite = 0x03
 export const filemode_WriteAppend = 0x05
+export type FileMode = typeof filemode_Write | typeof filemode_Read | typeof filemode_ReadWrite | typeof filemode_WriteAppend
 
 export const seekmode_Start = 0
 export const seekmode_Current = 1
@@ -154,3 +155,9 @@ export const imagealign_MarginRight = 5
 
 export const zcolor_Default = -1
 export const zcolor_Current = -2
+
+// Non Glk API constants
+
+export const GLK_NULL = 0
+export const MAX_LATIN1 = 0xFF
+export const QUESTION_MARK = 63

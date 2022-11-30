@@ -15,9 +15,9 @@ import {GlkOte} from '../glkote/common/glkote.js'
 
 import * as Const from './constants.js'
 
-type GlkArray = Array<number> | Uint8Array | Uint32Array
-type GlkByteArray = Array<number> | Uint8Array
-type GlkWordArray = Array<number> | Uint32Array
+export type GlkArray = Array<number> | Uint8Array | Uint32Array
+export type GlkByteArray = Array<number> | Uint8Array
+export type GlkWordArray = Array<number> | Uint32Array
 
 // Opaque classes
 export type GlkClassName = 'fileref' | 'stream' | 'window'

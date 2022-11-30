@@ -21,7 +21,7 @@ export type {AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyn
 export {filters_for_usage} from './dialog/common/interface.js'
 
 export type {GiDispa, GlkApi, GlkApiAsync, GlkApiOptions, GlkClassName, GlkFref, GlkObject, GlkSchannel, GlkStream, GlkVM, GlkWindow} from './glkapi/interface.js'
-export {RefBox, RefStruct} from './glkapi/glkapi.js'
+export {AsyncGlk, RefBox, RefStruct} from './glkapi/glkapi.js'
 
 export type {GlkOte, GlkOteOptions, TranscriptRecordingData} from './glkote/common/glkote.js'
 export {GlkOteBase} from './glkote/common/glkote.js'
