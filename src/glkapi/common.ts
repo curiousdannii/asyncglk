@@ -12,6 +12,13 @@ https://github.com/curiousdannii/asyncglk
 export type GlkTypedArray = Uint8Array | Uint32Array
 export type GlkTypedArrayConstructor = Uint8ArrayConstructor | Uint32ArrayConstructor
 
+export function copy_array(source: GlkTypedArray, target: number[], length: number) {
+    const copy_length = Math.min(length, target.length)
+    for (let i = 0; i < copy_length; i++) {
+        target[i] = source[i]
+    }
+}
+
 export function is_unicode_array(arr: GlkTypedArray) {
     return arr.BYTES_PER_ELEMENT === 4
 }
