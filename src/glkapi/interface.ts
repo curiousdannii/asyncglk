@@ -58,7 +58,7 @@ export interface GiDispa {
         vm: GlkVM,
     }): void,
     prepare_resume(arg: RefStruct): void,
-    retain_array(arr1: GlkArray, arr2: GlkArray): void,
+    retain_array(arr1: GlkArray, useobj?: any): void,
     set_vm?(vm: GlkVM): void,
     unretain_array(arr: GlkArray): void,
 }

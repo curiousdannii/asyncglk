@@ -9,12 +9,12 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {GlkTypedArray, is_unicode_array} from './common.js'
 import {
     //filemode_Write,
     filemode_Read,
     filemode_ReadWrite,
     filemode_WriteAppend,
-    FileMode,
     //seekmode_Start,
     seekmode_Current,
     seekmode_End,
@@ -22,16 +22,18 @@ import {
     MAX_LATIN1,
     QUESTION_MARK,
 } from './constants.js'
-import {GlkStream} from './interface.js'
+import {GlkStream, RefStruct} from './interface.js'
 
 export interface Stream extends GlkStream {
     next_str: Stream | null
+    prev_str: Stream | null
     rock: number
-    get_buffer(buf: Uint8Array | Uint32Array): number
+    close(result?: RefStruct): void
+    get_buffer(buf: GlkTypedArray): number
     get_char(unicode: boolean): number
-    get_line(buf: Uint8Array | Uint32Array): number
+    get_line(buf: GlkTypedArray): number
     get_position(): number
-    put_buffer(buf: Uint8Array | Uint32Array): void
+    put_buffer(buf: GlkTypedArray): void
     put_char(ch: number): void
     put_string(str: string): void
     set_position(mode: number, pos: number): void
@@ -39,34 +41,45 @@ export interface Stream extends GlkStream {
 
 /** A fixed-length TypedArray backed stream */
 export class ArrayBackedStream implements Stream {
-    private buf: Uint8Array | Uint32Array
-    private fmode: FileMode
+    private buf: GlkTypedArray
+    private close_cb?: () => void
+    private fmode: number
     private len: number
     next_str = null
     private pos = 0
+    prev_str = null
     private read_count = 0
     rock: number
     private uni: boolean
     private write_count = 0
 
-    constructor(buf: Uint8Array | Uint32Array, fmode: FileMode, rock: number) {
+    constructor(buf: GlkTypedArray, fmode: number, rock: number, close_cb?: () => void) {
         this.buf = buf
+        this.close_cb = close_cb
         this.fmode = fmode
         this.len = buf.length
         this.rock = rock
-        this.uni = buf instanceof Uint32Array
+        this.uni = is_unicode_array(buf)
         if (fmode === filemode_WriteAppend) {
             this.set_position(seekmode_End, 0)
         }
     }
 
-    get_buffer(buf: Uint8Array | Uint32Array): number {
+    close(result?: RefStruct) {
+        this.close_cb?.()
+        if (result) {
+            result.set_field(0, this.read_count)
+            result.set_field(1, this.write_count)
+        }
+    }
+
+    get_buffer(buf: GlkTypedArray): number {
         if (this.fmode !== filemode_Read && this.fmode !== filemode_ReadWrite) {
             throw new Error ('Cannot read from write-only stream')
         }
         const read_length = Math.min(buf.length, this.len - this.pos)
         // When a unicode array is read into a latin1 array we must catch non-latin1 characters
-        if (buf instanceof Uint8Array && this.uni) {
+        if (is_unicode_array(buf) && this.uni) {
             for (let i = 0; i < read_length; i++) {
                 const ch = this.buf[this.pos + i]
                 buf[i] = ch > MAX_LATIN1 ? QUESTION_MARK : ch
@@ -93,7 +106,7 @@ export class ArrayBackedStream implements Stream {
         return -1
     }
 
-    get_line(buf: Uint8Array | Uint32Array): number {
+    get_line(buf: GlkTypedArray): number {
         if (this.fmode !== filemode_Read && this.fmode !== filemode_ReadWrite) {
             throw new Error ('Cannot read from write-only stream')
         }
@@ -101,7 +114,7 @@ export class ArrayBackedStream implements Stream {
         if (read_length < 0) {
             return 0
         }
-        const check_unicode = buf instanceof Uint8Array && this.uni
+        const check_unicode = is_unicode_array(buf) && this.uni
         let i = 0
         while (i < read_length) {
             const ch = this.buf[this.pos++]
@@ -119,13 +132,13 @@ export class ArrayBackedStream implements Stream {
         return this.pos
     }
 
-    put_buffer(buf: Uint8Array | Uint32Array) {
+    put_buffer(buf: GlkTypedArray) {
         if (this.fmode === filemode_Read) {
             throw new Error('Cannot write to read-only stream')
         }
         const write_length = Math.min(buf.length, this.len - this.pos)
         // When writing a unicode array into a latin1 array we must catch non-latin1 characters
-        if (buf instanceof Uint32Array && !this.uni) {
+        if (is_unicode_array(buf) && !this.uni) {
             for (let i = 0; i < write_length; i++) {
                 const ch = buf[i]
                 this.buf[this.pos + i] = ch > MAX_LATIN1 ? QUESTION_MARK  : ch

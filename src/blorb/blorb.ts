@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {utf8decoder} from '../common/misc.js'
+
 import {FileView, IFF} from './iff.js'
 
 export interface ImageSize {
@@ -63,8 +65,6 @@ const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
 }
 
 const UNKNOWN_IMAGE_TYPE = '????'
-
-const utf8decoder = new TextDecoder()
 
 export default class Blorb {
     classname = 'Blorb'
