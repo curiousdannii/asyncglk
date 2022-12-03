@@ -11,12 +11,21 @@ https://github.com/curiousdannii/asyncglk
 
 import {default as Blorb} from '../blorb/blorb.js'
 import {utf8decoder} from '../common/misc.js'
+import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
 
-import {copy_array, GlkTypedArray, GlkTypedArrayConstructor, Uint8Array_to_Uint32Array} from './common.js'
-import {filemode_Read, filemode_ReadWrite, filemode_Write} from './constants.js'
+import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
+import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End} from './constants.js'
+import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
-import {ArrayBackedStream, Stream} from './streams.js'
+import {ArrayBackedStream, FileStream, Stream} from './streams.js'
+
+const FileTypeMap: Record<number, string> = {
+    0: 'data',
+    1: 'save',
+    2: 'transcript',
+    3: 'command',
+}
 
 export class RefBox implements Interface.RefBox {
     private value = 0
@@ -46,10 +55,21 @@ export class RefStruct implements Interface.RefStruct {
 
 export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     private Blorb?: Blorb
+    private Dialog: Dialog
     private GiDispa?: Interface.GiDispa
+    private VM: Interface.GlkVM
+
+    private first_fref: FileRef | null = null
 
     private current_stream: Stream | null = null
     private first_stream: Stream | null = null
+
+    constructor(options: Interface.GlkApiOptions) {
+        this.Blorb = options.Blorb
+        this.Dialog = options.Dialog
+        this.GiDispa = options.GiDispa
+        this.VM = options.vm
+    }
 
     // Extra functions
     glk_put_jstring(val: string, _all_bytes?: boolean) {
@@ -160,15 +180,74 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     }
 
     // glk_exit(): typeof DidNotReturn
-    // glk_fileref_create_by_name(usage: number, filename: string, rock: number): GlkFref
+
+    glk_fileref_create_by_name(usage: number, filename: string, rock: number): FileRef {
+        const fixed_filename = this.Dialog.file_clean_fixed_name(filename, usage & fileusage_TypeMask)
+        return this.create_fileref(fixed_filename, usage, rock)
+    }
+
     // glk_fileref_create_by_prompt(usage: number, fmode: number, rock: number): typeof DidNotReturn
-    // glk_fileref_create_from_fileref(usage: number, oldfref: GlkFref, rock: number): GlkFref
-    // glk_fileref_create_temp(usage: number, rock: number): GlkFref
-    // glk_fileref_delete_file(fref: GlkFref)
-    // glk_fileref_destroy(fref: GlkFref)
-    // glk_fileref_does_file_exist(fref: GlkFref): boolean
-    // glk_fileref_get_rock(fref: GlkFref): number
-    // glk_fileref_iterate(fref?: GlkFref, rockbox?: RefBox): GlkFref | null
+
+    glk_fileref_create_from_fileref(usage: number, oldfref: FileRef, rock: number): FileRef {
+        if (!oldfref) {
+            throw new Error('Invalid Fileref')
+        }
+        return this.create_fileref(oldfref.filename, usage, rock)
+    }
+
+    glk_fileref_create_temp(usage: number, rock: number): FileRef {
+        const filetypename = FileTypeMap[usage & fileusage_TypeMask]
+        const dialog_fref = this.Dialog.file_construct_temp_ref(filetypename)
+        return this.create_fileref(dialog_fref.filename, usage, rock, dialog_fref)
+    }
+
+    glk_fileref_delete_file(fref: FileRef) {
+        if (!fref) {
+            throw new Error('Invalid Fileref')
+        }
+        fref.delete_file()
+    }
+
+    glk_fileref_destroy(fref: FileRef) {
+        if (!fref) {
+            throw new Error('Invalid Fileref')
+        }
+        this.GiDispa?.class_unregister('fileref', fref)
+        const prev = fref.prev
+        const next = fref.next
+        fref.prev = null
+        fref.next = null
+        if (prev) {
+            prev.next = next
+        }
+        else {
+            this.first_fref = next
+        }
+        if (next) {
+            next.prev = prev
+        }
+    }
+
+    glk_fileref_does_file_exist(fref: FileRef): boolean {
+        if (!fref) {
+            throw new Error('Invalid Fileref')
+        }
+        return fref.exists()
+    }
+
+    glk_fileref_get_rock(fref: FileRef): number {
+        if (!fref) {
+            throw new Error('Invalid Fileref')
+        }
+        return fref.rock
+    }
+
+    glk_fileref_iterate(fref?: FileRef, rockbox?: RefBox): FileRef | null {
+        const next_fref = fref ? fref.next : this.first_fref
+        rockbox?.set_value(next_fref ? next_fref.rock : 0)
+        return next_fref
+    }
+
     // glk_gestalt(sel: number, val: number): number
     // glk_gestalt_ext(sel: number, val: number, arr: GlkArray | null): number
 
@@ -365,13 +444,18 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     }
 
     glk_stream_iterate(str?: Stream, rockbox?: RefBox): Stream | null {
-        const next_stream = str ? str.next_str : this.first_stream
+        const next_stream = str ? str.next : this.first_stream
         rockbox?.set_value(next_stream ? next_stream.rock : 0)
         return next_stream
     }
 
-    // glk_stream_open_file(fref: FileRef, mode: number, rock: number): GlkStream | null
-    // glk_stream_open_file_uni(fref: FileRef, mode: number, rock: number): GlkStream | null
+    glk_stream_open_file(fref: FileRef, mode: number, rock: number): Stream | null {
+        return this.create_file_stream(fref, mode, rock, false)
+    }
+
+    glk_stream_open_file_uni(fref: FileRef, mode: number, rock: number): Stream | null {
+        return this.create_file_stream(fref, mode, rock, true)
+    }
 
     glk_stream_open_memory(buf: GlkByteArray, mode: number, rock: number): Stream {
         return this.create_memory_stream(buf, mode, rock, Uint8Array)
@@ -450,6 +534,53 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
 
     // Private internal functions
 
+    private create_fileref(filename: string, usage: number, rock: number, dialog_fref?: DialogFileRef): FileRef {
+        if (!dialog_fref) {
+            const filetype = usage & fileusage_TypeMask
+            const signature = filetype === fileusage_SavedGame ? this.VM.get_signature() : undefined
+            dialog_fref = this.Dialog.file_construct_ref(filename, FileTypeMap[filetype] ?? 'xxx', signature)
+        }
+        const fref = new FileRef(this.Dialog, filename, dialog_fref, rock, usage)
+        fref.next = this.first_fref
+        this.first_fref = fref
+        if (fref.next) {
+            fref.next.prev = fref
+        }
+        this.GiDispa?.class_register('fileref', fref)
+        return fref
+    }
+
+    private create_file_stream(fref: FileRef, mode: number, rock: number, unicode: boolean) {
+        if (!fref) {
+            throw new Error('Invalid Fileref')
+        }
+        if (mode !== filemode_Write && mode !== filemode_Read && mode !== filemode_ReadWrite && mode !== filemode_WriteAppend) {
+            throw new Error('Invalid filemode')
+        }
+        if (mode === filemode_Read && !fref.exists()) {
+            return null
+        }
+
+        // Now read in the data
+        let data: Uint8Array | null = null
+        if (mode !== filemode_Write) {
+            data = fref.read()
+        }
+        if (!data) {
+            data = new Uint8Array(0)
+            fref.write(data)
+        }
+
+        // Create an appropriate stream
+        const str = create_stream_from_buffer(data, fref.binary, mode, rock, unicode, fref)
+
+        if (mode === filemode_WriteAppend) {
+            str.set_position(seekmode_End, 0)
+        }
+        this.register_stream(str)
+        return str
+    }
+
     private create_memory_stream(buf: GlkArray, mode: number, rock: number, typed_array: GlkTypedArrayConstructor) {
         if (mode !== filemode_Read && mode !== filemode_Write && mode !== filemode_ReadWrite) {
             throw new Error('Illegal filemode')
@@ -485,24 +616,16 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         if (!chunk) {
             return null
         }
-        let str: ArrayBackedStream
-        if (chunk.binary || !unicode) {
-            str = new ArrayBackedStream(unicode ? Uint8Array_to_Uint32Array(chunk.data) : chunk.data, filemode_Read, rock)
-        }
-        // A Unicode text resource is UTF-8 which must be decoded first
-        else {
-            const text = utf8decoder.decode(chunk.data)
-            str = new ArrayBackedStream(Uint32Array.from(text, ch => ch.codePointAt(0)!), filemode_Read, rock)
-        }
+        const str = create_stream_from_buffer(chunk.data, chunk.binary, filemode_Read, rock, unicode)
         this.register_stream(str)
         return str
     }
 
     private register_stream(str: Stream) {
-        str.next_str = this.first_stream
+        str.next = this.first_stream
         this.first_stream = str
-        if (str.next_str) {
-            str.next_str.prev_str = str
+        if (str.next) {
+            str.next.prev = str
         }
         this.GiDispa?.class_register('stream', str)
     }
@@ -512,18 +635,18 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             this.current_stream = null
         }
         this.GiDispa?.class_unregister('stream', str)
-        const prev = str.prev_str
-        const next = str.next_str
-        str.prev_str = null
-        str.next_str = null
+        const prev = str.prev
+        const next = str.next
+        str.prev = null
+        str.next = null
         if (prev) {
-            prev.next_str = next
+            prev.next = next
         }
         else {
             this.first_stream = next
         }
         if (next) {
-            next.prev_str = prev
+            next.prev = prev
         }
     }
 }
@@ -548,6 +671,28 @@ function buffer_transformer(buf: GlkWordArray, initlen: number, func: (str: stri
         buf.set(newbuf.subarray(0, Math.min(buf.length, newlen)))
     }
     return newlen
+}
+
+function create_stream_from_buffer(buf: Uint8Array, binary: boolean, mode: number, rock: number, unicode: boolean, fref?: FileRef) {
+    let data: GlkTypedArray
+    if (unicode) {
+        if (binary) {
+            data = BEBuffer_to_Array(buf)
+        }
+        else {
+            const text = utf8decoder.decode(buf)
+            data = Uint32Array.from(text, ch => ch.codePointAt(0)!)
+        }
+    }
+    else {
+        data = buf
+    }
+    if (mode === filemode_Read) {
+        return new ArrayBackedStream(data, mode, rock)
+    }
+    else {
+        return new FileStream(fref!, data, mode, rock)
+    }
 }
 
 function date_struct_to_timestamp_local(struct: RefStruct): number {

@@ -9,7 +9,11 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {GlkTypedArray, is_unicode_array} from './common.js'
+import {debounce} from 'lodash-es'
+
+import {utf8encoder} from '../common/misc.js'
+
+import {Array_to_BEBuffer, GlkTypedArray, is_unicode_array} from './common.js'
 import {
     //filemode_Write,
     filemode_Read,
@@ -22,11 +26,12 @@ import {
     MAX_LATIN1,
     QUESTION_MARK,
 } from './constants.js'
+import {FileRef} from './filerefs.js'
 import {GlkStream, RefStruct} from './interface.js'
 
 export interface Stream extends GlkStream {
-    next_str: Stream | null
-    prev_str: Stream | null
+    next: Stream | null
+    prev: Stream | null
     rock: number
     close(result?: RefStruct): void
     get_buffer(buf: GlkTypedArray): number
@@ -41,16 +46,16 @@ export interface Stream extends GlkStream {
 
 /** A fixed-length TypedArray backed stream */
 export class ArrayBackedStream implements Stream {
-    private buf: GlkTypedArray
+    protected buf: GlkTypedArray
     private close_cb?: () => void
     private fmode: number
-    private len: number
-    next_str = null
-    private pos = 0
-    prev_str = null
+    protected len: number
+    next = null
+    protected pos = 0
+    prev = null
     private read_count = 0
     rock: number
-    private uni: boolean
+    protected uni: boolean
     private write_count = 0
 
     constructor(buf: GlkTypedArray, fmode: number, rock: number, close_cb?: () => void) {
@@ -79,7 +84,7 @@ export class ArrayBackedStream implements Stream {
         }
         const read_length = Math.min(buf.length, this.len - this.pos)
         // When a unicode array is read into a latin1 array we must catch non-latin1 characters
-        if (is_unicode_array(buf) && this.uni) {
+        if (!is_unicode_array(buf) && this.uni) {
             for (let i = 0; i < read_length; i++) {
                 const ch = this.buf[this.pos + i]
                 buf[i] = ch > MAX_LATIN1 ? QUESTION_MARK : ch
@@ -114,7 +119,7 @@ export class ArrayBackedStream implements Stream {
         if (read_length < 0) {
             return 0
         }
-        const check_unicode = is_unicode_array(buf) && this.uni
+        const check_unicode = !is_unicode_array(buf) && this.uni
         let i = 0
         while (i < read_length) {
             const ch = this.buf[this.pos++]
@@ -184,4 +189,65 @@ export class ArrayBackedStream implements Stream {
             this.pos = this.len
         }
     }
+}
+
+/** FileStreams are based on array backed streams, but can grow in length */
+export class FileStream extends ArrayBackedStream {
+    private fref: FileRef
+    private maxlen: number
+
+    constructor(fref: FileRef, buf: GlkTypedArray, fmode: number, rock: number) {
+        super(buf, fmode, rock)
+        this.fref = fref
+        this.maxlen = this.len
+    }
+
+    close(result?: RefStruct) {
+        this.write()
+        super.close(result)
+    }
+
+    private expand(increase: number) {
+        const end_pos = this.pos + increase
+        if (end_pos > this.len) {
+            this.len = end_pos
+            if (end_pos > this.maxlen) {
+                // Always expand by at least 100
+                this.maxlen += Math.max(end_pos - this.maxlen, 100)
+                const old_buf = this.buf
+                this.buf = new (this.uni ? Uint32Array : Uint8Array)(this.maxlen)
+                this.buf.set(old_buf)
+            }
+        }
+    }
+
+    put_buffer(buf: GlkTypedArray) {
+        this.expand(buf.length)
+        super.put_buffer(buf)
+        this.write()
+    }
+
+    put_char(ch: number) {
+        this.expand(1)
+        super.put_char(ch)
+        this.write()
+    }
+
+    private write = debounce(() => {
+        const buf = this.buf.subarray(0, this.len)
+        let data: Uint8Array
+        if (this.uni) {
+            if (this.fref.binary) {
+                data = Array_to_BEBuffer(buf as Uint32Array)
+            }
+            else {
+                const text = String.fromCodePoint(...buf)
+                data = utf8encoder.encode(text)
+            }
+        }
+        else {
+            data = buf as Uint8Array
+        }
+        this.fref.write(data)
+    }, 250)
 }

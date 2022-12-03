@@ -10,3 +10,4 @@ https://github.com/curiousdannii/asyncglk
 */
 
 export const utf8decoder = new TextDecoder()
+export const utf8encoder = new TextEncoder()

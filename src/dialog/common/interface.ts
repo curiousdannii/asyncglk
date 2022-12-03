@@ -61,9 +61,9 @@ interface ClassicDialogBase {
 /** Synchronous Dialog library for browsers */
 export interface ClassicSyncDialog extends ClassicDialogBase {
     /** Read a file */
-    file_read(fref: FileRef, parse_json: boolean): Uint8Array | null,
+    file_read(fref: FileRef): Uint8Array | null,
     /** Write a file */
-    file_write(fref: FileRef, content: Uint8Array | '', raw_string: boolean): boolean,
+    file_write(fref: FileRef, content: Uint8Array | '', raw_string?: boolean): boolean,
     /** Initialise the library */
     init(options: DialogOptions): void,
     streaming: false,
@@ -91,7 +91,7 @@ export interface ClassicFileStream {
      * Up to buf.length bytes are read into the given buffer. If the len
      * argument is given, up to len bytes are read; the buffer must be at least
      * len bytes long. Returns the number of bytes read, or 0 if end-of-file. */
-    fread(buf: Uint8Array, len: number): number,
+    fread(buf: Uint8Array, len?: number): number,
     /** Seek to position */
     fseek(pos: number, seekmode: number): void
     /** Get the current stream position */
@@ -101,7 +101,7 @@ export interface ClassicFileStream {
      * buf.length bytes are written to the stream. If the len argument is
      * given, that many bytes are written; the buffer must be at least len
      * bytes long. Return the number of bytes written. */
-    fwrite(buf: Uint8Array, len: number): number,
+    fwrite(buf: Uint8Array, len?: number): number,
 }
 
 /** Construct a file-filter list for a given usage type. */
