@@ -18,7 +18,7 @@ import {
     //filemode_Write,
     filemode_Read,
     filemode_ReadWrite,
-    filemode_WriteAppend,
+    //filemode_WriteAppend,
     //seekmode_Start,
     seekmode_Current,
     seekmode_End,
@@ -28,6 +28,7 @@ import {
 } from './constants.js'
 import {FileRef} from './filerefs.js'
 import {GlkStream, RefStruct} from './interface.js'
+import {Window} from './windows.js'
 
 export interface Stream extends GlkStream {
     next: Stream | null
@@ -65,9 +66,6 @@ export class ArrayBackedStream implements Stream {
         this.len = buf.length
         this.rock = rock
         this.uni = is_unicode_array(buf)
-        if (fmode === filemode_WriteAppend) {
-            this.set_position(seekmode_End, 0)
-        }
     }
 
     close(result?: RefStruct) {
@@ -250,4 +248,42 @@ export class FileStream extends ArrayBackedStream {
         }
         this.fref.write(data)
     }, 250)
+}
+
+/** Window streams operate a little bit differently */
+export class WindowStream implements Stream {
+    next = null
+    prev = null
+    rock = 0
+    private win: Window
+
+    constructor(win: Window) {
+        this.win = win
+    }
+
+    close(result?: RefStruct) {}
+
+    get_buffer(_buf: GlkTypedArray): number {
+        return 0
+    }
+
+    get_char(_unicode: boolean): number {
+        return -1
+    }
+
+    get_line(_buf: GlkTypedArray): number {
+        return 0
+    }
+
+    get_position(): number {
+        return 0
+    }
+
+    put_buffer(buf: GlkTypedArray) {}
+
+    put_char(ch: number) {}
+
+    put_string(str: string) {}
+
+    set_position(_mode: number, _pos: number) {}
 }

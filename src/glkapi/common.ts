@@ -22,7 +22,7 @@ export function Array_to_BEBuffer(arr: Uint32Array) {
     return buf
 }
 
-/** Read a big-endian Uin8Array into a Uint32Array */
+/** Read a big-endian Uint8Array into a Uint32Array */
 export function BEBuffer_to_Array(buf: Uint8Array) {
     const dv = new DataView(buf.buffer, buf.byteOffset, buf.length)
     const arr = new Uint32Array(buf.length / 4)

@@ -10,15 +10,18 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import {default as Blorb} from '../blorb/blorb.js'
+import {DEFAULT_METRICS} from '../common/constants.js'
 import {utf8decoder} from '../common/misc.js'
+import {NormalisedMetrics} from '../common/protocol.js'
 import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End} from './constants.js'
+import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, winmethod_Above, winmethod_Below, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
+import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, Window, WindowBox} from './windows.js'
 
 const FileTypeMap: Record<number, string> = {
     0: 'data',
@@ -59,10 +62,20 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     private GiDispa?: Interface.GiDispa
     private VM: Interface.GlkVM
 
+    // For assigning disprocks when there is no GiDispa
+    private disprock_counter = 0
+
+    // TODO: assert outspacings are 0
+    private metrics: NormalisedMetrics = DEFAULT_METRICS
+
     private first_fref: FileRef | null = null
 
     private current_stream: Stream | null = null
     private first_stream: Stream | null = null
+
+    private first_window: Window | null = null
+    private root_window: Window | null = null
+    private windows_changed = false
 
     constructor(options: Interface.GlkApiOptions) {
         this.Blorb = options.Blorb
@@ -507,26 +520,176 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         timestamp_to_date_struct_utc(time_struct_to_timestamp(timestruct), datestruct)
     }
 
-    // glk_window_clear(win: GlkWindow)
+    glk_window_clear(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        // TODO: test pending line request
+        win.clear()
+    }
+
     // glk_window_close(win: GlkWindow, stats?: RefStruct)
     // glk_window_erase_rect(win: GlkWindow, left: number, top: number, width: number, height: number)
     // glk_window_fill_rect(win: GlkWindow, colour: number, left: number, top: number, width: number, height: number)
     // glk_window_flow_break(win: GlkWindow)
     // glk_window_get_arrangement(win: GlkWindow, method?: RefBox, size?: RefBox, keywin?: RefBox)
-    // glk_window_get_echo_stream(win: GlkWindow): GlkStream | null
-    // glk_window_get_parent(win: GlkWindow): GlkWindow | null
-    // glk_window_get_rock(win: GlkWindow): number
-    // glk_window_get_root(): GlkWindow | null
-    // glk_window_get_sibling(win: GlkWindow): GlkWindow | null
+
+    glk_window_get_echo_stream(win: Window): Stream | null {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        return win.echo_str
+    }
+
+    glk_window_get_parent(win: Window): Window | null {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        return win.parent
+    }
+
+    glk_window_get_rock(win: Window): number {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        return win.rock
+    }
+
+    glk_window_get_root(): Window | null {
+        return this.root_window
+    }
+
+    glk_window_get_sibling(win: Window): Window | null {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        const parent = win.parent
+        if (!parent) {
+            return null
+        }
+        if (parent.child1 === win) {
+            return parent.child2
+        }
+        else {
+            return parent.child1
+        }
+    }
+
     // glk_window_get_size(win: GlkWindow, width?: RefBox, height?: RefBox)
-    // glk_window_get_stream(win: GlkWindow): GlkStream
-    // glk_window_get_type(win: GlkWindow): number
-    // glk_window_iterate(win?: GlkWindow, rockbox?: RefBox): GlkWindow | null
+
+    glk_window_get_stream(win: Window): Stream {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        return win.stream
+    }
+
+    glk_window_get_type(win: Window): number {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        return win.typenum
+    }
+
+    glk_window_iterate(win?: Window, rockbox?: RefBox): Window | null {
+        const next_window = win ? win.next : this.first_window
+        rockbox?.set_value(next_window ? next_window.rock : 0)
+        return next_window
+    }
+
     // glk_window_move_cursor(win: GlkWindow, xpos: number, ypos: number)
-    // glk_window_open(splitwin: GlkWindow | null, method: number, size: number, wintype: number, rock: number): GlkWindow | null
+
+    glk_window_open(splitwin: Window | null, method: number, size: number, wintype: number, rock: number): Window | null {
+        // Check the parameters
+        if (!this.root_window) {
+            if (splitwin) {
+                throw new Error('Invalid splitwin: must be null for first window')
+            }
+        }
+        else {
+            if (!splitwin) {
+                throw new Error('Invalid splitwin')
+            }
+            if (splitwin.type === 'pair') {
+                throw new Error('Invalid splitwin: must not be a pair window')
+            }
+            const division = method & winmethod_DivisionMask
+            const direction = method & winmethod_DirMask
+            if (division !== winmethod_Fixed && division !== winmethod_Proportional) {
+                throw new Error('Invalid method: must be fixed or proportional')
+            }
+            if (direction !== winmethod_Above && direction !== winmethod_Below && direction !== winmethod_Left && direction !== winmethod_Right) {
+                throw new Error('Invalid method: bad direction')
+            }
+        }
+
+        // Create the window
+        let win: Window
+        switch (wintype) {
+            case wintype_Blank:
+                win = new BlankWindow(rock)
+                break
+            case wintype_Graphics:
+                win = new GraphicsWindow(rock)
+                break
+            case wintype_TextBuffer:
+                win = new BufferWindow(rock)
+                break
+            case wintype_TextGrid:
+                win = new GridWindow(rock)
+                break
+            default:
+                throw new Error('Invalid wintype')
+        }
+        this.register_window(win)
+
+        // Rearrange the windows for the new window
+        if (splitwin) {
+            const pairwin = new PairWindow(win, method, size)
+            this.register_window(pairwin)
+            // Set up the win relations
+            pairwin.child1 = splitwin
+            pairwin.child2 = win
+            const oldparent = splitwin.parent
+            splitwin.parent = pairwin
+            win.parent = pairwin
+            pairwin.parent = oldparent
+            if (oldparent) {
+                if (oldparent.child1 === splitwin) {
+                    oldparent.child1 = pairwin
+                }
+                else {
+                    oldparent.child2 = pairwin
+                }
+            }
+            else {
+                this.root_window = pairwin
+            }
+            this.rearrange_window(pairwin, splitwin.box)
+        }
+        else {
+            this.root_window = win
+            this.rearrange_window(win, {
+                bottom: this.metrics.height,
+                left: 0,
+                right: this.metrics.width,
+                top: 0,
+            })
+        }
+
+        return win
+    }
+
     // glk_window_set_arrangement(win: GlkWindow, method: number, size: number, keywin?: GlkWindow)
     // glk_window_set_background_color(win: GlkWindow, colour: number)
-    // glk_window_set_echo_stream(win: GlkWindow, stream: GlkStream | null)
+
+    glk_window_set_echo_stream(win: Window, stream: Stream | null) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        win.echo_str = stream
+    }
+
     // garglk_set_reversevideo(val: number)
     // garglk_set_reversevideo_stream(str: GlkStream, val: number)
     // garglk_set_zcolors(fg: number, bg: number)
@@ -621,6 +784,124 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return str
     }
 
+    private rearrange_window(win: Window, box: WindowBox) {
+        const metrics = this.metrics
+        this.windows_changed = true
+        win.box = box
+        switch (win.type) {
+            case 'graphics': {
+                const height = box.bottom - box.top
+                const width = box.right - box.left
+                win.height = Math.max(0, height - metrics.graphicsmarginy)
+                win.width = Math.max(0, width - metrics.graphicsmarginx)
+                break
+            }
+            case 'grid': {
+                const height = box.bottom - box.top
+                const width = box.right - box.left
+                win.update_size(height, width)
+                break
+            }
+            case 'pair': {
+                let min, max, splitwidth
+                if (win.vertical) {
+                    min = box.left
+                    max = box.right
+                    splitwidth = metrics.inspacingx
+                }
+                else {
+                    min = box.top
+                    max = box.bottom
+                    splitwidth = metrics.inspacingy
+                }
+                if (!win.border) {
+                    splitwidth = 0
+                }
+                const diff = max - min
+
+                // Calculate the split size
+                let split = 0
+                if (win.fixed) {
+                    switch (win.key.type) {
+                        case 'buffer':
+                            if (win.vertical) {
+                                split = win.size * metrics.buffercharwidth + metrics.buffermarginx
+                            }
+                            else {
+                                split = win.size * metrics.buffercharheight + metrics.buffermarginy
+                            }
+                            break
+                        case 'graphics':
+                            split = win.size + (win.vertical ? metrics.graphicsmarginx : metrics.graphicsmarginy)
+                            break
+                        case 'grid':
+                            if (win.vertical) {
+                                split = win.size * metrics.gridcharwidth + metrics.gridmarginx
+                            }
+                            else {
+                                split = win.size * metrics.gridcharheight + metrics.gridmarginy
+                            }
+                            break
+                    }
+                    split = Math.ceil(split)
+                }
+                else {
+                    split = Math.floor((diff * win.size) / 100)
+                }
+
+                // split is now a number between 0 and diff; now convert it to a number between min and max, and apply upside-down-ness
+                if (win.backward) {
+                    split = min + split
+                }
+                else {
+                    split = max - split - splitwidth
+                }
+
+                // Make sure it really is between min and max
+                if (min >= max) {
+                    split = min
+                }
+                else {
+                    split = Math.min(Math.max(split, min), max - splitwidth)
+                }
+
+                // The two child window boxes can now be constructed
+                let box1: WindowBox, box2: WindowBox
+                if (win.vertical) {
+                    box1 = {
+                        bottom: box.bottom,
+                        left: box.left,
+                        right: split,
+                        top: box.top,
+                    }
+                    box2 = {
+                        bottom: box.bottom,
+                        left: split + splitwidth,
+                        right: box.right,
+                        top: box.top,
+                    }
+                }
+                else {
+                    box1 = {
+                        bottom: split,
+                        left: box.left,
+                        right: box.right,
+                        top: box.top,
+                    }
+                    box2 = {
+                        bottom: box.bottom,
+                        left: box.left,
+                        right: box.right,
+                        top: box.bottom + splitwidth,
+                    }
+                }
+                this.rearrange_window(win.child1!, win.backward ? box2 : box1)
+                this.rearrange_window(win.child2!, win.backward ? box1 : box2)
+                break
+            }
+        }
+    }
+
     private register_stream(str: Stream) {
         str.next = this.first_stream
         this.first_stream = str
@@ -628,6 +909,23 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             str.next.prev = str
         }
         this.GiDispa?.class_register('stream', str)
+    }
+
+    private register_window(win: Window) {
+        this.windows_changed = true
+        win.next = this.first_window
+        this.first_window = win
+        if (win.next) {
+            win.next.prev = win
+        }
+        // A disprock must be assigned because it is used as the protocol ID
+        if (this.GiDispa) {
+            this.GiDispa?.class_register('window', win)
+        }
+        else {
+            win.disprock = this.disprock_counter++
+        }
+        this.register_stream(win.stream)
     }
 
     private unregister_stream(str: Stream) {
