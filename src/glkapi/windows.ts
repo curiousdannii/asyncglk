@@ -30,12 +30,10 @@ abstract class WindowBase implements GlkWindow {
         right: 0,
         top: 0,
     }
-    child1: Window | null = null
-    child2: Window | null = null
     disprock = 0
     echo_str: Stream | null = null
     next: Window | null = null
-    parent: Window | null = null
+    parent: PairWindow | null = null
     prev: Window | null = null
     rock: number
     stream: WindowStream
@@ -80,8 +78,8 @@ export class GridWindow extends WindowBase {
 
     update_size(height: number, width: number) {
         const oldheight = this.height
-        this.height = Math.max(0, height)
-        this.width = Math.max(0, width)
+        this.height = height
+        this.width = width
         // Resize the lines array if necessary
         if (oldheight > this.height) {
             this.lines.length = this.height
@@ -97,10 +95,12 @@ export class GridWindow extends WindowBase {
 
 export class PairWindow extends WindowBase {
     backward: boolean
+    child1: Window | null = null
+    child2: Window | null = null
     border: boolean
     dir: number
     fixed: boolean
-    key: Window
+    key: Window | null
     size: number
     type = 'pair' as const
     typenum = wintype_Pair

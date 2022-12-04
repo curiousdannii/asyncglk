@@ -16,7 +16,7 @@ import {NormalisedMetrics} from '../common/protocol.js'
 import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, winmethod_Above, winmethod_Below, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
+import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
@@ -31,11 +31,11 @@ const FileTypeMap: Record<number, string> = {
 }
 
 export class RefBox implements Interface.RefBox {
-    private value = 0
+    private value: RefStructValue = 0
     get_value() {
         return this.value
     }
-    set_value(val: number) {
+    set_value(val: RefStructValue) {
         this.value = val
     }
 }
@@ -528,11 +528,57 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         win.clear()
     }
 
-    // glk_window_close(win: GlkWindow, stats?: RefStruct)
+    glk_window_close(win: Window, stats?: RefStruct) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+
+        win.stream.close(stats)
+
+        if (win === this.root_window) {
+            // Close the root window, which means all windows
+            this.root_window = null
+            this.remove_window(win, true)
+        }
+        else {
+            const parent_win = win.parent!
+            const sibling_win = parent_win.child1 === win ? parent_win.child2! : parent_win.child1!
+            const grandparent_win = parent_win.parent
+            if (grandparent_win) {
+                if (grandparent_win.child1 === parent_win) {
+                    grandparent_win.child1 = sibling_win
+                }
+                else {
+                    grandparent_win.child2 = sibling_win
+                }
+                sibling_win.parent = grandparent_win
+            }
+            else {
+                this.root_window = sibling_win
+                sibling_win.parent = null
+            }
+            this.remove_window(win, true)
+            this.remove_window(parent_win, false)
+
+            this.rearrange_window(sibling_win, parent_win.box)
+        }
+    }
+
     // glk_window_erase_rect(win: GlkWindow, left: number, top: number, width: number, height: number)
     // glk_window_fill_rect(win: GlkWindow, colour: number, left: number, top: number, width: number, height: number)
     // glk_window_flow_break(win: GlkWindow)
-    // glk_window_get_arrangement(win: GlkWindow, method?: RefBox, size?: RefBox, keywin?: RefBox)
+
+    glk_window_get_arrangement(win: Window, method?: RefBox, size?: RefBox, keywin?: RefBox) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'pair') {
+            throw new Error('Invalid Window: not a pair window')
+        }
+        keywin?.set_value(win.key)
+        method?.set_value(win.dir | (win.fixed ? winmethod_Fixed : winmethod_Proportional) | (win.border ? winmethod_Border : winmethod_NoBorder))
+        size?.set_value(win.size)
+    }
 
     glk_window_get_echo_stream(win: Window): Stream | null {
         if (!win) {
@@ -575,7 +621,27 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         }
     }
 
-    // glk_window_get_size(win: GlkWindow, width?: RefBox, height?: RefBox)
+    glk_window_get_size(win: Window, widthbox?: RefBox, heightbox?: RefBox) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        const metrics = this.metrics
+        let height = 0
+        let width = 0
+        switch (win.type) {
+            case 'buffer':
+                height = normalise_window_dimension((win.box.bottom - win.box.top - metrics.buffermarginy) / metrics.buffercharheight)
+                width = normalise_window_dimension((win.box.right - win.box.left - metrics.buffermarginx) / metrics.buffercharwidth)
+                break
+            case 'graphics':
+            case 'grid':
+                height = win.height
+                width = win.width
+                break
+        }
+        heightbox?.set_value(height)
+        widthbox?.set_value(width)
+    }
 
     glk_window_get_stream(win: Window): Stream {
         if (!win) {
@@ -617,6 +683,9 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             const direction = method & winmethod_DirMask
             if (division !== winmethod_Fixed && division !== winmethod_Proportional) {
                 throw new Error('Invalid method: must be fixed or proportional')
+            }
+            if (division === winmethod_Fixed && splitwin.type === 'blank') {
+                throw new Error('Invalid method: blank windows cannot be only be split proportionally')
             }
             if (direction !== winmethod_Above && direction !== winmethod_Below && direction !== winmethod_Left && direction !== winmethod_Right) {
                 throw new Error('Invalid method: bad direction')
@@ -680,7 +749,65 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return win
     }
 
-    // glk_window_set_arrangement(win: GlkWindow, method: number, size: number, keywin?: GlkWindow)
+    glk_window_set_arrangement(win: Window, method: number, size: number, keywin?: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'pair') {
+            throw new Error('Invalid Window: not a pair window')
+        }
+
+        if (keywin) {
+            if (keywin.type === 'pair') {
+                throw new Error('Invalid keywin: cannot be a pair window')
+            }
+            let win_parent: Window | null = keywin
+            while ((win_parent = win_parent?.parent)) {
+                if (win_parent === win) {
+                    break
+                }
+            }
+            if (!win_parent) {
+                throw new Error('keywin must be a descendent')
+            }
+        }
+
+        const new_dir = method & winmethod_DirMask
+        const new_vertical = new_dir === winmethod_Left || new_dir === winmethod_Right
+        if (!keywin) {
+            keywin = win.key!
+        }
+        if (new_vertical && !win.vertical) {
+            throw new Error('Invalid method: split must stay horizontal')
+        }
+        if (!new_vertical && win.vertical) {
+            throw new Error('Invalid method: split must stay vertical')
+        }
+        const new_fixed = (method & winmethod_DivisionMask) === winmethod_Fixed
+        if (keywin.type === 'blank' && new_fixed) {
+            throw new Error('Invalid method: blank windows cannot be only be split proportionally')
+        }
+
+        const new_backward = new_dir === winmethod_Left || new_dir === winmethod_Above
+        if (new_backward !== win.backward) {
+            // Switch the children
+            const temp_win = win.child1
+            win.child1 = win.child2
+            win.child2 = temp_win
+        }
+
+        // Update the window
+        win.backward = new_backward
+        win.border = (method & winmethod_BorderMask) === winmethod_BorderMask
+        win.dir = new_dir
+        win.fixed = new_fixed
+        win.key = keywin
+        win.size = size
+        win.vertical = new_vertical
+
+        this.rearrange_window(win, win.box)
+    }
+
     // glk_window_set_background_color(win: GlkWindow, colour: number)
 
     glk_window_set_echo_stream(win: Window, stream: Stream | null) {
@@ -788,17 +915,17 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         const metrics = this.metrics
         this.windows_changed = true
         win.box = box
+        const boxheight = box.bottom - box.top
+        const boxwidth = box.right - box.left
         switch (win.type) {
             case 'graphics': {
-                const height = box.bottom - box.top
-                const width = box.right - box.left
-                win.height = Math.max(0, height - metrics.graphicsmarginy)
-                win.width = Math.max(0, width - metrics.graphicsmarginx)
+                win.height = normalise_window_dimension(boxheight - metrics.graphicsmarginy)
+                win.width = normalise_window_dimension(boxwidth - metrics.graphicsmarginx)
                 break
             }
             case 'grid': {
-                const height = box.bottom - box.top
-                const width = box.right - box.left
+                const height = normalise_window_dimension((boxheight - metrics.gridmarginy) / metrics.gridcharheight)
+                const width = normalise_window_dimension((boxwidth - metrics.gridmarginx) / metrics.gridcharwidth)
                 win.update_size(height, width)
                 break
             }
@@ -822,7 +949,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
                 // Calculate the split size
                 let split = 0
                 if (win.fixed) {
-                    switch (win.key.type) {
+                    switch (win.key!.type) {
                         case 'buffer':
                             if (win.vertical) {
                                 split = win.size * metrics.buffercharwidth + metrics.buffermarginx
@@ -892,7 +1019,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
                         bottom: box.bottom,
                         left: box.left,
                         right: box.right,
-                        top: box.bottom + splitwidth,
+                        top: split + splitwidth,
                     }
                 }
                 this.rearrange_window(win.child1!, win.backward ? box2 : box1)
@@ -926,6 +1053,40 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             win.disprock = this.disprock_counter++
         }
         this.register_stream(win.stream)
+    }
+
+    private remove_window(win: Window, recurse: boolean) {
+        this.windows_changed = true
+
+        // TODO: unretain arrays
+
+        if (win.type === 'pair') {
+            if (recurse) {
+                this.remove_window(win.child1!, true)
+                this.remove_window(win.child2!, true)
+            }
+            win.child1 = null
+            win.child2 = null
+            win.key = null
+        }
+
+        win.echo_str = null
+        win.parent = null
+
+        this.GiDispa?.class_unregister('window', win)
+        const prev = win.prev
+        const next = win.next
+        win.prev = null
+        win.next = null
+        if (prev) {
+            prev.next = next
+        }
+        else {
+            this.first_window = next
+        }
+        if (next) {
+            next.prev = prev
+        }
     }
 
     private unregister_stream(str: Stream) {
@@ -1016,6 +1177,10 @@ function date_struct_to_timestamp_utc(struct: RefStruct): number {
     date.setUTCSeconds(struct.get_field(6) as number)
     date.setUTCMilliseconds(struct.get_field(7) as number / 1000)
     return date.getTime()
+}
+
+function normalise_window_dimension(val: number) {
+    return Math.max(0, Math.floor(val))
 }
 
 function timestamp_to_date_struct_local(timestamp: number, struct: RefStruct) {

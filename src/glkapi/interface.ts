@@ -27,13 +27,14 @@ export interface GlkStream {disprock?: number}
 export interface GlkWindow {disprock?: number}
 export type GlkObject = GlkFref | GlkSchannel | GlkStream | GlkWindow
 
-/** A box to hold a number */
+export type RefStructValue = GlkWindow | number | null
+
+/** A box to hold a value */
 export interface RefBox {
-    get_value(): number,
-    set_value(val: number): void,
+    get_value(): RefStructValue,
+    set_value(val: RefStructValue): void,
 }
 
-export type RefStructValue = GlkWindow | number | null
 /** A struct for holding multiple values */
 export interface RefStruct {
     get_field(index: number): RefStructValue,
