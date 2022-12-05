@@ -155,9 +155,3 @@ export const imagealign_MarginRight = 5
 
 export const zcolor_Default = -1
 export const zcolor_Current = -2
-
-// Non Glk API constants
-
-export const GLK_NULL = 0
-export const MAX_LATIN1 = 0xFF
-export const QUESTION_MARK = 63

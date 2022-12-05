@@ -9,25 +9,47 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {default as Blorb} from '../blorb/blorb.js'
+import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS} from '../common/constants.js'
 import {utf8decoder} from '../common/misc.js'
-import {NormalisedMetrics} from '../common/protocol.js'
+import {BufferWindowImage, ImageOperation, NormalisedMetrics} from '../common/protocol.js'
 import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
+import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, Window, WindowBox} from './windows.js'
 
-const FileTypeMap: Record<number, string> = {
+const FILE_TYPES: Record<number, string> = {
     0: 'data',
     1: 'save',
     2: 'transcript',
     3: 'command',
+}
+
+const IMAGE_ALIGNMENTS: Record<number, BufferWindowImage['alignment']> = {
+    1: 'inlineup',
+    2: 'inlinedown',
+    3: 'inlinecenter',
+    4: 'marginleft',
+    5: 'marginright',
+}
+
+const STYLE_NAMES: Record<number, string> = {
+    0: 'normal',
+    1: 'emphasized',
+    2: 'preformatted',
+    3: 'header',
+    4: 'subheader',
+    5: 'alert',
+    6: 'note',
+    7: 'blockquote',
+    8: 'input',
+    9: 'user1',
+    10: 'user2',
 }
 
 export class RefBox implements Interface.RefBox {
@@ -209,7 +231,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     }
 
     glk_fileref_create_temp(usage: number, rock: number): FileRef {
-        const filetypename = FileTypeMap[usage & fileusage_TypeMask]
+        const filetypename = FILE_TYPES[usage & fileusage_TypeMask]
         const dialog_fref = this.Dialog.file_construct_temp_ref(filetypename)
         return this.create_fileref(dialog_fref.filename, usage, rock, dialog_fref)
     }
@@ -328,9 +350,30 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         }
     }
 
-    // glk_image_draw(win: GlkWindow, imgid: number, val1: number, val2: number): number
-    // glk_image_draw_scaled(win: GlkWindow, imgid: number, val1: number, val2: number, width: number, height: number): number
-    // glk_image_get_info(imgid: number, width?: RefBox, height?: RefBox): number
+    glk_image_draw(win: Window, imgid: number, val1: number, val2: number): number {
+        const info = this.Blorb?.get_image_info(imgid)
+        if (!info) {
+            return 0
+        }
+        this.draw_image(win, info, info.height || 0, val1, val2, info.width || 0)
+        return 1
+    }
+
+    glk_image_draw_scaled(win: Window, imgid: number, val1: number, val2: number, width: number, height: number): number {
+        const info = this.Blorb?.get_image_info(imgid)
+        if (!info) {
+            return 0
+        }
+        this.draw_image(win, info, height || 0, val1, val2, width || 0)
+        return 1
+    }
+
+    glk_image_get_info(imgid: number, width?: RefBox, height?: RefBox): number {
+        const info = this.Blorb?.get_image_info(imgid)
+        height?.set_value(info?.height || 0)
+        width?.set_value(info?.width || 0)
+        return info ? 1 : 0
+    }
 
     glk_put_buffer(val: GlkByteArray) {
         this.glk_put_buffer_stream(this.current_stream!, val)
@@ -340,15 +383,14 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         if (!str) {
             throw new Error('Invalid Stream')
         }
-        // But when writing to a window stream this step would be unneccessary, right? Maybe move the conversion inside the stream
-        str.put_buffer(ByteToUint8Array(val))
+        str.put_buffer(val, false)
     }
 
     glk_put_buffer_stream_uni(str: Stream, val: GlkWordArray) {
         if (!str) {
             throw new Error('Invalid Stream')
         }
-        str.put_buffer(WordToUint32Array(val))
+        str.put_buffer(val, true)
     }
 
     glk_put_buffer_uni(val: GlkWordArray) {
@@ -422,10 +464,36 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     // glk_select(ev: RefStruct): typeof DidNotReturn
     // glk_select_poll(ev: RefStruct)
     // glk_set_echo_line_event(win: GlkWindow, val: number)
-    // glk_set_hyperlink(val: number)
-    // glk_set_hyperlink_stream(str: GlkStream, val: number)
-    // glk_set_style(style: number)
-    // glk_set_style_stream(str: GlkStream, style: number)
+
+    glk_set_hyperlink(val: number) {
+        this.glk_set_hyperlink_stream(this.current_stream!, val)
+    }
+
+    glk_set_hyperlink_stream(str: Stream, val: number) {
+        if (!str) {
+            throw new Error('Invalid Stream')
+        }
+        if (str.type === 'window') {
+            str.set_hyperlink(val)
+        }
+    }
+
+    glk_set_style(style: number) {
+        this.glk_set_style_stream(this.current_stream!, style)
+    }
+
+    glk_set_style_stream(str: Stream, style: number) {
+        if (!str) {
+            throw new Error('Invalid Stream')
+        }
+        if (str.type === 'window') {
+            if (style < 0 || style > style_NUMSTYLES) {
+                style = 0
+            }
+            str.set_style(STYLE_NAMES[style])
+        }
+    }
+
     // glk_set_terminators_line_event(win: GlkWindow, keycodes: GlkArray)
     // glk_set_window(win?: GlkWindow)
     // glk_sound_load_hint(sound: number, load: number)
@@ -564,9 +632,47 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         }
     }
 
-    // glk_window_erase_rect(win: GlkWindow, left: number, top: number, width: number, height: number)
-    // glk_window_fill_rect(win: GlkWindow, colour: number, left: number, top: number, width: number, height: number)
-    // glk_window_flow_break(win: GlkWindow)
+    glk_window_erase_rect(win: Window, left: number, top: number, width: number, height: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'graphics') {
+            throw new Error('Invalid Window: not a graphics window')
+        }
+        win.draw.push({
+            height,
+            special: 'fill',
+            width,
+            x: left,
+            y: top,
+        })
+    }
+
+    glk_window_fill_rect(win: Window, colour: number, left: number, top: number, width: number, height: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'graphics') {
+            throw new Error('Invalid Window: not a graphics window')
+        }
+        win.draw.push({
+            color: colour_code_to_css(colour),
+            height,
+            special: 'fill',
+            width,
+            x: left,
+            y: top,
+        })
+    }
+
+    glk_window_flow_break(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'buffer') {
+            win.set_flow_break()
+        }
+    }
 
     glk_window_get_arrangement(win: Window, method?: RefBox, size?: RefBox, keywin?: RefBox) {
         if (!win) {
@@ -663,7 +769,16 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return next_window
     }
 
-    // glk_window_move_cursor(win: GlkWindow, xpos: number, ypos: number)
+    glk_window_move_cursor(win: Window, xpos: number, ypos: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'grid') {
+            throw new Error('Invalid Window: not a grid window')
+        }
+        win.x = Math.max(0, xpos)
+        win.y = Math.max(0, ypos)
+    }
 
     glk_window_open(splitwin: Window | null, method: number, size: number, wintype: number, rock: number): Window | null {
         // Check the parameters
@@ -808,7 +923,18 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         this.rearrange_window(win, win.box)
     }
 
-    // glk_window_set_background_color(win: GlkWindow, colour: number)
+    glk_window_set_background_color(win: Window, colour: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'graphics') {
+            throw new Error('Invalid Window: not a graphics window')
+        }
+        win.draw.push({
+            color: colour_code_to_css(colour),
+            special: 'setcolor',
+        })
+    }
 
     glk_window_set_echo_stream(win: Window, stream: Stream | null) {
         if (!win) {
@@ -817,10 +943,36 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         win.echo_str = stream
     }
 
-    // garglk_set_reversevideo(val: number)
-    // garglk_set_reversevideo_stream(str: GlkStream, val: number)
-    // garglk_set_zcolors(fg: number, bg: number)
-    // garglk_set_zcolors_stream(str: GlkStream, fg: number, bg: number)
+    garglk_set_reversevideo(val: number) {
+        this.garglk_set_reversevideo_stream(this.current_stream!, val)
+    }
+
+    garglk_set_reversevideo_stream(str: Stream, val: number) {
+        if (!str) {
+            throw new Error('Invalid Stream')
+        }
+        if (str.type === 'window') {
+            str.set_css('reverse', val ? 1 : undefined)
+        }
+    }
+
+    garglk_set_zcolors(fg: number, bg: number) {
+        this.garglk_set_zcolors_stream(this.current_stream!, fg, bg)
+    }
+
+    garglk_set_zcolors_stream(str: Stream, fg: number, bg: number) {
+        if (!str) {
+            throw new Error('Invalid Stream')
+        }
+        if (str.type === 'window') {
+            if (fg !== zcolor_Current) {
+                str.set_css('color', fg === zcolor_Default ? undefined : colour_code_to_css(fg))
+            }
+            if (bg !== zcolor_Current) {
+                str.set_css('background-color', bg === zcolor_Default ? undefined : colour_code_to_css(bg))
+            }
+        }
+    }
 
     // Private internal functions
 
@@ -828,7 +980,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         if (!dialog_fref) {
             const filetype = usage & fileusage_TypeMask
             const signature = filetype === fileusage_SavedGame ? this.VM.get_signature() : undefined
-            dialog_fref = this.Dialog.file_construct_ref(filename, FileTypeMap[filetype] ?? 'xxx', signature)
+            dialog_fref = this.Dialog.file_construct_ref(filename, FILE_TYPES[filetype] ?? 'xxx', signature)
         }
         const fref = new FileRef(this.Dialog, filename, dialog_fref, rock, usage)
         fref.next = this.first_fref
@@ -909,6 +1061,29 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         const str = create_stream_from_buffer(chunk.data, chunk.binary, filemode_Read, rock, unicode)
         this.register_stream(str)
         return str
+    }
+
+    private draw_image(win: Window, imginfo: ImageInfo, height: number, val1: number, val2: number, width: number) {
+        const data: Partial<BufferWindowImage & ImageOperation> = {
+            alttext: imginfo.alttext,
+            height,
+            image: imginfo.image,
+            special: 'image',
+            url: imginfo.url,
+            width,
+        }
+        switch (win.type) {
+            case 'buffer':
+                data.alignment = IMAGE_ALIGNMENTS[val1] ?? 'inlineup'
+                win.put_image(data as BufferWindowImage)
+                return 1
+            case 'graphics':
+                data.x = val1
+                data.y = val2
+                win.draw.push(data as ImageOperation)
+                return 1
+        }
+        return 0
     }
 
     private rearrange_window(win: Window, box: WindowBox) {
@@ -1070,6 +1245,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             win.key = null
         }
 
+        this.unregister_stream(win.stream)
         win.echo_str = null
         win.parent = null
 
@@ -1110,13 +1286,6 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     }
 }
 
-function ByteToUint8Array(arr: GlkByteArray) {
-    return Array.isArray(arr) ? Uint8Array.from(arr) : arr
-}
-function WordToUint32Array(arr: GlkWordArray) {
-    return Array.isArray(arr) ? Uint32Array.from(arr) : arr
-}
-
 function buffer_transformer(buf: GlkWordArray, initlen: number, func: (str: string | Uint32Array) => string, dont_reduce?: boolean) {
     const utf32_array = Array.isArray(buf) ? buf.slice(0, initlen) as any as Uint32Array : buf.subarray(0, initlen)
     const data = dont_reduce ? utf32_array : utf32_array.reduce((prev, ch) => prev + String.fromCodePoint(ch), '')
@@ -1130,6 +1299,10 @@ function buffer_transformer(buf: GlkWordArray, initlen: number, func: (str: stri
         buf.set(newbuf.subarray(0, Math.min(buf.length, newlen)))
     }
     return newlen
+}
+
+function colour_code_to_css(colour: number) {
+    return '#' + (colour & 0xFFFFFF).toString(16).padStart(6, '0')
 }
 
 function create_stream_from_buffer(buf: Uint8Array, binary: boolean, mode: number, rock: number, unicode: boolean, fref?: FileRef) {

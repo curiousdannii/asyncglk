@@ -290,14 +290,17 @@ interface TextualWindowUpdate {
 /** Buffer window content update */
 export interface BufferWindowContentUpdate extends TextualWindowUpdate {
     /** text data */
-    text?: {
-        /** Append to last input */
-        append?: boolean,
-        /** Line data */
-        content?: LineData[],
-        /** Paragraph breaks after floating images */
-        flowbreak?: boolean,
-    }[],
+    text?: BufferWindowParagraphUpdate[],
+}
+
+/** A buffer window paragraph */
+export interface BufferWindowParagraphUpdate {
+    /** Append to last input */
+    append?: boolean,
+    /** Line data */
+    content?: LineData[],
+    /** Paragraph breaks after floating images */
+    flowbreak?: boolean,
 }
 
 /** Graphics window content update */
