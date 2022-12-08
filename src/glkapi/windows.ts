@@ -9,10 +9,10 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {TextRun, BufferWindowImage, BufferWindowParagraphUpdate, GraphicsWindowOperation} from '../common/protocol.js'
+import {BufferWindowImage, BufferWindowParagraphUpdate, GraphicsWindowOperation, InputUpdate, TextRun} from '../common/protocol.js'
 
 import {winmethod_Above, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
-import {GlkWindow} from './interface.js'
+import {GlkArray, GlkWindow} from './interface.js'
 import {Stream, WindowStream} from './streams.js'
 
 export type Window = BlankWindow | BufferWindow | GraphicsWindow | GridWindow | PairWindow
@@ -34,6 +34,9 @@ abstract class WindowBase implements GlkWindow {
     }
     disprock = 0
     echo_str: Stream | null = null
+    input: InputUpdate = {
+        id: 0,
+    }
     next: Window | null = null
     parent: PairWindow | null = null
     prev: Window | null = null
@@ -48,7 +51,7 @@ abstract class WindowBase implements GlkWindow {
     }
 
     clear() {}
-    put_string(_str: string) {}
+    put_string(_str: string, _style?: string) {}
     set_css(_name: string, _val?: string | number) {}
     set_hyperlink(_val: number) {}
     set_style(_style: string) {}
@@ -59,9 +62,17 @@ export class BlankWindow extends WindowBase {
     typenum = wintype_Blank
 }
 
-export class BufferWindow extends WindowBase {
-    private cleared = false
+export abstract class TextWindow extends WindowBase {
+    line_input_buf?: GlkArray
+    partial_input?: string
+    request_echo_line_input = true
+    uni_input?: boolean
+}
+
+export class BufferWindow extends TextWindow {
+    private cleared = true
     content: BufferWindowParagraphUpdate[]
+    echo_line_input = true
     private last_par: BufferWindowParagraphUpdate
     private last_textrun: TextRun
     type = 'buffer' as const
@@ -69,7 +80,6 @@ export class BufferWindow extends WindowBase {
 
     constructor(rock: number) {
         super(rock)
-        this.clear()
         this.content = [{
             content: [clone_textrun(BASE_TEXTRUN)],
         }]
@@ -99,7 +109,11 @@ export class BufferWindow extends WindowBase {
         this.clone_textrun(true)
     }
 
-    put_string(str: string) {
+    put_string(str: string, style?: string) {
+        const old_style = this.last_textrun.style
+        if (style) {
+            this.set_style(style)
+        }
         for (const [i, line] of str.split('\n').entries()) {
             if (i !== 0) {
                 this.last_textrun = clone_textrun(this.last_textrun)
@@ -107,6 +121,9 @@ export class BufferWindow extends WindowBase {
                 this.content.push(this.last_par)
             }
             this.last_textrun.text += line
+        }
+        if (style) {
+            this.set_style(old_style)
         }
     }
 
@@ -154,6 +171,7 @@ export class GraphicsWindow extends WindowBase {
     height = 0
     type = 'graphics' as const
     typenum = wintype_Graphics
+    uni_input?: boolean
     width = 0
 
     clear() {
@@ -167,7 +185,7 @@ interface GridLine {
     changed: boolean
 }
 
-export class GridWindow extends WindowBase {
+export class GridWindow extends TextWindow {
     private current_styles = clone_textrun(BASE_TEXTRUN)
     height = 0
     lines: GridLine[] = []
@@ -183,7 +201,11 @@ export class GridWindow extends WindowBase {
         this.update_size(height, this.width)
     }
 
-    put_string(str: string) {
+    put_string(str: string, style?: string) {
+        const old_style = this.current_styles.style
+        if (style) {
+            this.set_style(style)
+        }
         for (const ch of str) {
             if (this.x >= this.width) {
                 this.x = 0
@@ -200,6 +222,9 @@ export class GridWindow extends WindowBase {
             const line = this.lines[this.y]
             line.changed = true
             line.content[this.x++] = clone_textrun(this.current_styles, ch)
+        }
+        if (style) {
+            this.set_style(old_style)
         }
     }
 

@@ -117,7 +117,7 @@ export class TextInput {
             // Terminator for this input
             else if (this.window.inputs!.terminators) {
                 const terminator = KEY_CODES_TO_NAMES[keycode] as protocol.TerminatorCode
-                if (this.window.inputs!.terminators.includes(KEY_CODES_TO_NAMES[keycode] as protocol.TerminatorCode)) {
+                if (this.window.inputs!.terminators.includes(terminator)) {
                     this.submit_line(ev.target.value, terminator)
                     return false
                 }

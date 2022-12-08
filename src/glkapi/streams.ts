@@ -17,11 +17,8 @@ import {Array_to_BEBuffer, GlkTypedArray, is_unicode_array} from './common.js'
 import {filemode_Read, filemode_ReadWrite, seekmode_Current, seekmode_End} from './constants.js'
 import {FileRef} from './filerefs.js'
 import {GlkArray, GlkStream, RefStruct} from './interface.js'
+import {GLK_NULL, MAX_LATIN1, QUESTION_MARK} from './lib_constants.js'
 import {Window} from './windows.js'
-
-const GLK_NULL = 0
-const MAX_LATIN1 = 0xFF
-const QUESTION_MARK = 63
 
 export type Stream = ArrayBackedStream | FileStream | WindowStream
 type StreamType = 'array' | 'window'
@@ -41,7 +38,7 @@ abstract class StreamBase implements GlkStream {
     abstract get_position(): number
     abstract put_buffer(buf: GlkArray, uni: boolean): void
     abstract put_char(ch: number): void
-    abstract put_string(str: string): void
+    abstract put_string(str: string, style?: string): void
     abstract set_position(mode: number, pos: number): void
 }
 
@@ -285,21 +282,30 @@ export class WindowStream extends StreamBase {
     }
 
     put_buffer(buf: GlkArray, uni: boolean) {
+        if (this.win.input.type === 'line') {
+            throw new Error('Window has pending line request')
+        }
         this.write_count += buf.length
         this.win.put_string(String.fromCodePoint(...buf))
         this.win.echo_str?.put_buffer(buf, uni)
     }
 
     put_char(ch: number) {
+        if (this.win.input.type === 'line') {
+            throw new Error('Window has pending line request')
+        }
         this.write_count++
         this.win.put_string(String.fromCodePoint(ch))
         this.win.echo_str?.put_char(ch)
     }
 
-    put_string(str: string) {
+    put_string(str: string, style?: string) {
+        if (this.win.input.type === 'line') {
+            throw new Error('Window has pending line request')
+        }
         this.write_count += [...str].length
-        this.win.put_string(str)
-        this.win.echo_str?.put_string(str)
+        this.win.put_string(str, style)
+        this.win.echo_str?.put_string(str, style)
     }
 
     set_css(name: string, val?: string | number) {

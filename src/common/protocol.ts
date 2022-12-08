@@ -413,7 +413,7 @@ export interface InputUpdate {
     /** Line input terminators */
     terminators?: TerminatorCode[],
     /** Textual input type */
-    type: 'char' | 'line' | undefined,
+    type?: 'char' | 'line',
     /** Grid window coordinate X */
     xpos?: number,
     /** Grid window coordinate Y */

@@ -16,6 +16,7 @@ module.exports = {
         indent: ['error', 4, {SwitchCase: 1}],
         'linebreak-style': ['error', 'unix'],
         'no-constant-condition': ['error', {checkLoops: false}],
+        'no-control-regex': ['off'],
         'no-empty': ['error', {allowEmptyCatch: true}],
         quotes: ['error', 'single'],
         semi: ['error', 'never'],

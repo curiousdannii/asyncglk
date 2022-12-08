@@ -12,45 +12,17 @@ https://github.com/curiousdannii/asyncglk
 import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS} from '../common/constants.js'
 import {utf8decoder} from '../common/misc.js'
-import {BufferWindowImage, ImageOperation, NormalisedMetrics} from '../common/protocol.js'
+import {BufferWindowImage, ImageOperation, NormalisedMetrics, TerminatorCode} from '../common/protocol.js'
 import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
+import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
+import {FILE_TYPES, IMAGE_ALIGNMENTS, STYLE_NAMES, TERMINATOR_KEYS} from './lib_constants.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
-import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, Window, WindowBox} from './windows.js'
-
-const FILE_TYPES: Record<number, string> = {
-    0: 'data',
-    1: 'save',
-    2: 'transcript',
-    3: 'command',
-}
-
-const IMAGE_ALIGNMENTS: Record<number, BufferWindowImage['alignment']> = {
-    1: 'inlineup',
-    2: 'inlinedown',
-    3: 'inlinecenter',
-    4: 'marginleft',
-    5: 'marginright',
-}
-
-const STYLE_NAMES: Record<number, string> = {
-    0: 'normal',
-    1: 'emphasized',
-    2: 'preformatted',
-    3: 'header',
-    4: 'subheader',
-    5: 'alert',
-    6: 'note',
-    7: 'blockquote',
-    8: 'input',
-    9: 'user1',
-    10: 'user2',
-}
+import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
 export class RefBox implements Interface.RefBox {
     private value: RefStructValue = 0
@@ -83,6 +55,13 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     private Dialog: Dialog
     private GiDispa?: Interface.GiDispa
     private VM: Interface.GlkVM
+
+    private gen = 0
+    private timer = {
+        interval: 0,
+        last_interval: 0,
+        started: 0,
+    }
 
     // For assigning disprocks when there is no GiDispa
     private disprock_counter = 0
@@ -165,10 +144,44 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return buffer_transformer(buf, initlen, str => (str as string).toUpperCase())
     }
 
-    // glk_cancel_char_event(win: GlkWindow)
-    // glk_cancel_hyperlink_event(win: GlkWindow)
-    // glk_cancel_line_event(win: GlkWindow, ev?: RefStruct)
-    // glk_cancel_mouse_event(win: GlkWindow)
+    glk_cancel_char_event(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        delete win.input.type
+    }
+
+    glk_cancel_hyperlink_event(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'buffer' || win.type === 'grid') {
+            delete win.input.hyperlink
+        }
+    }
+
+    glk_cancel_line_event(win: Window, ev?: RefStruct) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.input.type !== 'line' || (win.type !== 'buffer' && win.type !== 'grid')) {
+            if (ev) {
+                this.null_event(ev)
+            }
+            return
+        }
+
+        this.handle_line_input(win, win.partial_input ?? '', ev)
+    }
+
+    glk_cancel_mouse_event(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'graphics' || win.type === 'grid') {
+            delete win.input.mouse
+        }
+    }
 
     glk_char_to_lower(val: number): number {
         if (val >= 0x41 && val <= 0x5A) {
@@ -441,13 +454,45 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         this.glk_put_string_stream_uni(this.current_stream!, val)
     }
 
-    // glk_request_char_event(win: GlkWindow)
-    // glk_request_char_event_uni(win: GlkWindow)
-    // glk_request_hyperlink_event(win: GlkWindow)
-    // glk_request_line_event(win: GlkWindow, buf: GlkByteArray, initlen?: number)
-    // glk_request_line_event_uni(win: GlkWindow, buf: GlkWordArray, initlen?: number)
-    // glk_request_mouse_event(win: GlkWindow)
-    // glk_request_timer_events(msecs: number)
+    glk_request_char_event(win: Window) {
+        this.request_char_event(win, false)
+    }
+
+    glk_request_char_event_uni(win: Window) {
+        this.request_char_event(win, true)
+    }
+
+    glk_request_hyperlink_event(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'buffer' || win.type === 'grid') {
+            win.input.hyperlink = true
+        }
+    }
+
+    glk_request_line_event(win: Window, buf: GlkByteArray, initlen?: number) {
+        this.request_line_event(win, buf, false, initlen)
+    }
+
+    glk_request_line_event_uni(win: Window, buf: GlkWordArray, initlen?: number) {
+        this.request_line_event(win, buf, true, initlen)
+    }
+
+    glk_request_mouse_event(win: Window) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'graphics' || win.type === 'grid') {
+            win.input.mouse = true
+        }
+    }
+
+    glk_request_timer_events(msecs: number) {
+        this.timer.interval = msecs
+        this.timer.started = msecs ? Date.now() : 0
+    }
+
     // glk_schannel_create(rock: number): GlkSchannel | null
     // glk_schannel_create_ext(rock: number, volume: number): GlkSchannel | null
     // glk_schannel_destroy(schannel: GlkSchannel)
@@ -462,8 +507,31 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     // glk_schannel_stop(schannel: GlkSchannel)
     // glk_schannel_unpause(schannel: GlkSchannel)
     // glk_select(ev: RefStruct): typeof DidNotReturn
-    // glk_select_poll(ev: RefStruct)
-    // glk_set_echo_line_event(win: GlkWindow, val: number)
+
+    glk_select_poll(ev: RefStruct) {
+        // As JS is single threaded, the only event we could possibly have had since the last glk_select_poll call is a timer event
+        this.null_event(ev)
+
+        const timer = this.timer
+        if (timer.interval) {
+            const now = Date.now()
+            if (now - timer.started > timer.interval) {
+                // Pretend we got a timer event
+                timer.last_interval = 0
+                timer.started = now
+                ev.set_field(0, evtype_Timer)
+            }
+        }
+    }
+
+    glk_set_echo_line_event(win: Window, val: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type === 'buffer') {
+            win.echo_line_input = !!val
+        }
+    }
 
     glk_set_hyperlink(val: number) {
         this.glk_set_hyperlink_stream(this.current_stream!, val)
@@ -494,9 +562,29 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         }
     }
 
-    // glk_set_terminators_line_event(win: GlkWindow, keycodes: GlkArray)
-    // glk_set_window(win?: GlkWindow)
-    // glk_sound_load_hint(sound: number, load: number)
+    glk_set_terminators_line_event(win: Window, keycodes: GlkArray) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        const terminators: TerminatorCode[] = []
+        for (const code of keycodes) {
+            if (TERMINATOR_KEYS[code]) {
+                terminators.push(TERMINATOR_KEYS[code])
+            }
+        }
+        if (terminators.length) {
+            win.input.terminators = terminators
+        }
+        else {
+            delete win.input.terminators
+        }
+    }
+
+    glk_set_window(win?: Window) {
+        this.current_stream = win ? win.stream : null
+    }
+
+    glk_sound_load_hint(_sound: number, _load: number) {}
 
     glk_stream_close(str: Stream, result?: RefStruct) {
         if (!str) {
@@ -592,7 +680,9 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         if (!win) {
             throw new Error('Invalid Window')
         }
-        // TODO: test pending line request
+        if (win.input.type === 'line') {
+            throw new Error('Window has pending line input')
+        }
         win.clear()
     }
 
@@ -1086,6 +1176,50 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return 0
     }
 
+    private handle_line_input(win: TextWindow, input: string, ev?: RefStruct) {
+        // The Glk spec is a bit ambiguous here
+        // I'm going to echo first
+        if (win.request_echo_line_input) {
+            win.put_string(input + '\n', 'input')
+            if (win.echo_str) {
+                win.echo_str.put_string(input + '\n', 'input')
+            }
+        }
+
+        // Then trim and convert non-Latin1 characters
+        if (input.length > win.line_input_buf!.length) {
+            input = input.slice(0, win.line_input_buf!.length)
+        }
+        if (!win.uni_input) {
+            input = input.replace(/[^\x00-\xff]/g, '?')
+        }
+
+        const input_buf = Uint32Array.from(input, ch => ch.codePointAt(0)!)
+        if (Array.isArray(win.line_input_buf!)) {
+            copy_array(input_buf, win.line_input_buf!, input.length)
+        }
+        else {
+            win.line_input_buf?.set(input_buf)
+        }
+
+        if (ev) {
+            ev.set_field(0, evtype_LineInput)
+            ev.set_field(1, win)
+            ev.set_field(2, input.length)
+            ev.set_field(3, 0)
+        }
+        this.GiDispa?.unretain_array(win.line_input_buf!)
+        delete win.input.type
+        delete win.line_input_buf
+    }
+
+    private null_event(ev: RefStruct) {
+        ev.set_field(0, evtype_None)
+        ev.set_field(1, null)
+        ev.set_field(2, 0)
+        ev.set_field(3, 0)
+    }
+
     private rearrange_window(win: Window, box: WindowBox) {
         const metrics = this.metrics
         this.windows_changed = true
@@ -1227,13 +1361,17 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         else {
             win.disprock = this.disprock_counter++
         }
+        win.input.id = win.disprock
         this.register_stream(win.stream)
     }
 
     private remove_window(win: Window, recurse: boolean) {
         this.windows_changed = true
 
-        // TODO: unretain arrays
+        if (this.GiDispa && 'line_input_buf' in win && win.line_input_buf) {
+            this.GiDispa.unretain_array(win.line_input_buf!)
+            delete win.line_input_buf
+        }
 
         if (win.type === 'pair') {
             if (recurse) {
@@ -1263,6 +1401,46 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         if (next) {
             next.prev = prev
         }
+    }
+
+    private request_char_event(win: Window, uni: boolean) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.input.type) {
+            throw new Error('Window already has keyboard request')
+        }
+        if (win.type === 'blank' || win.type === 'pair') {
+            throw new Error('Window does not support character input')
+        }
+
+        win.input.gen = this.gen
+        win.input.type = 'char'
+        win.uni_input = uni
+    }
+
+    request_line_event(win: Window, buf: GlkArray, uni: boolean, initlen?: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.input.type) {
+            throw new Error('Window already has keyboard request')
+        }
+        if (win.type !== 'buffer' && win.type !== 'grid') {
+            throw new Error('Window does not support line input')
+        }
+
+        win.input.gen = this.gen
+        if (initlen) {
+            win.input.initial = String.fromCodePoint(...buf.slice(0, initlen))
+        }
+        win.input.type = 'line'
+        win.line_input_buf = buf
+        if (win.type === 'buffer') {
+            win.request_echo_line_input = win.echo_line_input
+        }
+        win.uni_input = uni
+        this.GiDispa?.retain_array(buf)
     }
 
     private unregister_stream(str: Stream) {
