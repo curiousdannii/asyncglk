@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import Blorb from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
-import {Dialog, FileRef} from '../../dialog/common/interface.js'
+import {Dialog} from '../../dialog/common/interface.js'
 
 export interface GlkOte {
     classname: string,
@@ -256,7 +256,7 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected handle_specialinput(data: protocol.SpecialInput) {
         if (data.type === 'fileref_prompt') {
-            const replyfunc = (ref: FileRef | null) => this.send_event({
+            const replyfunc = (ref: protocol.FileRef | null) => this.send_event({
                 type: 'specialresponse',
                 response: 'fileref_prompt',
                 value: ref,

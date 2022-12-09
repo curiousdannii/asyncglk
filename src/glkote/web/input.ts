@@ -10,7 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 import {throttle} from 'lodash-es'
 
-import {KEY_CODES_TO_NAMES, KEY_NAMES_TO_CODES, OFFSCREEN_OFFSET} from '../../common/constants.js'
+import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCREEN_OFFSET} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {is_pinch_zoomed} from './shared.js'
@@ -97,14 +97,14 @@ export class TextInput {
 
         if (this.is_line) {
             // History
-            if (keycode === KEY_NAMES_TO_CODES.down || keycode === KEY_NAMES_TO_CODES.up) {
+            if (keycode === KEY_CODE_DOWN || keycode === KEY_CODE_UP) {
                 const history = this.window.manager.history
                 let changed
-                if (keycode === KEY_NAMES_TO_CODES.down && this.history_index > 0) {
+                if (keycode === KEY_CODE_DOWN && this.history_index > 0) {
                     this.history_index--
                     changed = 1
                 }
-                else if (keycode === KEY_NAMES_TO_CODES.up && this.history_index < history.length) {
+                else if (keycode === KEY_CODE_UP && this.history_index < history.length) {
                     this.history_index++
                     changed = 1
                 }
@@ -150,14 +150,14 @@ export class TextInput {
 
         // Submit line input
         if (this.is_line) {
-            if (keycode === KEY_NAMES_TO_CODES.return) {
+            if (keycode === KEY_CODE_RETURN) {
                 this.submit_line(ev.target.value)
                 return false
             }
         }
         // Character input
         else {
-            const code = keycode === KEY_NAMES_TO_CODES.return ? 'return' : String.fromCharCode(keycode)
+            const code = keycode === KEY_CODE_RETURN ? 'return' : String.fromCharCode(keycode)
             this.submit_char(code)
             return false
         }

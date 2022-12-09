@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {BufferWindowImage, BufferWindowParagraphUpdate, GraphicsWindowOperation, InputUpdate, TextRun} from '../common/protocol.js'
+import {BufferWindowImage, BufferWindowParagraphUpdate, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles} from '../common/protocol.js'
 
 import {winmethod_Above, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
 import {GlkArray, GlkWindow} from './interface.js'
@@ -66,7 +66,13 @@ export abstract class TextWindow extends WindowBase {
     line_input_buf?: GlkArray
     partial_input?: string
     request_echo_line_input = true
+    protected stylehints: WindowStyles
     uni_input?: boolean
+
+    constructor(rock: number, stylehints: WindowStyles) {
+        super(rock)
+        this.stylehints = stylehints
+    }
 }
 
 export class BufferWindow extends TextWindow {
@@ -78,8 +84,8 @@ export class BufferWindow extends TextWindow {
     type = 'buffer' as const
     typenum = wintype_TextBuffer
 
-    constructor(rock: number) {
-        super(rock)
+    constructor(rock: number, stylehints: WindowStyles) {
+        super(rock, stylehints)
         this.content = [{
             content: [clone_textrun(BASE_TEXTRUN)],
         }]

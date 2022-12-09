@@ -10,7 +10,8 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import {default as Blorb} from '../blorb/blorb.js'
-import {Dialog, FileRef} from '../dialog/common/interface.js'
+import {FileRef} from '../common/protocol.js'
+import {Dialog} from '../dialog/common/interface.js'
 import {GlkOte} from '../glkote/common/glkote.js'
 
 import * as Const from './constants.js'
@@ -81,7 +82,7 @@ export interface GlkApiOptions {
     exit_warning?: boolean,
     extevent_hook?: (val: any) => void,
     GiDispa?: GiDispa,
-    glk_gestalt_hook?: (sel: number, value: number, array: GlkArray) => number,
+    glk_gestalt_hook?: (sel: number, value: number, array: GlkArray | null) => number,
     GlkOte: GlkOte,
     vm: GlkVM,
 }

@@ -15,8 +15,9 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+import {FileRef} from '../../common/protocol.js'
 import {GlkOte} from '../../glkote/common/glkote.js'
-import {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions, FileRef} from '../common/interface.js'
+import {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions} from '../common/interface.js'
 
 import {
     filemode_Read,
@@ -170,7 +171,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
         const filepath = path.join(this.extfilepath, filename)
         return {
             filename: filepath,
-            usage:usage,
+            usage: usage,
         }
     }
 

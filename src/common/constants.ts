@@ -30,34 +30,36 @@ export const DEFAULT_METRICS: protocol.NormalisedMetrics = {
     width: 80,
 }
 
-export const KEY_NAMES_TO_CODES: Record<protocol.SpecialKeyCode, number> = {
-    delete: 8, // Backspace to be precise
-    down: 40,
-    end: 35,
-    escape: 27,
-    func1: 112,
-    func2: 113,
-    func3: 114,
-    func4: 115,
-    func5: 116,
-    func6: 117,
-    func7: 118,
-    func8: 119,
-    func9: 120,
-    func10: 121,
-    func11: 122,
-    func12: 123,
-    home: 36,
-    left: 37,
-    pagedown: 34,
-    pageup: 33,
-    return: 13,
-    right: 39,
-    tab: 9,
-    up: 38,
+export const KEY_CODES_TO_NAMES: Record<number, protocol.SpecialKeyCode> = {
+    8: 'delete', // Backspace to be precise
+    9: 'tab',
+    13: 'return',
+    27: 'escape',
+    33: 'pageup',
+    34: 'pagedown',
+    35: 'end',
+    36: 'home',
+    37: 'left',
+    38: 'up',
+    39: 'right',
+    40: 'down',
+    112: 'func1',
+    113: 'func2',
+    114: 'func3',
+    115: 'func4',
+    116: 'func5',
+    117: 'func6',
+    118: 'func7',
+    119: 'func8',
+    120: 'func9',
+    121: 'func10',
+    122: 'func11',
+    123: 'func12',
 }
-// Using a trick from https://stackoverflow.com/a/46582758
-export const KEY_CODES_TO_NAMES: Record<number, protocol.SpecialKeyCode> = Object.assign({}, ...Object.entries(KEY_NAMES_TO_CODES).map(([a,b]) => ({ [b]: a })))
+
+export const KEY_CODE_DOWN = 40
+export const KEY_CODE_RETURN = 13
+export const KEY_CODE_UP = 38
 
 export const NBSP = '\xa0'
 export const THINSPACE = '\u2009'

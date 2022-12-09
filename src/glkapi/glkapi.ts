@@ -12,15 +12,16 @@ https://github.com/curiousdannii/asyncglk
 import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS} from '../common/constants.js'
 import {utf8decoder} from '../common/misc.js'
-import {BufferWindowImage, ImageOperation, NormalisedMetrics, TerminatorCode} from '../common/protocol.js'
-import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
+import * as Protocol from '../common/protocol.js'
+import {BufferWindowImage, FileRef as DialogFileRef, ImageOperation, NormalisedMetrics, SpecialInput, TerminatorCode, WindowStyles} from '../common/protocol.js'
+import {Dialog} from '../dialog/common/interface.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, seekmode_End, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
+import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
-import {GlkArray, GlkByteArray, GlkWordArray, RefStructValue} from './interface.js'
-import {FILE_TYPES, IMAGE_ALIGNMENTS, STYLE_NAMES, TERMINATOR_KEYS} from './lib_constants.js'
+import {DidNotReturn, GlkArray, GlkByteArray, GlkSchannel, GlkWordArray, RefStructValue} from './interface.js'
+import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, STYLE_NAMES, TERMINATOR_KEYS} from './lib_constants.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
@@ -56,23 +57,45 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     private GiDispa?: Interface.GiDispa
     private VM: Interface.GlkVM
 
+    private disabled = false
+
     private gen = 0
+
+    // For assigning disprocks when there is no GiDispa
+    private disprock_counter = 0
+
+    private first_fref: FileRef | null = null
+
+    private gestalt_hook?: Interface.GlkApiOptions['glk_gestalt_hook']
+
+    private has_exited = false
+
+    // TODO: assert outspacings are 0
+    private metrics: NormalisedMetrics = DEFAULT_METRICS
+
+    private selectref?: RefStruct
+
+    private special?: SpecialInput
+    private special_data?: {
+        rock: number,
+        usage: number,
+    }
+
+    private current_stream: Stream | null = null
+    private first_stream: Stream | null = null
+
+    private stylehints: {buffer: WindowStyles, grid: WindowStyles} = {
+        buffer: {},
+        grid: {},
+    }
+
+    private support: Protocol.InitEvent['support'] = []
+
     private timer = {
         interval: 0,
         last_interval: 0,
         started: 0,
     }
-
-    // For assigning disprocks when there is no GiDispa
-    private disprock_counter = 0
-
-    // TODO: assert outspacings are 0
-    private metrics: NormalisedMetrics = DEFAULT_METRICS
-
-    private first_fref: FileRef | null = null
-
-    private current_stream: Stream | null = null
-    private first_stream: Stream | null = null
 
     private first_window: Window | null = null
     private root_window: Window | null = null
@@ -227,14 +250,42 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         timestamp_to_time_struct(date_struct_to_timestamp_utc(datestruct), timestruct)
     }
 
-    // glk_exit(): typeof DidNotReturn
+    glk_exit(): typeof DidNotReturn {
+        this.disabled = true
+        this.has_exited = true
+        // What is this for?
+        /*if (option_exit_warning) {
+            GlkOte.warning(option_exit_warning);
+        }*/
+        // TODO
+        // update('exit')
+        return DidNotReturn
+    }
 
     glk_fileref_create_by_name(usage: number, filename: string, rock: number): FileRef {
         const fixed_filename = this.Dialog.file_clean_fixed_name(filename, usage & fileusage_TypeMask)
         return this.create_fileref(fixed_filename, usage, rock)
     }
 
-    // glk_fileref_create_by_prompt(usage: number, fmode: number, rock: number): typeof DidNotReturn
+    glk_fileref_create_by_prompt(usage: number, fmode: number, rock: number): typeof DidNotReturn {
+        const filemode = FILE_MODES[fmode] ?? 'read'
+        const filetypenum = usage & fileusage_TypeMask
+        const filetype = FILE_TYPES[filetypenum] ?? 'data'
+
+        this.special = {
+            filemode,
+            filetype,
+            type: 'fileref_prompt',
+        }
+        if (filetypenum === fileusage_SavedGame) {
+            this.special.gameid = this.VM.get_signature()
+        }
+        this.special_data = {
+            rock,
+            usage,
+        }
+        return DidNotReturn
+    }
 
     glk_fileref_create_from_fileref(usage: number, oldfref: FileRef, rock: number): FileRef {
         if (!oldfref) {
@@ -296,8 +347,72 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         return next_fref
     }
 
-    // glk_gestalt(sel: number, val: number): number
-    // glk_gestalt_ext(sel: number, val: number, arr: GlkArray | null): number
+    glk_gestalt(sel: number, val: number): number {
+        return this.glk_gestalt_ext(sel, val, null)
+    }
+
+    glk_gestalt_ext(sel: number, val: number, arr: GlkArray | null): number {
+        const hook_res = this.gestalt_hook?.(sel, val, arr)
+        if (hook_res) {
+            return hook_res
+        }
+
+        switch (sel) {
+            case gestalt_Version:
+                return 0x00000704
+            case gestalt_CharInput:
+                // Known special keys can be returned
+                if (val <= keycode_Left && val >= keycode_Func12) {
+                    return 1
+                }
+                // But no other high bit values, non-unicode, or control codes
+                if (val >= (0x100000000 - keycode_MAXVAL) || val > 0x10FFFF || (val >= 0 && val < 32) || val >= 127 && val < 160) {
+                    return 0
+                }
+                // Otherwise assume yes
+                return 1
+            case gestalt_LineInput:
+                // Same as above, except no special keys
+                if (val > 0x10FFFF || (val >= 0 && val < 32) || val >= 127 && val < 160) {
+                    return 0
+                }
+                return 1
+            case gestalt_CharOutput:
+                // We'll output anything, but it may not result in something readable
+                if (arr) {
+                    arr[0] = 1
+                }
+                return gestalt_CharOutput_ExactPrint
+            case gestalt_LineTerminatorKey:
+                return +(val === keycode_Escape || (val >= keycode_Func12 && val <= keycode_Func1))
+            // These are dependent on what GlkOte tells us it supports
+            case gestalt_DrawImage:
+                return +((val === wintype_Graphics || val === wintype_TextBuffer) && this.support.includes('graphics'))
+            case gestalt_Graphics:
+            case gestalt_GraphicsCharInput:
+            case gestalt_GraphicsTransparency:
+                return +this.support.includes('graphics')
+            case gestalt_Hyperlinks:
+                return +this.support.includes('hyperlinks')
+            case gestalt_HyperlinkInput:
+                return +((val === wintype_TextBuffer || val === wintype_TextGrid) && this.support.includes('hyperlinks'))
+            case gestalt_MouseInput:
+                return +((val === wintype_Graphics || val === wintype_TextGrid) && this.support.includes('graphics'))
+            case gestalt_Timer:
+                return +this.support.includes('timer')
+            // These are always supported
+            case gestalt_DateTime:
+            case gestalt_LineInputEcho:
+            case gestalt_LineTerminators:
+            case gestalt_ResourceStream:
+            case gestalt_Unicode:
+            case gestalt_UnicodeNorm:
+                return 1
+            // Anything else is unsupported
+            default:
+                return 0
+        }
+    }
 
     glk_get_buffer_stream(str: Stream, buf: GlkByteArray): number {
         if (!str) {
@@ -493,20 +608,63 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         this.timer.started = msecs ? Date.now() : 0
     }
 
-    // glk_schannel_create(rock: number): GlkSchannel | null
-    // glk_schannel_create_ext(rock: number, volume: number): GlkSchannel | null
-    // glk_schannel_destroy(schannel: GlkSchannel)
-    // glk_schannel_get_rock(schannel: GlkSchannel): number
-    // glk_schannel_iterate(schannel?: GlkSchannel, rockbox?: RefBox): GlkSchannel | null
-    // glk_schannel_pause(schannel: GlkSchannel)
-    // glk_schannel_play(schannel: GlkSchannel, sound: number): number
-    // glk_schannel_play_ext(schannel: GlkSchannel, sound: number, repeats: number, notify: number): number
-    // glk_schannel_play_multi(schannels: GlkSchannel[], sounds: GlkArray, notify: number): number
-    // glk_schannel_set_volume(schannel: GlkSchannel, volume: number)
-    // glk_schannel_set_volume_ext(schannel: GlkSchannel, volume: number, duration: number, notify: number)
-    // glk_schannel_stop(schannel: GlkSchannel)
-    // glk_schannel_unpause(schannel: GlkSchannel)
-    // glk_select(ev: RefStruct): typeof DidNotReturn
+    glk_schannel_create(_rock: number): GlkSchannel | null {
+        return null
+    }
+
+    glk_schannel_create_ext(_rock: number, _volume: number): GlkSchannel | null {
+        return null
+    }
+
+    glk_schannel_destroy(_schannel: GlkSchannel) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_get_rock(_schannel: GlkSchannel): number {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_iterate(_schannel?: GlkSchannel, rockbox?: RefBox): GlkSchannel | null {
+        rockbox?.set_value(0)
+        return null
+    }
+
+    glk_schannel_pause(_schannel: GlkSchannel) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_play(_schannel: GlkSchannel, _sound: number): number {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_play_ext(_schannel: GlkSchannel, _sound: number, _repeats: number, _notify: number): number {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_play_multi(_schannels: GlkSchannel[], _sounds: GlkArray, _notify: number): number {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_set_volume(_schannel: GlkSchannel, _volume: number) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_set_volume_ext(_schannel: GlkSchannel, _volume: number, __duration: number, notify: number) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_stop(_schannel: GlkSchannel) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_schannel_unpause(_schannel: GlkSchannel) {
+        throw new Error('Invalid Schannel')
+    }
+
+    glk_select(ev: RefStruct): typeof DidNotReturn {
+        this.selectref = ev
+        return DidNotReturn
+    }
 
     glk_select_poll(ev: RefStruct) {
         // As JS is single threaded, the only event we could possibly have had since the last glk_select_poll call is a timer event
@@ -653,10 +811,88 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         str.set_position(seekmode, pos)
     }
 
-    // glk_style_distinguish(win: GlkWindow, style1: number, style2: number): number
-    // glk_style_measure(win: GlkWindow, style: number, hint: number, result?: RefBox): number
-    // glk_stylehint_clear(wintype: number, style: number, hint: number)
-    // glk_stylehint_set(wintype: number, style: number, hint: number, value: number)
+    glk_style_distinguish(_win: Window, _style1: number, _style2: number): number {
+        return 0
+    }
+
+    glk_style_measure(_win: Window, _style: number, _hint: number, result?: RefBox): number {
+        result?.set_value(0)
+        return 0
+    }
+
+    glk_stylehint_clear(wintype: number, style: number, hint: number) {
+        const selector = `${hint <= stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
+        function remove_style(styles: WindowStyles) {
+            if (styles[selector]) {
+                delete styles[selector][CSS_STYLE_PROPERTIES[hint]]
+                if (!Object.keys(styles[selector]).length) {
+                    delete styles[selector]
+                }
+            }
+        }
+
+        if (wintype === wintype_AllTypes || wintype === wintype_TextBuffer) {
+            remove_style(this.stylehints.buffer)
+        }
+
+        if (wintype === wintype_AllTypes || wintype === wintype_TextGrid) {
+            remove_style(this.stylehints.grid)
+        }
+    }
+
+    glk_stylehint_set(wintype: number, style: number, hint: number, value: number) {
+        if (style < 0 || style >= style_NUMSTYLES || hint < 0 || hint >= stylehint_NUMHINTS) {
+            return
+        }
+        if (wintype === wintype_AllTypes) {
+            this.glk_stylehint_set(wintype_TextBuffer, style, hint, value)
+            this.glk_stylehint_set(wintype_TextGrid, style, hint, value)
+            return
+        }
+        if (wintype === wintype_Blank || wintype === wintype_Graphics || wintype === wintype_Pair) {
+            return
+        }
+
+        const stylehints = wintype === wintype_TextBuffer ? this.stylehints.buffer : this.stylehints.grid
+        const selector = `${hint <= stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
+        const justifications = ['left', 'justify', 'center', 'right']
+        const weights = ['lighter', 'normal', 'bold']
+        let stylevalue: string | number | undefined
+
+        if (hint === stylehint_Indentation || hint === stylehint_ParaIndentation) {
+            stylevalue = value + 'em'
+        }
+        if (hint === stylehint_Justification) {
+            stylevalue = justifications[value]
+        }
+        if (hint === stylehint_Size) {
+            stylevalue = (1 + value * 0.1) + 'em'
+        }
+        if (hint === stylehint_Weight) {
+            stylevalue = weights[value]
+        }
+        if (hint === stylehint_Oblique) {
+            stylevalue = value ? 'italic' : 'normal'
+        }
+        if (hint === stylehint_Proportional) {
+            stylevalue = value ? 0 : 1
+        }
+        if (hint === stylehint_TextColor || hint === stylehint_BackColor) {
+            stylevalue = colour_code_to_css(value)
+        }
+        if (hint === stylehint_ReverseColor) {
+            stylevalue = value
+        }
+
+        if (stylevalue === undefined) {
+            return
+        }
+
+        if (!stylehints[selector]) {
+            stylehints[selector] = {}
+        }
+        stylehints[selector][CSS_STYLE_PROPERTIES[hint]] = stylevalue
+    }
 
     glk_tick() {}
 
@@ -907,10 +1143,10 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
                 win = new GraphicsWindow(rock)
                 break
             case wintype_TextBuffer:
-                win = new BufferWindow(rock)
+                win = new BufferWindow(rock, this.stylehints.buffer)
                 break
             case wintype_TextGrid:
-                win = new GridWindow(rock)
+                win = new GridWindow(rock, this.stylehints.grid)
                 break
             default:
                 throw new Error('Invalid wintype')
@@ -1419,7 +1655,7 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
         win.uni_input = uni
     }
 
-    request_line_event(win: Window, buf: GlkArray, uni: boolean, initlen?: number) {
+    private request_line_event(win: Window, buf: GlkArray, uni: boolean, initlen?: number) {
         if (!win) {
             throw new Error('Invalid Window')
         }

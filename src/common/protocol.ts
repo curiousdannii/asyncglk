@@ -9,8 +9,6 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {FileRef} from '../dialog/common/interface.js'
-
 /** The GlkOte protocol has two parts:
  * 1. GlkOte sends events to GlkApi/RemGlk
  * 2. GlkApi/RemGlk send content updates to GlkOte
@@ -122,6 +120,14 @@ export interface SpecialEvent extends EventBase {
     response: 'fileref_prompt',
     /** Event value (file reference from Dialog) */
     value: FileRef | null,
+}
+
+export type FileRef = {
+    content?: string,
+    dirent?: string,
+    filename: string,
+    gameid?: string,
+    usage?: string | null,
 }
 
 export interface TimerEvent extends EventBase {
@@ -427,12 +433,15 @@ export interface SpecialInput {
     /** Special input type */
     type: 'fileref_prompt',
     /** File mode */
-    filemode: 'read' | 'readwrite' | 'write' | 'writeappend',
+    filemode: FileMode,
     /** File type */
-    filetype: 'command' | 'data' | 'save' | 'transcript',
+    filetype: FileType,
     /** Game ID */
     gameid?: string,
 }
+
+export type FileMode = 'read' | 'readwrite' | 'write' | 'writeappend'
+export type FileType = 'command' | 'data' | 'save' | 'transcript'
 
 /** Updates to window (new windows, or changes to their arrangements) */
 export interface WindowUpdate {

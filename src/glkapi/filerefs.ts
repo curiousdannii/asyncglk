@@ -9,7 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {Dialog, FileRef as DialogFileRef} from '../dialog/common/interface.js'
+import {FileRef as DialogFileRef} from '../common/protocol.js'
+import {Dialog} from '../dialog/common/interface.js'
 
 import {filemode_Read, filemode_Write, fileusage_TextMode, seekmode_End} from './constants.js'
 import {GlkFref} from './interface.js'

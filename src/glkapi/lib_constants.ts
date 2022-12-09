@@ -9,13 +9,22 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {BufferWindowImage, TerminatorCode} from '../common/protocol.js'
+import {BufferWindowImage, FileMode, FileType, TerminatorCode} from '../common/protocol.js'
 
 export const GLK_NULL = 0
 export const MAX_LATIN1 = 0xFF
 export const QUESTION_MARK = 63
 
-export const FILE_TYPES: Record<number, string> = {
+export const CSS_STYLE_PROPERTIES = ['margin-left', 'text-indent', 'text-align', 'font-size', 'font-weight', 'font-style', 'monospace', 'color', 'background-color', 'reverse']
+
+export const FILE_MODES: Record<number, FileMode> = {
+    1: 'write',
+    2: 'read',
+    3: 'readwrite',
+    5: 'writeappend',
+}
+
+export const FILE_TYPES: Record<number, FileType> = {
     0: 'data',
     1: 'save',
     2: 'transcript',

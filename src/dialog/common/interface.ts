@@ -8,6 +8,7 @@ MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
+import {FileRef} from '../../common/protocol.js'
 
 import {GlkOte} from '../../glkote/common/glkote.js'
 
@@ -15,15 +16,6 @@ export type Dialog = ClassicSyncDialog | ClassicStreamingDialog
 
 export type AutosaveData = {
     ram?: Array<number> | Uint8Array,
-}
-
-/** A file reference object */
-export type FileRef = {
-    content?: string,
-    dirent?: string,
-    filename: string,
-    gameid?: string,
-    usage?: string | null,
 }
 
 export interface DialogOptions {

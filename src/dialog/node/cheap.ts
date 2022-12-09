@@ -12,7 +12,9 @@ https://github.com/curiousdannii/asyncglk
 import MuteStream from 'mute-stream'
 import os from 'os'
 
-import {ClassicStreamingDialog, FileRef, filters_for_usage} from '../common/interface.js'
+import {FileRef} from '../../common/protocol.js'
+
+import {ClassicStreamingDialog, filters_for_usage} from '../common/interface.js'
 import NodeStreamingDialog from './node-streaming.js'
 import {get_stdio, HackableReadline} from '../../glkote/cheap/stdio.js'
 
