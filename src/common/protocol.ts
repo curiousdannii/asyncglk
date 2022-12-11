@@ -272,7 +272,7 @@ export interface StateUpdate {
     page_margin_bg?: string,
     /** Special input */
     specialinput?: SpecialInput,
-    timer: number | null | undefined,
+    timer?: number | null,
     /** Updates to window (new windows, or changes to their arrangements) */
     windows?: WindowUpdate[],
 }
@@ -282,7 +282,7 @@ export interface StateUpdate {
 /** Content update */
 export type ContentUpdate = BufferWindowContentUpdate | GraphicsWindowContentUpdate | GridWindowContentUpdate
 
-interface TextualWindowUpdate {
+export interface TextualWindowUpdate {
     /** Window ID */
     id: number,
     /** Clear the window */

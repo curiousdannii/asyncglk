@@ -9,19 +9,24 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {cloneDeep} from 'lodash-es'
+
 import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
-import {DEFAULT_METRICS} from '../common/constants.js'
+import {DEFAULT_METRICS, PACKAGE_VERSION} from '../common/constants.js'
 import {utf8decoder} from '../common/misc.js'
 import * as Protocol from '../common/protocol.js'
 import {BufferWindowImage, FileRef as DialogFileRef, ImageOperation, NormalisedMetrics, SpecialInput, TerminatorCode, WindowStyles} from '../common/protocol.js'
 import {Dialog} from '../dialog/common/interface.js'
+import {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
 
-import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor} from './common.js'
-import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
+import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor, TimerData} from './common.js'
+import * as Const from './constants.js'
+import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
-import {DidNotReturn, GlkArray, GlkByteArray, GlkSchannel, GlkWordArray, RefStructValue} from './interface.js'
+import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefStructValue} from './interface.js'
 import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, STYLE_NAMES, TERMINATOR_KEYS} from './lib_constants.js'
+import {update} from './protocol.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
@@ -51,24 +56,29 @@ export class RefStruct implements Interface.RefStruct {
     }
 }
 
-export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
+export class AsyncGlk implements Interface.GlkApi {
     private Blorb?: Blorb
-    private Dialog: Dialog
+    private Dialog: Dialog = null as any as Dialog
     private GiDispa?: Interface.GiDispa
-    private VM: Interface.GlkVM
+    private GlkOte: GlkOte = null as any as GlkOte
+    private VM: Interface.GlkVM = null as any as Interface.GlkVM
+
+    private before_select_hook: GlkApiOptions['before_select_hook']
+    private extevent_hook: GlkApiOptions['extevent_hook']
+    private gestalt_hook: GlkApiOptions['glk_gestalt_hook']
 
     private disabled = false
-
-    private gen = 0
 
     // For assigning disprocks when there is no GiDispa
     private disprock_counter = 0
 
+    private do_autosave = false
+
+    private exited = false
+
     private first_fref: FileRef | null = null
 
-    private gestalt_hook?: Interface.GlkApiOptions['glk_gestalt_hook']
-
-    private has_exited = false
+    private gen = 0
 
     // TODO: assert outspacings are 0
     private metrics: NormalisedMetrics = DEFAULT_METRICS
@@ -91,24 +101,116 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
 
     private support: Protocol.InitEvent['support'] = []
 
-    private timer = {
+    private timer: TimerData = {
         interval: 0,
         last_interval: 0,
         started: 0,
     }
 
+    version = PACKAGE_VERSION
+
     private first_window: Window | null = null
     private root_window: Window | null = null
     private windows_changed = false
 
-    constructor(options: Interface.GlkApiOptions) {
+    // API functions
+
+    init(options: GlkApiOptions) {
+        this.before_select_hook = options.before_select_hook
         this.Blorb = options.Blorb
         this.Dialog = options.Dialog
+        this.do_autosave = options.do_vm_autosave || false
+        // exit_warning
+        this.extevent_hook = options.extevent_hook
         this.GiDispa = options.GiDispa
+        this.gestalt_hook = options.glk_gestalt_hook
+        this.GlkOte = options.GlkOte
         this.VM = options.vm
+
+        this.before_select_hook?.()
+        this.GiDispa?.init({
+            io: this,
+            vm: this.VM,
+        })
+        const glkote_options = options as any as GlkOteOptions
+        glkote_options.accept = this.accept.bind(this)
+        this.GlkOte.init(glkote_options)
     }
 
+    call_may_not_return(id: number): boolean {
+        return id === 0x01 || id === 0xC0 || id === 0x62
+    }
+
+    fatal_error(msg: string) {
+        this.disabled = true
+        this.exited = true
+        if (!this.GlkOte) {
+            console.error('Fatal error: ' + msg)
+            return
+        }
+        this.GlkOte.error(msg)
+        this.GlkOte.update({
+            type: 'update',
+            disable: true,
+            gen: this.gen,
+        })
+    }
+
+    getlibrary(class_name: string) {
+        switch (class_name) {
+            case 'Blorb':
+                return this.Blorb || null
+            case 'Dialog':
+                return this.Dialog
+            case 'GiDispa':
+                return this.GiDispa || null
+            case 'GlkOte':
+                return this.GlkOte
+            case 'VM':
+                return this.VM
+            default:
+                return null
+        }
+    }
+
+    inited() {
+        return !!(this.GlkOte && this.VM)
+    }
+
+    restore_allstate(_state: any) {}
+    save_allstate() {}
+
+    update() {
+        const state = update({
+            disabled: this.disabled,
+            first_window: this.first_window,
+            gen: this.gen,
+            special: this.special,
+            timer: this.timer,
+            windows_changed: this.windows_changed,
+        })
+        this.windows_changed = false
+
+        // Clone the state so that any objects copied into it won't be at risk of modification by GlkOte
+        this.GlkOte.update(cloneDeep(state))
+        this.before_select_hook?.()
+        // TODO
+        // if (this.do_autosave) {}
+    }
+
+    // References to other things
+
+    Const = Const
+    DidNotReturn = DidNotReturn
+    RefBox = RefBox
+    RefStruct = RefStruct
+
     // Extra functions
+
+    byte_array_to_string(arr: GlkByteArray) {
+        return String.fromCodePoint(...arr)
+    }
+
     glk_put_jstring(val: string, _all_bytes?: boolean) {
         this.glk_put_jstring_stream(this.current_stream!, val)
     }
@@ -118,6 +220,10 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             throw new Error('Invalid Stream')
         }
         str.put_string(val)
+    }
+
+    uni_array_to_string(arr: GlkWordArray) {
+        return String.fromCodePoint(...arr)
     }
 
     // The Glk functions
@@ -252,13 +358,12 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
 
     glk_exit(): typeof DidNotReturn {
         this.disabled = true
-        this.has_exited = true
+        this.exited = true
         // What is this for?
         /*if (option_exit_warning) {
             GlkOte.warning(option_exit_warning);
         }*/
-        // TODO
-        // update('exit')
+        this.GlkOte.update({type: 'exit'})
         return DidNotReturn
     }
 
@@ -388,6 +493,8 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
             // These are dependent on what GlkOte tells us it supports
             case gestalt_DrawImage:
                 return +((val === wintype_Graphics || val === wintype_TextBuffer) && this.support.includes('graphics'))
+            case gestalt_GarglkText:
+                return +this.support.includes('garglktext')
             case gestalt_Graphics:
             case gestalt_GraphicsCharInput:
             case gestalt_GraphicsTransparency:
@@ -1301,6 +1408,10 @@ export class AsyncGlk implements Partial<Interface.GlkApiAsync> {
     }
 
     // Private internal functions
+
+    private accept(ev: Protocol.Event) {
+
+    }
 
     private create_fileref(filename: string, usage: number, rock: number, dialog_fref?: DialogFileRef): FileRef {
         if (!dialog_fref) {

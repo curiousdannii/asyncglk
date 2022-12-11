@@ -94,7 +94,8 @@ export interface GlkApi {
     init(options: GlkApiOptions): void,
     call_may_not_return(id: number): boolean,
     fatal_error(msg: string): void,
-    get_library(class_name: string): Blorb | Dialog | GiDispa | GlkOte | GlkVM | null,
+    getlibrary(class_name: string): Blorb | Dialog | GiDispa | GlkOte | GlkVM | null,
+    inited(): boolean,
     restore_allstate(state: any): void,
     save_allstate(): any,
     update(): void,
@@ -106,8 +107,10 @@ export interface GlkApi {
     RefStruct: new () => RefStruct,
 
     // Extra functions
+    byte_array_to_string(arr: GlkByteArray): string,
     glk_put_jstring(val: string, all_bytes?: boolean): void,
     glk_put_jstring_stream(str: GlkStream, val: string, all_bytes?: boolean): void,
+    uni_array_to_string(arr: GlkWordArray): string,
 
     // The Glk functions
     glk_buffer_canon_decompose_uni(buf: GlkWordArray, initlen: number): number,

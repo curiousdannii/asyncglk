@@ -42,3 +42,9 @@ export function copy_array(source: GlkTypedArray, target: number[], length: numb
 export function is_unicode_array(arr: GlkTypedArray) {
     return arr.BYTES_PER_ELEMENT === 4
 }
+
+export interface TimerData {
+    interval: number
+    last_interval: number
+    started: number
+}

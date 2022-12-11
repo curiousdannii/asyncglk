@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {BufferWindowImage, BufferWindowParagraphUpdate, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles} from '../common/protocol.js'
+import {BufferWindowImage, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles} from '../common/protocol.js'
 
 import {winmethod_Above, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
 import {GlkArray, GlkWindow} from './interface.js'
@@ -63,10 +63,11 @@ export class BlankWindow extends WindowBase {
 }
 
 export abstract class TextWindow extends WindowBase {
+    cleared = true
     line_input_buf?: GlkArray
     partial_input?: string
     request_echo_line_input = true
-    protected stylehints: WindowStyles
+    stylehints: WindowStyles
     uni_input?: boolean
 
     constructor(rock: number, stylehints: WindowStyles) {
@@ -75,31 +76,45 @@ export abstract class TextWindow extends WindowBase {
     }
 }
 
+// A modified version of BufferWindowParagraphUpdate that always has content, and the content isn't a string
+export interface Paragraph {
+    /** Append to last input */
+    append?: boolean
+    /** Line data */
+    content: (BufferWindowImage | TextRun)[]
+    /** Paragraph breaks after floating images */
+    flowbreak?: boolean
+}
+
 export class BufferWindow extends TextWindow {
-    private cleared = true
-    content: BufferWindowParagraphUpdate[]
+    content: Paragraph[]
     echo_line_input = true
-    private last_par: BufferWindowParagraphUpdate
-    private last_textrun: TextRun
+    private last_par: Paragraph
+    private last_textrun: TextRun = clone_textrun(BASE_TEXTRUN)
     type = 'buffer' as const
     typenum = wintype_TextBuffer
 
     constructor(rock: number, stylehints: WindowStyles) {
         super(rock, stylehints)
+        this.last_textrun = clone_textrun(BASE_TEXTRUN)
         this.content = [{
-            content: [clone_textrun(BASE_TEXTRUN)],
+            content: [this.last_textrun],
         }]
         this.last_par = this.content[0]
-        this.last_textrun = this.last_par.content![0] as TextRun
     }
 
     clear() {
         this.cleared = true
+        this.clear_content()
+    }
+
+    clear_content() {
+        this.last_textrun = clone_textrun(this.last_textrun)
         this.content = [{
-            content: [clone_textrun(this.last_textrun)],
+            append: true,
+            content: [this.last_textrun],
         }]
         this.last_par = this.content[0]
-        this.last_textrun = this.last_par.content![0] as TextRun
     }
 
     private clone_textrun(force?: boolean) {
@@ -202,9 +217,21 @@ export class GridWindow extends TextWindow {
     y = 0
 
     clear() {
+        this.cleared = true
         const height = this.height
         this.update_size(0, this.width)
         this.update_size(height, this.width)
+        this.x = this.y = 0
+    }
+
+    fit_cursor() {
+        if (this.x >= this.width) {
+            this.x = 0
+            this.y++
+        }
+        if (this.y >= this.height) {
+            return true
+        }
     }
 
     put_string(str: string, style?: string) {
@@ -213,11 +240,7 @@ export class GridWindow extends TextWindow {
             this.set_style(style)
         }
         for (const ch of str) {
-            if (this.x >= this.width) {
-                this.x = 0
-                this.y++
-            }
-            if (this.y >= this.height) {
+            if (this.fit_cursor()) {
                 break
             }
             if (ch === '\n') {
