@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {BufferWindowImage, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles} from '../common/protocol.js'
+import {BufferWindowImage, ContentUpdate, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles, WindowUpdate as SizeUpdate} from '../common/protocol.js'
 
 import {winmethod_Above, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
 import {GlkArray, GlkWindow} from './interface.js'
@@ -23,6 +23,12 @@ export interface WindowBox {
     left: number
     right: number
     top: number
+}
+
+export interface WindowUpdate {
+    content: ContentUpdate | null,
+    input: InputUpdate | null,
+    size: SizeUpdate | null,
 }
 
 abstract class WindowBase implements GlkWindow {
@@ -55,6 +61,37 @@ abstract class WindowBase implements GlkWindow {
     set_css(_name: string, _val?: string | number) {}
     set_hyperlink(_val: number) {}
     set_style(_style: string) {}
+
+    update(): WindowUpdate {
+        if (this.type === 'blank' || this.type === 'pair') {
+            return {
+                content: null,
+                input: null,
+                size: null,
+            }
+        }
+
+        const input_update: InputUpdate = {
+            id: this.input.id,
+        }
+        copy_prop(this.input, input_update, 'hyperlink')
+        copy_prop(this.input, input_update, 'mouse')
+
+        const box = this.box
+        return {
+            content: null,
+            input: input_update,
+            size: {
+                height: box.bottom - box.top,
+                id: this.disprock,
+                left: box.left,
+                rock: this.rock,
+                top: box.top,
+                type: this.type,
+                width: box.right - box.left,
+            },
+        }
+    }
 }
 
 export class BlankWindow extends WindowBase {
@@ -65,7 +102,6 @@ export class BlankWindow extends WindowBase {
 export abstract class TextWindow extends WindowBase {
     cleared = true
     line_input_buf?: GlkArray
-    partial_input?: string
     request_echo_line_input = true
     stylehints: WindowStyles
     uni_input?: boolean
@@ -74,6 +110,31 @@ export abstract class TextWindow extends WindowBase {
         super(rock)
         this.stylehints = stylehints
     }
+
+    update(): WindowUpdate {
+        const update = super.update()
+
+        // TODO: don't resend stylehints when only metrics have changed?
+        if (Object.keys(this.stylehints).length) {
+            update.size!.styles = this.stylehints
+        }
+
+        const input = this.input
+        const input_update = update.input!
+        if (input.type) {
+            copy_prop(input, input_update, 'gen')
+            copy_prop(input, input_update, 'type')
+            if (input.type === 'line') {
+                input_update.maxlen = (this as TextWindow).line_input_buf!.length
+                copy_prop(input, input_update, 'initial')
+                copy_prop(input, input_update, 'terminators')
+            }
+        }
+        // Clean up the partial output
+        delete input.initial
+
+        return update
+    }
 }
 
 // A modified version of BufferWindowParagraphUpdate that always has content, and the content isn't a string
@@ -81,22 +142,23 @@ export interface Paragraph {
     /** Append to last input */
     append?: boolean
     /** Line data */
-    content: (BufferWindowImage | TextRun)[]
+    content: ParagraphTextRun[]
     /** Paragraph breaks after floating images */
     flowbreak?: boolean
 }
+type ParagraphTextRun = BufferWindowImage | TextRun
 
 export class BufferWindow extends TextWindow {
     content: Paragraph[]
     echo_line_input = true
     private last_par: Paragraph
-    private last_textrun: TextRun = clone_textrun(BASE_TEXTRUN)
+    private last_textrun: TextRun = clone_textrun(BASE_TEXTRUN, true)
     type = 'buffer' as const
     typenum = wintype_TextBuffer
 
     constructor(rock: number, stylehints: WindowStyles) {
         super(rock, stylehints)
-        this.last_textrun = clone_textrun(BASE_TEXTRUN)
+        this.last_textrun = clone_textrun(BASE_TEXTRUN, true)
         this.content = [{
             content: [this.last_textrun],
         }]
@@ -109,7 +171,7 @@ export class BufferWindow extends TextWindow {
     }
 
     clear_content() {
-        this.last_textrun = clone_textrun(this.last_textrun)
+        this.last_textrun = clone_textrun(this.last_textrun, false)
         this.content = [{
             append: true,
             content: [this.last_textrun],
@@ -117,9 +179,9 @@ export class BufferWindow extends TextWindow {
         this.last_par = this.content[0]
     }
 
-    private clone_textrun(force?: boolean) {
+    private clone_textrun(clone_styles: boolean, force?: boolean) {
         if (force || this.last_textrun.text !== '') {
-            this.last_textrun = clone_textrun(this.last_textrun)
+            this.last_textrun = clone_textrun(this.last_textrun, clone_styles)
             this.last_par.content!.push(this.last_textrun)
         }
     }
@@ -127,7 +189,7 @@ export class BufferWindow extends TextWindow {
     put_image(img: BufferWindowImage) {
         img.hyperlink = this.last_textrun.hyperlink
         this.last_par.content!.push(img)
-        this.clone_textrun(true)
+        this.clone_textrun(false, true)
     }
 
     put_string(str: string, style?: string) {
@@ -137,7 +199,7 @@ export class BufferWindow extends TextWindow {
         }
         for (const [i, line] of str.split('\n').entries()) {
             if (i !== 0) {
-                this.last_textrun = clone_textrun(this.last_textrun)
+                this.last_textrun = clone_textrun(this.last_textrun, false)
                 this.last_par = {content: [this.last_textrun]}
                 this.content.push(this.last_par)
             }
@@ -150,7 +212,7 @@ export class BufferWindow extends TextWindow {
 
     set_css(name: string, val?: string | number) {
         if (this.last_textrun.css_styles![name] !== val) {
-            this.clone_textrun()
+            this.clone_textrun(true)
             if (val === undefined) {
                 delete this.last_textrun.css_styles![name]
             }
@@ -169,7 +231,7 @@ export class BufferWindow extends TextWindow {
             val = undefined
         }
         if (val !== this.last_textrun.hyperlink) {
-            this.clone_textrun()
+            this.clone_textrun(false)
             if (val) {
                 this.last_textrun.hyperlink = val
             }
@@ -181,9 +243,38 @@ export class BufferWindow extends TextWindow {
 
     set_style(style: string) {
         if (style !== this.last_textrun.style) {
-            this.clone_textrun()
+            this.clone_textrun(false)
             this.last_textrun.style = style
         }
+    }
+
+    update(): WindowUpdate {
+        const update = super.update()
+
+        // Clone the textrun now because the css_style could get deleted in cleanup_paragraph_styles
+        this.last_textrun = clone_textrun(this.last_textrun, false)
+
+        // Exclude empty text runs
+        const paragraphs = this.content
+        for (const par of paragraphs) {
+            par.content = cleanup_paragraph_styles(par.content.filter((text) => 'special' in text || text.text))
+        }
+        // Only send an update if there is new content or the window has been cleared
+        if (this.cleared || paragraphs.length > 1 || paragraphs[0].content.length) {
+            update.content = {
+                id: this.disprock,
+                // Send an empty object for a blank line
+                text: paragraphs.map(par => par.append || par.flowbreak || par.content.length ? par : {}),
+            }
+            if (this.cleared) {
+                update.content.clear = true
+                this.cleared = false
+                // TODO: fg bg
+            }
+        }
+        this.clear_content()
+
+        return update
     }
 }
 
@@ -199,6 +290,23 @@ export class GraphicsWindow extends WindowBase {
         this.draw = this.draw.filter(op => op.special === 'setcolor').slice(-1)
         this.draw.push({special: 'fill'})
     }
+
+    update(): WindowUpdate {
+        const update = super.update()
+
+        if (this.draw.length) {
+            update.content = {
+                draw: this.draw,
+                id: this.disprock,
+            }
+            this.draw.length = 0
+        }
+
+        update.size!.graphheight = this.height
+        update.size!.graphwidth = this.width
+
+        return update
+    }
 }
 
 interface GridLine {
@@ -207,7 +315,7 @@ interface GridLine {
 }
 
 export class GridWindow extends TextWindow {
-    private current_styles = clone_textrun(BASE_TEXTRUN)
+    private current_styles = clone_textrun(BASE_TEXTRUN, true)
     height = 0
     lines: GridLine[] = []
     type = 'grid' as const
@@ -250,7 +358,7 @@ export class GridWindow extends TextWindow {
             }
             const line = this.lines[this.y]
             line.changed = true
-            line.content[this.x++] = clone_textrun(this.current_styles, ch)
+            line.content[this.x++] = clone_textrun(this.current_styles, false, ch)
         }
         if (style) {
             this.set_style(old_style)
@@ -259,7 +367,7 @@ export class GridWindow extends TextWindow {
 
     set_css(name: string, val?: string | number) {
         if (this.current_styles.css_styles![name] !== val) {
-            this.current_styles = clone_textrun(this.current_styles)
+            this.current_styles = clone_textrun(this.current_styles, true)
             if (val === undefined) {
                 delete this.current_styles.css_styles![name]
             }
@@ -289,6 +397,7 @@ export class GridWindow extends TextWindow {
         this.width = width
 
         // Resize the lines array if necessary
+        const blank_space = clone_textrun(BASE_TEXTRUN, true, ' ')
         if (oldheight > height) {
             this.lines.length = height
         }
@@ -296,7 +405,7 @@ export class GridWindow extends TextWindow {
             for (let i = oldheight; i < height; i++) {
                 const new_line: TextRun[] = []
                 for (let c = 0; c < width; c++) {
-                    new_line.push(clone_textrun(BASE_TEXTRUN, ' '))
+                    new_line.push(clone_textrun(blank_space, false, ' '))
                 }
                 this.lines[i] = {
                     changed: true,
@@ -316,11 +425,67 @@ export class GridWindow extends TextWindow {
                 else {
                     line.changed = true
                     for (let c = oldwidth; c < width; c++) {
-                        line.content.push(clone_textrun(BASE_TEXTRUN, ' '))
+                        line.content.push(clone_textrun(blank_space, false, ' '))
                     }
                 }
             }
         }
+    }
+
+    update(): WindowUpdate {
+        const update = super.update()
+
+        if (this.lines.find(line => line.changed)) {
+            update.content = {
+                id: this.disprock,
+                lines: this.lines.flatMap((line, index) => {
+                    if (!line.changed) {
+                        return []
+                    }
+                    line.changed = false
+                    return {
+                        content: cleanup_paragraph_styles(line.content.reduce((acc: TextRun[], cur) => {
+                            if (!acc.length) {
+                                return [clone_textrun(cur, false)]
+                            }
+
+                            // Combine adjacent characters when they have the same textrun properties
+                            const last = acc[acc.length - 1]
+                            if (cur.css_styles === last.css_styles && cur.hyperlink === last.hyperlink && cur.style === last.style) {
+                                last.text += cur.text
+                            }
+                            else {
+                                acc.push(clone_textrun(cur, false))
+                            }
+                            return acc
+                        }, [])) as TextRun[],
+                        line: index,
+                    }
+                }),
+            }
+            if (this.cleared) {
+                update.content.clear = true
+                this.cleared = false
+                // TODO: fg bg
+            }
+        }
+
+        if (this.input.type) {
+            const input_update = update.input!
+            if (this.fit_cursor()) {
+                input_update.xpos = this.width - 1
+                input_update.ypos = this.height - 1
+            }
+            else {
+                input_update.xpos = this.x
+                input_update.ypos = this.y
+            }
+        }
+
+        update.size!.gridheight = this.height
+        update.size!.gridwidth = this.width
+
+        return update
     }
 }
 
@@ -355,10 +520,29 @@ const BASE_TEXTRUN: TextRun = {
     text: '',
 }
 
+/** Remove css_styles from a paragraph when empty */
+function cleanup_paragraph_styles(par: ParagraphTextRun[]) {
+    return par.map(tr => {
+        if (!('special' in tr)) {
+            if (!Object.keys(tr.css_styles!).length) {
+                delete tr.css_styles
+            }
+        }
+        return tr
+    })
+}
+
 /** Clone a text run */
-function clone_textrun(tr: TextRun, new_text = '') {
+function clone_textrun(tr: TextRun, clone_styles: boolean, new_text = '') {
     return Object.assign({}, tr, {
-        css_styles: Object.assign({}, tr.css_styles),
+        css_styles: clone_styles ? Object.assign({}, tr.css_styles) : tr.css_styles,
         text: new_text,
     })
+}
+
+/** Copy a property from one InputUpdate to another */
+function copy_prop(from: InputUpdate, to: InputUpdate, prop: keyof InputUpdate) {
+    if (from[prop]) {
+        (to[prop] as any) = from[prop]
+    }
 }

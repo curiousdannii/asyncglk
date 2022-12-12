@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {FileRef as DialogFileRef} from '../common/protocol.js'
 import {Dialog} from '../dialog/common/interface.js'
 
-import {filemode_Read, filemode_Write, fileusage_TextMode, seekmode_End} from './constants.js'
+import {filemode_Read, filemode_Write, fileusage_TextMode, seekmode_End, seekmode_Start} from './constants.js'
 import {GlkFref} from './interface.js'
 
 export class FileRef implements GlkFref {
@@ -50,6 +50,7 @@ export class FileRef implements GlkFref {
             fstream.fseek(0, seekmode_End)
             const length = fstream.ftell()
             const buf = new Uint8Array(length)
+            fstream.fseek(0, seekmode_Start)
             fstream.fread(buf)
             fstream.fclose()
             return buf

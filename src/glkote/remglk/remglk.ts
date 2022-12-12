@@ -46,8 +46,12 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         this.stdin.on('data', chunk => {
             buffer += chunk.toString().trim()
             if (buffer.endsWith('}')) {
+                let event: protocol.Event | undefined
                 try {
-                    const event: protocol.Event = JSON.parse(buffer)
+                    event = JSON.parse(buffer)
+                }
+                catch (e) {}
+                if (event) {
                     buffer = ''
                     if (event.type === 'init') {
                         // Fill out the metrics
@@ -57,9 +61,6 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
                         event.value = {filename: event.value}
                     }
                     this.accept_func(event)
-                }
-                catch (e) {
-                    // Not a full JSON response yet
                 }
             }
         })

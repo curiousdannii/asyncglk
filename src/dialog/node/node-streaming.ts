@@ -239,11 +239,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
 
         if (fmode === filemode_WriteAppend) {
             /* We must jump to the end of the file. */
-            try {
-                const stats = fs.fstatSync(fstream.fd!)
-                fstream.mark = stats.size
-            }
-            catch (ex) {}
+            fstream.fseek(0, seekmode_End)
         }
 
         return fstream
@@ -306,7 +302,7 @@ export class NodeFileStream implements ClassicFileStream {
     //private fmode: number
     private GlkOte: GlkOte
     /** Position in file */
-    mark = 0
+    private mark = 0
 
     constructor(fd: number, filename: string, _fmode: number, GlkOte: GlkOte) {
         this.fd = fd

@@ -16,7 +16,7 @@ import {utf8encoder} from '../common/misc.js'
 import {Array_to_BEBuffer, GlkTypedArray, is_unicode_array} from './common.js'
 import {filemode_Read, filemode_ReadWrite, seekmode_Current, seekmode_End} from './constants.js'
 import {FileRef} from './filerefs.js'
-import {GlkArray, GlkStream, RefStruct} from './interface.js'
+import {GlkArray, GlkStream, RefStructArg} from './interface.js'
 import {GLK_NULL, MAX_LATIN1, QUESTION_MARK} from './lib_constants.js'
 import {Window} from './windows.js'
 
@@ -31,7 +31,7 @@ abstract class StreamBase implements GlkStream {
     abstract type: StreamType
     protected write_count = 0
 
-    abstract close(result?: RefStruct): void
+    abstract close(result?: RefStructArg): void
     abstract get_buffer(buf: GlkTypedArray): number
     abstract get_char(unicode: boolean): number
     abstract get_line(buf: GlkTypedArray): number
@@ -63,7 +63,7 @@ export class ArrayBackedStream extends StreamBase {
         this.uni = is_unicode_array(buf)
     }
 
-    close(result?: RefStruct) {
+    close(result?: RefStructArg) {
         this.close_cb?.()
         if (result) {
             result.set_field(0, this.read_count)
@@ -198,7 +198,7 @@ export class FileStream extends ArrayBackedStream {
         this.maxlen = this.len
     }
 
-    close(result?: RefStruct) {
+    close(result?: RefStructArg) {
         this.write()
         super.close(result)
     }
@@ -229,6 +229,7 @@ export class FileStream extends ArrayBackedStream {
         this.write()
     }
 
+    // Bundle all writes from one JS tick
     private write = debounce(() => {
         const buf = this.buf.subarray(0, this.len)
         let data: Uint8Array
@@ -245,7 +246,7 @@ export class FileStream extends ArrayBackedStream {
             data = buf as Uint8Array
         }
         this.fref.write(data)
-    }, 250)
+    }, 0)
 }
 
 /** Window streams operate a little bit differently */
@@ -258,7 +259,7 @@ export class WindowStream extends StreamBase {
         this.win = win
     }
 
-    close(result?: RefStruct) {
+    close(result?: RefStructArg) {
         if (result) {
             result.set_field(0, 0)
             result.set_field(1, this.write_count)

@@ -21,12 +21,11 @@ import {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
 
 import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor, TimerData} from './common.js'
 import * as Const from './constants.js'
-import {evtype_LineInput, evtype_None, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
+import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, evtype_MouseInput, evtype_None, evtype_Redraw, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, keycode_Unknown, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
-import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefStructValue} from './interface.js'
-import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, STYLE_NAMES, TERMINATOR_KEYS} from './lib_constants.js'
-import {update} from './protocol.js'
+import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
+import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, KEY_NAMES_TO_CODES, STYLE_NAMES, TERMINATOR_KEYS, TERMINATOR_KEYS_TO_CODES} from './lib_constants.js'
 import {ArrayBackedStream, FileStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
@@ -64,13 +63,10 @@ export class AsyncGlk implements Interface.GlkApi {
     private VM: Interface.GlkVM = null as any as Interface.GlkVM
 
     private before_select_hook: GlkApiOptions['before_select_hook']
-    private extevent_hook: GlkApiOptions['extevent_hook']
     private gestalt_hook: GlkApiOptions['glk_gestalt_hook']
 
-    private disabled = false
-
     // For assigning disprocks when there is no GiDispa
-    private disprock_counter = 0
+    private disprock_counter = 1
 
     private do_autosave = false
 
@@ -80,8 +76,9 @@ export class AsyncGlk implements Interface.GlkApi {
 
     private gen = 0
 
-    // TODO: assert outspacings are 0
     private metrics: NormalisedMetrics = DEFAULT_METRICS
+
+    private partial_inputs?: Record<number, string>
 
     private selectref?: RefStruct
 
@@ -99,7 +96,7 @@ export class AsyncGlk implements Interface.GlkApi {
         grid: {},
     }
 
-    private support: Protocol.InitEvent['support'] = []
+    private support: string[] = []
 
     private timer: TimerData = {
         interval: 0,
@@ -118,14 +115,29 @@ export class AsyncGlk implements Interface.GlkApi {
     init(options: GlkApiOptions) {
         this.before_select_hook = options.before_select_hook
         this.Blorb = options.Blorb
-        this.Dialog = options.Dialog
+        if (options.Dialog) {
+            this.Dialog = options.Dialog
+        }
+        else {
+            throw new Error('No reference to Dialog')
+        }
         this.do_autosave = options.do_vm_autosave || false
         // exit_warning
-        this.extevent_hook = options.extevent_hook
+        // extevent_hook
         this.GiDispa = options.GiDispa
         this.gestalt_hook = options.glk_gestalt_hook
-        this.GlkOte = options.GlkOte
-        this.VM = options.vm
+        if (options.GlkOte) {
+            this.GlkOte = options.GlkOte
+        }
+        else {
+            throw new Error('No reference to GlkOte')
+        }
+        if (options.vm) {
+            this.VM = options.vm
+        }
+        else {
+            throw new Error('No reference to VM')
+        }
 
         this.before_select_hook?.()
         this.GiDispa?.init({
@@ -142,7 +154,6 @@ export class AsyncGlk implements Interface.GlkApi {
     }
 
     fatal_error(msg: string) {
-        this.disabled = true
         this.exited = true
         if (!this.GlkOte) {
             console.error('Fatal error: ' + msg)
@@ -181,15 +192,61 @@ export class AsyncGlk implements Interface.GlkApi {
     save_allstate() {}
 
     update() {
-        const state = update({
-            disabled: this.disabled,
-            first_window: this.first_window,
+        const state: Protocol.StateUpdate = {
             gen: this.gen,
-            special: this.special,
-            timer: this.timer,
-            windows_changed: this.windows_changed,
-        })
+            type: 'update',
+        }
+
+        if (this.exited) {
+            state.disable = true
+        }
+
+        // Get the window updates
+        const contents: Protocol.ContentUpdate[] = []
+        const inputs: Protocol.InputUpdate[] = []
+        const sizes: Protocol.WindowUpdate[] = []
+        for (let win = this.first_window; win; win = win.next) {
+            const update = win.update()
+            if (update.content) {
+                contents.push(update.content)
+            }
+            if (update.input) {
+                const input_update = update.input
+                if (input_update.hyperlink || input_update.mouse || input_update.type) {
+                    inputs.push(input_update)
+                }
+            }
+            if (this.windows_changed && update.size) {
+                sizes.push(update.size)
+            }
+        }
+        if (contents.length) {
+            state.content = contents
+        }
+        if (inputs.length) {
+            state.input = inputs
+        }
+        if (sizes.length) {
+            state.windows = sizes
+        }
         this.windows_changed = false
+
+        // TODO: Page BG colour
+
+        // Special input
+        if (this.special) {
+            state.specialinput = this.special
+            delete this.special
+        }
+
+        // Timer
+        const timer = this.timer
+        if (timer.last_interval !== timer.interval) {
+            state.timer = timer.interval || null
+            timer.last_interval = timer.interval
+        }
+
+        // Autorestore state?
 
         // Clone the state so that any objects copied into it won't be at risk of modification by GlkOte
         this.GlkOte.update(cloneDeep(state))
@@ -289,18 +346,18 @@ export class AsyncGlk implements Interface.GlkApi {
         }
     }
 
-    glk_cancel_line_event(win: Window, ev?: RefStruct) {
+    glk_cancel_line_event(win: Window, ev?: RefStructArg) {
         if (!win) {
             throw new Error('Invalid Window')
         }
         if (win.input.type !== 'line' || (win.type !== 'buffer' && win.type !== 'grid')) {
             if (ev) {
-                this.null_event(ev)
+                set_event(ev)
             }
             return
         }
 
-        this.handle_line_input(win, win.partial_input ?? '', ev)
+        this.handle_line_input(win, this.partial_inputs?.[win.disprock] ?? '', ev)
     }
 
     glk_cancel_mouse_event(win: Window) {
@@ -357,7 +414,6 @@ export class AsyncGlk implements Interface.GlkApi {
     }
 
     glk_exit(): typeof DidNotReturn {
-        this.disabled = true
         this.exited = true
         // What is this for?
         /*if (option_exit_warning) {
@@ -369,7 +425,7 @@ export class AsyncGlk implements Interface.GlkApi {
 
     glk_fileref_create_by_name(usage: number, filename: string, rock: number): FileRef {
         const fixed_filename = this.Dialog.file_clean_fixed_name(filename, usage & fileusage_TypeMask)
-        return this.create_fileref(fixed_filename, usage, rock)
+        return this.create_fileref(fixed_filename, rock, usage)
     }
 
     glk_fileref_create_by_prompt(usage: number, fmode: number, rock: number): typeof DidNotReturn {
@@ -396,13 +452,13 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!oldfref) {
             throw new Error('Invalid Fileref')
         }
-        return this.create_fileref(oldfref.filename, usage, rock)
+        return this.create_fileref(oldfref.filename, rock, usage)
     }
 
     glk_fileref_create_temp(usage: number, rock: number): FileRef {
         const filetypename = FILE_TYPES[usage & fileusage_TypeMask]
         const dialog_fref = this.Dialog.file_construct_temp_ref(filetypename)
-        return this.create_fileref(dialog_fref.filename, usage, rock, dialog_fref)
+        return this.create_fileref(dialog_fref.filename, rock, usage, dialog_fref)
     }
 
     glk_fileref_delete_file(fref: FileRef) {
@@ -446,9 +502,11 @@ export class AsyncGlk implements Interface.GlkApi {
         return fref.rock
     }
 
-    glk_fileref_iterate(fref?: FileRef, rockbox?: RefBox): FileRef | null {
+    glk_fileref_iterate(fref?: FileRef, rockbox?: RefBoxArg): FileRef | null {
         const next_fref = fref ? fref.next : this.first_fref
-        rockbox?.set_value(next_fref ? next_fref.rock : 0)
+        if (rockbox) {
+            rockbox.set_value(next_fref ? next_fref.rock : 0)
+        }
         return next_fref
     }
 
@@ -603,10 +661,14 @@ export class AsyncGlk implements Interface.GlkApi {
         return 1
     }
 
-    glk_image_get_info(imgid: number, width?: RefBox, height?: RefBox): number {
+    glk_image_get_info(imgid: number, width?: RefBoxArg, height?: RefBoxArg): number {
         const info = this.Blorb?.get_image_info(imgid)
-        height?.set_value(info?.height || 0)
-        width?.set_value(info?.width || 0)
+        if (height) {
+            height.set_value(info?.height || 0)
+        }
+        if (width) {
+            width.set_value(info?.width || 0)
+        }
         return info ? 1 : 0
     }
 
@@ -731,8 +793,10 @@ export class AsyncGlk implements Interface.GlkApi {
         throw new Error('Invalid Schannel')
     }
 
-    glk_schannel_iterate(_schannel?: GlkSchannel, rockbox?: RefBox): GlkSchannel | null {
-        rockbox?.set_value(0)
+    glk_schannel_iterate(_schannel?: GlkSchannel, rockbox?: RefBoxArg): GlkSchannel | null {
+        if (rockbox) {
+            rockbox.set_value(0)
+        }
         return null
     }
 
@@ -775,7 +839,7 @@ export class AsyncGlk implements Interface.GlkApi {
 
     glk_select_poll(ev: RefStruct) {
         // As JS is single threaded, the only event we could possibly have had since the last glk_select_poll call is a timer event
-        this.null_event(ev)
+        set_event(ev)
 
         const timer = this.timer
         if (timer.interval) {
@@ -851,7 +915,7 @@ export class AsyncGlk implements Interface.GlkApi {
 
     glk_sound_load_hint(_sound: number, _load: number) {}
 
-    glk_stream_close(str: Stream, result?: RefStruct) {
+    glk_stream_close(str: Stream, result?: RefStructArg) {
         if (!str) {
             throw new Error('Invalid Stream')
         }
@@ -877,9 +941,11 @@ export class AsyncGlk implements Interface.GlkApi {
         return str.rock
     }
 
-    glk_stream_iterate(str?: Stream, rockbox?: RefBox): Stream | null {
+    glk_stream_iterate(str?: Stream, rockbox?: RefBoxArg): Stream | null {
         const next_stream = str ? str.next : this.first_stream
-        rockbox?.set_value(next_stream ? next_stream.rock : 0)
+        if (rockbox) {
+            rockbox.set_value(next_stream ? next_stream.rock : 0)
+        }
         return next_stream
     }
 
@@ -922,8 +988,10 @@ export class AsyncGlk implements Interface.GlkApi {
         return 0
     }
 
-    glk_style_measure(_win: Window, _style: number, _hint: number, result?: RefBox): number {
-        result?.set_value(0)
+    glk_style_measure(_win: Window, _style: number, _hint: number, result?: RefBoxArg): number {
+        if (result) {
+            result.set_value(0)
+        }
         return 0
     }
 
@@ -1029,7 +1097,7 @@ export class AsyncGlk implements Interface.GlkApi {
         win.clear()
     }
 
-    glk_window_close(win: Window, stats?: RefStruct) {
+    glk_window_close(win: Window, stats?: RefStructArg) {
         if (!win) {
             throw new Error('Invalid Window')
         }
@@ -1107,16 +1175,22 @@ export class AsyncGlk implements Interface.GlkApi {
         }
     }
 
-    glk_window_get_arrangement(win: Window, method?: RefBox, size?: RefBox, keywin?: RefBox) {
+    glk_window_get_arrangement(win: Window, method?: RefBoxArg, size?: RefBoxArg, keywin?: RefBoxArg) {
         if (!win) {
             throw new Error('Invalid Window')
         }
         if (win.type !== 'pair') {
             throw new Error('Invalid Window: not a pair window')
         }
-        keywin?.set_value(win.key)
-        method?.set_value(win.dir | (win.fixed ? winmethod_Fixed : winmethod_Proportional) | (win.border ? winmethod_Border : winmethod_NoBorder))
-        size?.set_value(win.size)
+        if (keywin) {
+            keywin?.set_value(win.key)
+        }
+        if (method) {
+            method?.set_value(win.dir | (win.fixed ? winmethod_Fixed : winmethod_Proportional) | (win.border ? winmethod_Border : winmethod_NoBorder))
+        }
+        if (size) {
+            size?.set_value(win.size)
+        }
     }
 
     glk_window_get_echo_stream(win: Window): Stream | null {
@@ -1160,7 +1234,7 @@ export class AsyncGlk implements Interface.GlkApi {
         }
     }
 
-    glk_window_get_size(win: Window, widthbox?: RefBox, heightbox?: RefBox) {
+    glk_window_get_size(win: Window, widthbox?: RefBoxArg, heightbox?: RefBoxArg) {
         if (!win) {
             throw new Error('Invalid Window')
         }
@@ -1178,8 +1252,12 @@ export class AsyncGlk implements Interface.GlkApi {
                 width = win.width
                 break
         }
-        heightbox?.set_value(height)
-        widthbox?.set_value(width)
+        if (heightbox) {
+            heightbox?.set_value(height)
+        }
+        if (widthbox) {
+            widthbox?.set_value(width)
+        }
     }
 
     glk_window_get_stream(win: Window): Stream {
@@ -1196,9 +1274,11 @@ export class AsyncGlk implements Interface.GlkApi {
         return win.typenum
     }
 
-    glk_window_iterate(win?: Window, rockbox?: RefBox): Window | null {
+    glk_window_iterate(win?: Window, rockbox?: RefBoxArg): Window | null {
         const next_window = win ? win.next : this.first_window
-        rockbox?.set_value(next_window ? next_window.rock : 0)
+        if (rockbox) {
+            rockbox?.set_value(next_window ? next_window.rock : 0)
+        }
         return next_window
     }
 
@@ -1409,11 +1489,126 @@ export class AsyncGlk implements Interface.GlkApi {
 
     // Private internal functions
 
+    /** Process an input event */
     private accept(ev: Protocol.Event) {
+        if (this.exited) {
+            return this.GlkOte.log('GlkApi has exited')
+        }
 
+        if (ev.gen !== this.gen) {
+            return this.GlkOte.log(`Input event has wrong generation number: expected ${this.gen}, received ${ev.gen}`)
+        }
+        this.gen++
+
+        if (!this.selectref && ev.type !== 'init' && ev.type !== 'specialresponse') {
+            return
+        }
+
+        this.partial_inputs = ev.partial
+
+        let type = evtype_None
+        let win: Window | null = null
+        let val1 = 0
+        let val2 = 0
+        let fref: FileRef | undefined
+
+        if ('window' in ev) {
+            for (win = this.first_window; win; win = win.next) {
+                if (win.disprock === ev.window) {
+                    break
+                }
+            }
+        }
+
+        switch (ev.type) {
+            case 'init':
+                this.metrics = normalise_metrics(ev.metrics)
+                this.support = ev.support
+                this.VM.start()
+                return
+            case 'arrange':
+                this.metrics = normalise_metrics(ev.metrics)
+                if (this.root_window) {
+                    this.rearrange_window(this.root_window, {
+                        bottom: this.metrics.height,
+                        left: 0,
+                        right: this.metrics.width,
+                        top: 0,
+                    })
+                }
+                type = evtype_Arrange
+                break
+            case 'char':
+                if (win?.input.type !== 'char') {
+                    return
+                }
+                delete win.input.type
+                type = evtype_CharInput
+                if (ev.value.length === 1) {
+                    val1 = ev.value.codePointAt(0)!
+                    if (!(win as TextWindow).uni_input) {
+                        val1 = val1 & 0xFF
+                    }
+                }
+                else {
+                    val1 = KEY_NAMES_TO_CODES[ev.value as Protocol.SpecialKeyCode] ?? keycode_Unknown
+                }
+                break
+            case 'hyperlink':
+                if (!win?.input.hyperlink) {
+                    return
+                }
+                type = evtype_Hyperlink
+                val1 = ev.value
+                break
+            case 'line':
+                if (win?.input.type !== 'line') {
+                    return
+                }
+                this.handle_line_input(win as TextWindow, ev.value, this.selectref, ev.terminator)
+                delete this.selectref
+                break
+            case 'mouse':
+                if (!win?.input.mouse) {
+                    return
+                }
+                type = evtype_MouseInput
+                val1 = ev.x
+                val2 = ev.y
+                break
+            case 'redraw':
+                type = evtype_Redraw
+                break
+            case 'specialresponse': {
+                if (ev.response !== 'fileref_prompt') {
+                    throw new Error('Unknown type of specialresponse event')
+                }
+                const dialog_fref = ev.value
+                if (typeof dialog_fref === 'string') {
+                    throw new Error('AsyncGlk no longer supports bare-string filenames from Dialog')
+                }
+                if (dialog_fref) {
+                    fref = this.create_fileref(dialog_fref.filename, this.special_data!.rock, this.special_data!.usage, dialog_fref)
+                }
+                break
+            }
+            case 'timer':
+                type = evtype_Timer
+                this.timer.started = Date.now()
+                break
+            default:
+                throw new Error(`Event type ${ev.type} not supported by AsyncGlk`)
+        }
+
+        if (this.selectref) {
+            set_event(this.selectref!, type, win, val1, val2)
+            this.GiDispa?.prepare_resume(this.selectref!)
+            delete this.selectref
+        }
+        this.VM.resume(fref)
     }
 
-    private create_fileref(filename: string, usage: number, rock: number, dialog_fref?: DialogFileRef): FileRef {
+    private create_fileref(filename: string, rock: number, usage: number, dialog_fref?: DialogFileRef): FileRef {
         if (!dialog_fref) {
             const filetype = usage & fileusage_TypeMask
             const signature = filetype === fileusage_SavedGame ? this.VM.get_signature() : undefined
@@ -1449,7 +1644,6 @@ export class AsyncGlk implements Interface.GlkApi {
             data = new Uint8Array(0)
             fref.write(data)
         }
-
         // Create an appropriate stream
         const str = create_stream_from_buffer(data, fref.binary, mode, rock, unicode, fref)
 
@@ -1523,7 +1717,7 @@ export class AsyncGlk implements Interface.GlkApi {
         return 0
     }
 
-    private handle_line_input(win: TextWindow, input: string, ev?: RefStruct) {
+    private handle_line_input(win: TextWindow, input: string, ev?: RefStructArg, termkey?: TerminatorCode) {
         // The Glk spec is a bit ambiguous here
         // I'm going to echo first
         if (win.request_echo_line_input) {
@@ -1549,22 +1743,14 @@ export class AsyncGlk implements Interface.GlkApi {
             win.line_input_buf?.set(input_buf)
         }
 
+        const terminator = TERMINATOR_KEYS_TO_CODES[termkey as TerminatorCode] ?? 0
+
         if (ev) {
-            ev.set_field(0, evtype_LineInput)
-            ev.set_field(1, win)
-            ev.set_field(2, input.length)
-            ev.set_field(3, 0)
+            set_event(ev, evtype_LineInput, win as Window, input.length, terminator)
         }
         this.GiDispa?.unretain_array(win.line_input_buf!)
         delete win.input.type
         delete win.line_input_buf
-    }
-
-    private null_event(ev: RefStruct) {
-        ev.set_field(0, evtype_None)
-        ev.set_field(1, null)
-        ev.set_field(2, 0)
-        ev.set_field(3, 0)
     }
 
     private rearrange_window(win: Window, box: WindowBox) {
@@ -1877,8 +2063,95 @@ function date_struct_to_timestamp_utc(struct: RefStruct): number {
     return date.getTime()
 }
 
+function normalise_metrics(metrics: Protocol.Metrics) {
+    const normalised_metrics: Protocol.NormalisedMetrics = Object.assign({}, DEFAULT_METRICS)
+    let val: number | undefined
+
+    val = metrics.charheight
+    if (val !== undefined) {
+        normalised_metrics.buffercharheight= val
+        normalised_metrics.gridcharheight = val
+    }
+    val = metrics.charwidth
+    if (val !== undefined) {
+        normalised_metrics.buffercharwidth = val
+        normalised_metrics.gridcharwidth = val
+    }
+
+    val = metrics.margin
+    if (val !== undefined) {
+        normalised_metrics.buffermarginx = val
+        normalised_metrics.buffermarginy = val
+        normalised_metrics.graphicsmarginx = val
+        normalised_metrics.graphicsmarginy = val
+        normalised_metrics.gridmarginx = val
+        normalised_metrics.gridmarginy = val
+    }
+    val = metrics.buffermargin
+    if (val !== undefined) {
+        normalised_metrics.buffermarginx = val
+        normalised_metrics.buffermarginy = val
+    }
+    val = metrics.graphicsmargin
+    if (val !== undefined) {
+        normalised_metrics.graphicsmarginx = val
+        normalised_metrics.graphicsmarginy = val
+    }
+    val = metrics.gridmargin
+    if (val !== undefined) {
+        normalised_metrics.gridmarginx = val
+        normalised_metrics.gridmarginy = val
+    }
+    val = metrics.marginx
+    if (val !== undefined) {
+        normalised_metrics.buffermarginx = val
+        normalised_metrics.graphicsmarginx = val
+        normalised_metrics.gridmarginx = val
+    }
+    val = metrics.marginy
+    if (val !== undefined) {
+        normalised_metrics.buffermarginy = val
+        normalised_metrics.graphicsmarginy = val
+        normalised_metrics.gridmarginy = val
+    }
+
+    val = metrics.spacing
+    if (val !== undefined) {
+        normalised_metrics.inspacingx = val
+        normalised_metrics.inspacingy = val
+    }
+    val = metrics.inspacing
+    if (val !== undefined) {
+        normalised_metrics.inspacingx = val
+        normalised_metrics.inspacingy = val
+    }
+    val = metrics.spacingx
+    if (val !== undefined) {
+        normalised_metrics.inspacingx = val
+    }
+    val = metrics.spacingy
+    if (val !== undefined) {
+        normalised_metrics.inspacingy = val
+    }
+
+    Object.assign(normalised_metrics, metrics)
+
+    if (metrics.outspacing || normalised_metrics.outspacingx || normalised_metrics.outspacingy) {
+        throw new Error('AsyncGlk requires that outspacing metrics be 0')
+    }
+
+    return normalised_metrics
+}
+
 function normalise_window_dimension(val: number) {
     return Math.max(0, Math.floor(val))
+}
+
+function set_event(ev: Interface.RefStruct, type: number = evtype_None, win: Window | null = null, val1 = 0, val2 = 0) {
+    ev.set_field(0, type)
+    ev.set_field(1, win)
+    ev.set_field(2, val1)
+    ev.set_field(3, val2)
 }
 
 function timestamp_to_date_struct_local(timestamp: number, struct: RefStruct) {

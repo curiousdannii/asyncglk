@@ -46,9 +46,10 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
             throw new Error('no options provided')
         }
 
+        // TODO: handle output from all buffer windows
         // Wrap glk_window_open so that only one window can be opened
         if (options.Glk) {
-            const old_glk_window_open = options.Glk.glk_window_open
+            const old_glk_window_open = options.Glk.glk_window_open.bind(options.Glk)
             options.Glk.glk_window_open = function(splitwin: any, method: any, size: any, wintype: any, rock: any) {
                 if (splitwin) {
                     return null
