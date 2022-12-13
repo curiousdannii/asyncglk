@@ -13,13 +13,13 @@ import {cloneDeep} from 'lodash-es'
 
 import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS, PACKAGE_VERSION} from '../common/constants.js'
-import {utf8decoder} from '../common/misc.js'
+import {BEBuffer_to_Array, GlkTypedArray, GlkTypedArrayConstructor, utf8decoder} from '../common/misc.js'
 import * as Protocol from '../common/protocol.js'
 import {BufferWindowImage, FileRef as DialogFileRef, ImageOperation, NormalisedMetrics, SpecialInput, TerminatorCode, WindowStyles} from '../common/protocol.js'
-import {Dialog} from '../dialog/common/interface.js'
+import {CachingDialogWrapper} from '../dialog/common/cache.js'
 import {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
 
-import {BEBuffer_to_Array, copy_array, GlkTypedArray, GlkTypedArrayConstructor, TimerData} from './common.js'
+import {copy_array, TimerData} from './common.js'
 import * as Const from './constants.js'
 import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, evtype_MouseInput, evtype_None, evtype_Redraw, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, keycode_Unknown, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
@@ -57,7 +57,7 @@ export class RefStruct implements Interface.RefStruct {
 
 export class AsyncGlk implements Interface.GlkApi {
     private Blorb?: Blorb
-    private Dialog: Dialog = null as any as Dialog
+    private Dialog: CachingDialogWrapper = null as any as CachingDialogWrapper
     private GiDispa?: Interface.GiDispa
     private GlkOte: GlkOte = null as any as GlkOte
     private VM: Interface.GlkVM = null as any as Interface.GlkVM
@@ -116,7 +116,7 @@ export class AsyncGlk implements Interface.GlkApi {
         this.before_select_hook = options.before_select_hook
         this.Blorb = options.Blorb
         if (options.Dialog) {
-            this.Dialog = options.Dialog
+            this.Dialog = new CachingDialogWrapper(options.Dialog)
         }
         else {
             throw new Error('No reference to Dialog')
@@ -1566,6 +1566,7 @@ export class AsyncGlk implements Interface.GlkApi {
                     return
                 }
                 this.handle_line_input(win as TextWindow, ev.value, this.selectref, ev.terminator)
+                this.GiDispa?.prepare_resume(this.selectref!)
                 delete this.selectref
                 break
             case 'mouse':

@@ -9,11 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {debounce} from 'lodash-es'
+import {GlkTypedArray, is_unicode_array} from '../common/misc.js'
 
-import {utf8encoder} from '../common/misc.js'
-
-import {Array_to_BEBuffer, GlkTypedArray, is_unicode_array} from './common.js'
 import {filemode_Read, filemode_ReadWrite, seekmode_Current, seekmode_End} from './constants.js'
 import {FileRef} from './filerefs.js'
 import {GlkArray, GlkStream, RefStructArg} from './interface.js'
@@ -85,7 +82,7 @@ export class ArrayBackedStream extends StreamBase {
         }
         // Otherwise we can copy it whole
         else {
-            buf.set(this.buf.subarray(this.pos, read_length))
+            buf.set(this.buf.subarray(this.pos, this.pos + read_length))
         }
         this.pos += read_length
         this.read_count += read_length
@@ -229,24 +226,9 @@ export class FileStream extends ArrayBackedStream {
         this.write()
     }
 
-    // Bundle all writes from one JS tick
-    private write = debounce(() => {
-        const buf = this.buf.subarray(0, this.len)
-        let data: Uint8Array
-        if (this.uni) {
-            if (this.fref.binary) {
-                data = Array_to_BEBuffer(buf as Uint32Array)
-            }
-            else {
-                const text = String.fromCodePoint(...buf)
-                data = utf8encoder.encode(text)
-            }
-        }
-        else {
-            data = buf as Uint8Array
-        }
-        this.fref.write(data)
-    }, 0)
+    write() {
+        this.fref.write(this.buf.subarray(0, this.len))
+    }
 }
 
 /** Window streams operate a little bit differently */
