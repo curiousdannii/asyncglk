@@ -17,6 +17,7 @@ https://github.com/curiousdannii/asyncglk
     --glkote-buffer-reverse-bg: #000;
     --glkote-buffer-reverse-fg: #fff;
     --glkote-buffer-size: 15px;
+    --glkote-error-border: #F00;
     --glkote-grid-bg: #fff;
     --glkote-grid-fg: #000;
     --glkote-grid-line-height: 18px;
@@ -25,6 +26,7 @@ https://github.com/curiousdannii/asyncglk
     --glkote-grid-reverse-fg: #fff;
     --glkote-grid-size: 14px;
     --glkote-input-fg: #000;
+    --glkote-warning-border: #00F;
     /* These styles are all for buffer windows */
     --glkote-mono-family: "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", monospace;
     --glkote-prop-family: Georgia, "AsyncGlk Serif", serif;

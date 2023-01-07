@@ -24,6 +24,8 @@ export interface DialogOptions {
 }
 
 interface ClassicDialogBase {
+    /** Clear an autosave */
+    autosave_clear?(): Promise<void>,
     /** Read an autosave */
     autosave_read(signature: string): AutosaveData | null,
     /** Save or delete an autosave */

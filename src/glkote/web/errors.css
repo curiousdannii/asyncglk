@@ -9,33 +9,31 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-/* TODO: make themeable */
-
 #errorpane {
-    background: #FFA0A0;
-    border-bottom: 3px solid #FF4040;
+    background: var(--glkote-buffer-bg);
+    border: 2px solid var(--glkote-error-border);
+    border-radius: 8px;
+    left: 50%;
     position: absolute;
-    top: 0px;
-    width: 100%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
-  
+
 #errorpane.WarningPane {
-    background: #B0B0FF;
-    border-bottom: 3px solid #6060FF;
+    border-color: var(--glkote-warning-border);
 }
-  
-#errorpane:hover {
-    background: rgba(255, 160, 160, 0.5);
-    border-bottom: 3px solid rgba(255, 64, 64, 0.3);
-}
-  
-#errorpane.WarningPane:hover {
-    background: rgba(176, 176, 255, 0.5);
-    border-bottom: 3px solid rgba(96, 96, 255, 0.3);
-}
-  
-#errorcontent {
+
+#errorpane div {
     font-size: 1.1em;
-    padding: 1em;
+    padding: 1em 50px;
     text-align: center;
+}
+
+#errorclose {
+    background: none;
+    border: none;
+    padding: 10px;
+    position: absolute;
+    right: 10px;
+    top: 10px;
 }

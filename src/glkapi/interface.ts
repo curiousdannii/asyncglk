@@ -104,6 +104,7 @@ export interface GlkApi {
     update(): void,
 
     // References to other things
+    // TODO: remove in a future semver major update?
     Const: typeof Const,
     DidNotReturn: typeof DidNotReturn,
     RefBox: new () => RefBox,

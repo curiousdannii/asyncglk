@@ -187,12 +187,10 @@ export class ArrayBackedStream extends StreamBase {
 /** FileStreams are based on array backed streams, but can grow in length */
 export class FileStream extends ArrayBackedStream {
     private fref: FileRef
-    private maxlen: number
 
     constructor(fref: FileRef, buf: GlkTypedArray, fmode: number, rock: number) {
         super(buf, fmode, rock)
         this.fref = fref
-        this.maxlen = this.len
     }
 
     close(result?: RefStructArg) {
@@ -204,11 +202,12 @@ export class FileStream extends ArrayBackedStream {
         const end_pos = this.pos + increase
         if (end_pos > this.len) {
             this.len = end_pos
-            if (end_pos > this.maxlen) {
+            let maxlen = this.buf.length
+            if (end_pos > maxlen) {
                 // Always expand by at least 100
-                this.maxlen += Math.max(end_pos - this.maxlen, 100)
+                maxlen += Math.max(end_pos - maxlen, 100)
                 const old_buf = this.buf
-                this.buf = new (this.uni ? Uint32Array : Uint8Array)(this.maxlen)
+                this.buf = new (this.uni ? Uint32Array : Uint8Array)(maxlen)
                 this.buf.set(old_buf)
             }
         }

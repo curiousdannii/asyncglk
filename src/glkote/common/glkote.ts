@@ -85,6 +85,7 @@ export abstract class GlkOteBase implements GlkOte {
     version = Constants.PACKAGE_VERSION
 
     protected accept_func: (event: protocol.Event) => void = () => {}
+    protected autorestoring = false
     protected Blorb?: Blorb
     current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
     protected Dialog?: Dialog
@@ -164,6 +165,7 @@ export abstract class GlkOteBase implements GlkOte {
 
     update(data: protocol.Update) {
         try {
+            this.autorestoring = false
             this.waiting_for_update = false
 
             if (data.type === 'error') {
@@ -228,6 +230,7 @@ export abstract class GlkOteBase implements GlkOte {
             }
 
             if (data.autorestore) {
+                this.autorestoring = true
                 this.autorestore(data.autorestore)
             }
 

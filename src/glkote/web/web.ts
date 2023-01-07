@@ -194,6 +194,42 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         this.disabled = disable
     }
 
+    private embellish_error() {
+        if (typeof $ === 'undefined') {
+            return
+        }
+
+        const errorpane = $(`#${this.dom.errorpane_id}`)
+
+        // Add close button
+        if (!errorpane.find('#errorclose').length) {
+            $('<button>', {
+                'aria-label': 'Close',
+                click: () => {
+                    errorpane.hide()
+                },
+                id: 'errorclose',
+                text: '✖',
+                type: 'button',
+            })
+                .appendTo(errorpane)
+        }
+
+        // If autorestoring, add a link to restart after clearing the autosave
+        if (this.autorestoring && this.Dialog?.autosave_clear) {
+            const link = $('<a>', {
+                click: async () => {
+                    await this.Dialog!.autosave_clear!()
+                    location.reload()
+                },
+                text: 'Clear autosave and restart',
+            })
+            $('<div>')
+                .append(link)
+                .appendTo(errorpane)
+        }
+    }
+
     error(error: Error | string) {
         error ??= '???'
         let msg: string
@@ -216,6 +252,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         if (errorpane.className === 'WarningPane') {
             errorpane.className = ''
         }
+
+        this.embellish_error()
+
         errorpane.style.display = ''
         this.showing_error = true
         this.hide_loading()
@@ -350,6 +389,8 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             return
         }
         errorcontent.innerHTML = msg
+
+        this.embellish_error()
 
         errorpane.addClass('WarningPane')
         errorpane.show()
