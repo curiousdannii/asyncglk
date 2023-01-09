@@ -3,7 +3,7 @@
 GlkApi
 ======
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -419,7 +419,6 @@ export class AsyncGlk implements Interface.GlkApi {
         /*if (option_exit_warning) {
             GlkOte.warning(option_exit_warning);
         }*/
-        this.GlkOte.update({type: 'exit'})
         return DidNotReturn
     }
 

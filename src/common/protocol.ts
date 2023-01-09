@@ -3,7 +3,7 @@
 The GlkOte protocol
 ===================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -230,18 +230,13 @@ export interface NormalisedMetrics {
 }
 
 /** GlkApi/RemGlk->GlkOte content updates */
-export type Update = ErrorUpdate | ExitUpdate | PassUpdate | RetryUpdate | StateUpdate
+export type Update = ErrorUpdate | PassUpdate | RetryUpdate | StateUpdate
 
 export interface ErrorUpdate {
     /** Update type */
     type: 'error',
     /** Error message */
     message: string,
-}
-
-export interface ExitUpdate {
-    /** Update type */
-    type: 'exit',
 }
 
 export interface PassUpdate {
@@ -263,6 +258,7 @@ export interface StateUpdate {
     content?: ContentUpdate[],
     /** Debug output */
     debugoutput?: string[],
+    /** Glk is now disabled, ie, it has exited. This is *not* used merely to disable the UI for a Dialog modal. */
     disable?: boolean,
     /** Generation number */
     gen: number,

@@ -3,7 +3,7 @@
 Miscellaneous common things
 ===========================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -15,7 +15,7 @@ export type GlkTypedArrayConstructor = Uint8ArrayConstructor | Uint32ArrayConstr
 /** Write a Uint32Array as a big-endian Uint8Array */
 export function Array_to_BEBuffer(arr: Uint32Array) {
     const buf = new Uint8Array(arr.length * 4)
-    const dv = new DataView(buf)
+    const dv = new DataView(buf.buffer)
     for (let i = 0; i < arr.length; i++) {
         dv.setUint32(i * 4, arr[i])
     }

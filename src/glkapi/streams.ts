@@ -3,7 +3,7 @@
 Glk Streams
 ===========
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -93,8 +93,8 @@ export class ArrayBackedStream extends StreamBase {
         if (this.fmode !== filemode_Read && this.fmode !== filemode_ReadWrite) {
             throw new Error ('Cannot read from write-only stream')
         }
-        this.read_count++
         if (this.pos < this.len) {
+            this.read_count++
             const ch = this.buf[this.pos++]
             return !unicode && ch > MAX_LATIN1 ? QUESTION_MARK : ch
         }

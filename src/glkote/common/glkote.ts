@@ -3,7 +3,7 @@
 Generic GlkOte implementation
 =============================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -171,9 +171,6 @@ export abstract class GlkOteBase implements GlkOte {
             if (data.type === 'error') {
                 return this.error(data.message)
             }
-            if (data.type === 'exit') {
-                return this.exit()
-            }
             if (data.type === 'pass') {
                 return
             }
@@ -237,6 +234,10 @@ export abstract class GlkOteBase implements GlkOte {
             // Page background colour
             if (typeof data.page_margin_bg !== 'undefined' && this.options.set_body_to_page_bg) {
                 this.set_page_bg(data.page_margin_bg)
+            }
+
+            if (data.disable) {
+                this.exit()
             }
         }
         catch (err) {

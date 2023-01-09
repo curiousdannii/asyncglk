@@ -3,7 +3,7 @@
 RemGlk mode GlkOte implementation
 ===================================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -68,8 +68,13 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         this.is_inited = true
     }
 
+    log(_msg: string) {}
+
     update(data: protocol.Update) {
         this.stdout.write(`${JSON.stringify(data)}\n\n`)
+        if (data.type === 'update' && data.disable) {
+            process.exit()
+        }
     }
 
     cancel_inputs(windows: protocol.InputUpdate[]) {
