@@ -3,7 +3,7 @@
 Glk Windows
 ===========
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -299,7 +299,7 @@ export class GraphicsWindow extends WindowBase {
                 draw: this.draw,
                 id: this.disprock,
             }
-            this.draw.length = 0
+            this.draw = []
         }
 
         update.size!.graphheight = this.height

@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {default as Blorb} from '../blorb/blorb.js'
+import {Blorb} from '../blorb/blorb.js'
 import {FileRef} from '../common/protocol.js'
 import {Dialog} from '../dialog/common/interface.js'
 import {GlkOte} from '../glkote/common/glkote.js'

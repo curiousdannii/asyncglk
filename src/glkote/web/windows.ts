@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {debounce} from 'lodash-es'
 
-import Blorb from '../../blorb/blorb.js'
+import {Blorb} from '../../blorb/blorb.js'
 import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 

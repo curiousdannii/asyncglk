@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {cloneDeep} from 'lodash-es'
 
-import {default as Blorb, ImageInfo} from '../blorb/blorb.js'
+import {Blorb, ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS, PACKAGE_VERSION} from '../common/constants.js'
 import {BEBuffer_to_Array, GlkTypedArray, GlkTypedArrayConstructor, utf8decoder} from '../common/misc.js'
 import * as Protocol from '../common/protocol.js'
@@ -2013,7 +2013,8 @@ function buffer_transformer(buf: GlkWordArray, initlen: number, func: (str: stri
 }
 
 function colour_code_to_css(colour: number) {
-    return '#' + (colour & 0xFFFFFF).toString(16).padStart(6, '0')
+    // Uppercase colours are required by RegTest
+    return '#' + (colour & 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0')
 }
 
 function create_stream_from_buffer(buf: Uint8Array, binary: boolean, mode: number, rock: number, unicode: boolean, fref?: FileRef) {

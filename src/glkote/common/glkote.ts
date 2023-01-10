@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import Blorb from '../../blorb/blorb.js'
+import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 import {Dialog} from '../../dialog/common/interface.js'

@@ -3,15 +3,15 @@
 Blorb Files and functions
 =========================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
 
-import {utf8decoder} from '../common/misc.js'
+import {FileView, utf8decoder} from '../common/misc.js'
 
-import {FileView, IFF} from './iff.js'
+import {IFF} from './iff.js'
 
 export interface ImageSize {
     height: number,
@@ -66,7 +66,7 @@ const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
 
 const UNKNOWN_IMAGE_TYPE = '????'
 
-export default class Blorb {
+export class Blorb {
     classname = 'Blorb'
     /** Chunks are indexed with "USE:NUMBER" keys */
     chunks: Record<string, BlorbChunk> = {}
@@ -297,6 +297,11 @@ export default class Blorb {
     inited(): boolean {
         return this.is_inited
     }
+}
+
+export function is_blorb(data: Uint8Array): boolean {
+    const view = new FileView(data)
+    return view.getFourCC(0) === 'FORM' && view.getFourCC(8) === 'IFRS'
 }
 
 function get_jpeg_dimensions(data: Uint8Array): ImageSize | undefined {

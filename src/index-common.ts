@@ -3,18 +3,18 @@
 AsyncGlk exports
 ================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
 
-export {default as Blorb} from './blorb/blorb.js'
+export {Blorb, is_blorb} from './blorb/blorb.js'
 export type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize, InfoMap, InfoMapResource} from './blorb/blorb.js'
-
-export {FileView, IFF} from './blorb/iff.js'
+export {IFF} from './blorb/iff.js'
 
 export * as constants from './common/constants.js'
+export {FileView} from './common/misc.js'
 export * as protocol from './common/protocol.js'
 
 export type {AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogOptions} from './dialog/common/interface.js'
