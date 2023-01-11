@@ -26,7 +26,7 @@ import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
 import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, KEY_NAMES_TO_CODES, STYLE_NAMES, TERMINATOR_KEYS, TERMINATOR_KEYS_TO_CODES} from './lib_constants.js'
-import {ArrayBackedStream, FileStream, Stream} from './streams.js'
+import {ArrayBackedStream, FileStream, NullStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
 export class RefBox implements Interface.RefBox {
@@ -582,6 +582,9 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
+        }
         if (Array.isArray(buf)) {
             return wrap_for_array(buf, Uint8Array, arr => str.get_buffer(arr))
         }
@@ -593,6 +596,9 @@ export class AsyncGlk implements Interface.GlkApi {
     glk_get_buffer_stream_uni(str: Stream, buf: GlkWordArray): number {
         if (!str) {
             throw new Error('Invalid Stream')
+        }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
         }
         if (Array.isArray(buf)) {
             return wrap_for_array(buf, Uint32Array, arr => str.get_buffer(arr))
@@ -606,6 +612,9 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
+        }
         return str.get_char(false)
     }
 
@@ -613,12 +622,18 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
+        }
         return str.get_char(true)
     }
 
     glk_get_line_stream(str: Stream, buf: GlkByteArray): number {
         if (!str) {
             throw new Error('Invalid Stream')
+        }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
         }
         if (Array.isArray(buf)) {
             // Handle the NULL byte by adding and subtracting 1 to the read length
@@ -632,6 +647,9 @@ export class AsyncGlk implements Interface.GlkApi {
     glk_get_line_stream_uni(str: Stream, buf: GlkWordArray): number {
         if (!str) {
             throw new Error('Invalid Stream')
+        }
+        if (str.fmode !== filemode_Read && str.fmode !== filemode_ReadWrite) {
+            throw new Error ('Cannot read from write-only stream')
         }
         if (Array.isArray(buf)) {
             // Handle the NULL byte by adding and subtracting 1 to the read length
@@ -679,12 +697,18 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
+        if (str.fmode === filemode_Read) {
+            throw new Error('Cannot write to read-only stream')
+        }
         str.put_buffer(val, false)
     }
 
     glk_put_buffer_stream_uni(str: Stream, val: GlkWordArray) {
         if (!str) {
             throw new Error('Invalid Stream')
+        }
+        if (str.fmode === filemode_Read) {
+            throw new Error('Cannot write to read-only stream')
         }
         str.put_buffer(val, true)
     }
@@ -701,18 +725,18 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
-        str.put_char(val)
-    }
-
-    glk_put_char_stream_uni(str: Stream, val: number) {
-        if (!str) {
-            throw new Error('Invalid Stream')
+        if (str.fmode === filemode_Read) {
+            throw new Error('Cannot write to read-only stream')
         }
         str.put_char(val)
     }
 
+    glk_put_char_stream_uni(str: Stream, val: number) {
+        this.glk_put_char_stream(str, val)
+    }
+
     glk_put_char_uni(val: number) {
-        this.glk_put_char_stream_uni(this.current_stream!, val)
+        this.glk_put_char_stream(this.current_stream!, val)
     }
 
     glk_put_string(val: string) {
@@ -723,18 +747,18 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!str) {
             throw new Error('Invalid Stream')
         }
-        str.put_string(val)
-    }
-
-    glk_put_string_stream_uni(str: Stream, val: string) {
-        if (!str) {
-            throw new Error('Invalid Stream')
+        if (str.fmode === filemode_Read) {
+            throw new Error('Cannot write to read-only stream')
         }
         str.put_string(val)
     }
 
+    glk_put_string_stream_uni(str: Stream, val: string) {
+        this.glk_put_string_stream(str, val)
+    }
+
     glk_put_string_uni(val: string) {
-        this.glk_put_string_stream_uni(this.current_stream!, val)
+        this.glk_put_string_stream(this.current_stream!, val)
     }
 
     glk_request_char_event(win: Window) {
@@ -956,11 +980,11 @@ export class AsyncGlk implements Interface.GlkApi {
         return this.create_file_stream(fref, mode, rock, true)
     }
 
-    glk_stream_open_memory(buf: GlkByteArray, mode: number, rock: number): Stream {
+    glk_stream_open_memory(buf: GlkByteArray | null, mode: number, rock: number): Stream {
         return this.create_memory_stream(buf, mode, rock, Uint8Array)
     }
 
-    glk_stream_open_memory_uni(buf: GlkWordArray, mode: number, rock: number): Stream {
+    glk_stream_open_memory_uni(buf: GlkWordArray | null, mode: number, rock: number): Stream {
         return this.create_memory_stream(buf, mode, rock, Uint32Array)
     }
 
@@ -1654,30 +1678,35 @@ export class AsyncGlk implements Interface.GlkApi {
         return str
     }
 
-    private create_memory_stream(buf: GlkArray, mode: number, rock: number, typed_array: GlkTypedArrayConstructor) {
+    private create_memory_stream(buf: GlkArray | null, mode: number, rock: number, typed_array: GlkTypedArrayConstructor) {
         if (mode !== filemode_Read && mode !== filemode_Write && mode !== filemode_ReadWrite) {
             throw new Error('Illegal filemode')
         }
-        const common_cb = () => this.GiDispa?.unretain_array(buf)
-        let str: ArrayBackedStream
-        if (Array.isArray(buf)) {
-            const new_arr = typed_array.from(buf)
-            if (mode === filemode_Read) {
-                str = new ArrayBackedStream(new_arr, mode, rock, common_cb)
+        let str: Stream
+        if (buf) {
+            const common_cb = () => this.GiDispa?.unretain_array(buf)
+            if (Array.isArray(buf)) {
+                const new_arr = typed_array.from(buf)
+                if (mode === filemode_Read) {
+                    str = new ArrayBackedStream(new_arr, mode, rock, common_cb)
+                }
+                // When opening an Array in a write mode we must copy the values back
+                else {
+                    str = new ArrayBackedStream(new_arr, mode, rock, () => {
+                        copy_array(new_arr, buf, buf.length)
+                        common_cb()
+                    })
+                }
             }
-            // When opening an Array in a write mode we must copy the values back
             else {
-                str = new ArrayBackedStream(new_arr, mode, rock, () => {
-                    copy_array(new_arr, buf, buf.length)
-                    common_cb()
-                })
+                str = new ArrayBackedStream(buf, mode, rock, common_cb)
             }
+            this.GiDispa?.retain_array(buf)
         }
         else {
-            str = new ArrayBackedStream(buf, mode, rock, common_cb)
+            str = new NullStream(mode, rock)
         }
         this.register_stream(str)
-        this.GiDispa?.retain_array(buf)
         return str
     }
 

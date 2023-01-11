@@ -28,3 +28,5 @@ echo ' imagetest'
 python regtest.py -i "./quixe.js --rem=1" -t 10 imagetest.gblorb.regtest
 echo ' inputeventtest'
 python regtest.py -i "./quixe.js --rem=1" -t 10 inputeventtest.ulx.regtest
+echo ' memstreamtest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 memstreamtest.ulx.regtest
