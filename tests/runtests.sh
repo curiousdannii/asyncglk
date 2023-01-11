@@ -30,3 +30,13 @@ echo ' inputeventtest'
 python regtest.py -i "./quixe.js --rem=1" -t 10 inputeventtest.ulx.regtest
 echo ' memstreamtest'
 python regtest.py -i "./quixe.js --rem=1" -t 10 memstreamtest.ulx.regtest
+echo ' resstreamtest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 resstreamtest.gblorb.regtest
+echo ' startsavetest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 startsavetest.gblorb.regtest
+echo ' unicasetest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 unicasetest.ulx.regtest
+echo ' unicodetest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 unicodetest.ulx.regtest
+echo ' windowtest'
+python regtest.py -i "./quixe.js --rem=1" -t 10 windowtest.ulx.regtest

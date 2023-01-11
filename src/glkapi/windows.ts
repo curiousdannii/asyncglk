@@ -446,7 +446,7 @@ export class GridWindow extends TextWindow {
                     return {
                         content: cleanup_paragraph_styles(line.content.reduce((acc: TextRun[], cur) => {
                             if (!acc.length) {
-                                return [clone_textrun(cur, false)]
+                                return [clone_textrun(cur, false, cur.text)]
                             }
 
                             // Combine adjacent characters when they have the same textrun properties
@@ -455,7 +455,7 @@ export class GridWindow extends TextWindow {
                                 last.text += cur.text
                             }
                             else {
-                                acc.push(clone_textrun(cur, false))
+                                acc.push(clone_textrun(cur, false, cur.text))
                             }
                             return acc
                         }, [])) as TextRun[],

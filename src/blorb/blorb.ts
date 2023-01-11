@@ -153,16 +153,18 @@ export class Blorb {
                             if (!resource_chunk) {
                                 throw new Error(`No Blorb chunk at offset ${resource_offset}`)
                             }
+                            const type = resource_chunk.type
                             const chunk: BlorbChunk = {
-                                blorbtype: resource_chunk.type,
-                                content: resource_chunk.data,
+                                blorbtype: type,
+                                // Embedded FORM chunks need to include the chunk headers for resource streams, so patch them now
+                                content: type === 'FORM' ? data.subarray(resource_chunk.offset, resource_chunk.offset + 8 + resource_chunk.data.length) : resource_chunk.data,
                                 usage: BLORB_RESOURCE_INDEX_USAGES[usage] as BlorbChunk['usage'],
                             }
                             if (usage === 'Pict') {
-                                if (resource_chunk.type === 'JPEG') {
+                                if (type === 'JPEG') {
                                     chunk.type = 'jpeg'
                                 }
-                                else if (resource_chunk.type === 'PNG ') {
+                                else if (type === 'PNG ') {
                                     chunk.type = 'png'
                                 }
                                 else {
@@ -170,7 +172,7 @@ export class Blorb {
                                 }
                             }
                             if (usage === 'Data') {
-                                chunk.binary = resource_chunk.type === 'BINA' || resource_chunk.type === 'FORM'
+                                chunk.binary = type === 'BINA' || type === 'FORM'
                             }
                             this.chunks[`${chunk.usage}:${resource_number}`] = chunk
                         }
