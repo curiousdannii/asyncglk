@@ -299,7 +299,7 @@ export abstract class GlkOteBase implements GlkOte {
             return
         }
         if (this.waiting_for_update) {
-            console.log('Trying to send even when waiting for input', ev)
+            console.log('Trying to send event when waiting for input', ev)
             return
         }
         this.waiting_for_update = true

@@ -262,7 +262,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected exit() {
-        throw new Error('exit not yet implemented')
+        // Try to clean up and remove any event handlers
+        this.metrics_calculator.destroy()
+        this.windows.destroy()
     }
 
     getdomcontext(): HTMLElement | undefined {

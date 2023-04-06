@@ -67,9 +67,14 @@ abstract class WindowBase {
         this.textinput = new TextInput(this as any as Window)
     }
 
-    destroy() {
-        this.frameel.remove()
+    destroy(remove_frame: boolean) {
         this.textinput.destroy()
+        if (remove_frame) {
+            this.frameel.remove()
+        }
+        else {
+            this.inputs = undefined
+        }
     }
 
     // Dummy function which is only needed for buffer windows
@@ -502,9 +507,9 @@ export class GraphicsWindow extends WindowBase {
             .catch(() => {})
     }
 
-    destroy() {
+    destroy(remove_frame: boolean) {
         this.manager.canvasResizeObserver?.unobserve(this.canvas[0])
-        super.destroy()
+        super.destroy(remove_frame)
     }
 
     onclick(ev: JQuery.ClickEvent) {
@@ -723,8 +728,17 @@ export default class Windows extends Map<number, Window> {
         }
         this.send_event = ev => glkote.send_event(ev)
 
-        $(document).on('keydown', (ev: JQuery.KeyDownEvent) => this.onkeydown(ev))
+        $(document).on('keydown', this.onkeydown)
         this.dom.gameport().on('click', () => this.onclick())
+    }
+
+    // Clean up after a GlkOte.exit() call, but don't empty the HTML
+    destroy() {
+        for (const win of this.values()) {
+            win.destroy(false)
+            this.delete(win.id)
+        }
+        $(document).off('keydown', this.onkeydown)
     }
 
     cancel_inputs(windows: protocol.InputUpdate[]) {
@@ -771,7 +785,7 @@ export default class Windows extends Map<number, Window> {
     }
 
     // On document.keypress events, redirect to a window
-    private onkeydown(ev: JQuery.KeyDownEvent) {
+    private onkeydown = (ev: JQuery.KeyDownEvent) => {
         // Don't fire on inputs or focused buffer windows
         if (!this.glkote.disabled && ev.target.nodeName !== 'input' && !(ev.target.nodeName === 'div' && $(ev.target).is('.BufferWindow:focus'))) {
             // Look first for a window with active text input, but as a fallback any buffer window
@@ -871,7 +885,7 @@ export default class Windows extends Map<number, Window> {
             }
         }
         for (const win of windowstoclose) {
-            win.destroy()
+            win.destroy(true)
             this.delete(win.id)
         }
     }

@@ -41,6 +41,7 @@ export default class Metrics {
     private metrics: protocol.NormalisedMetrics
     private loaded: Promise<void>
     private glkote: WebGlkOte
+    private observer?: ResizeObserver
 
     constructor(glkote: WebGlkOte) {
         this.glkote = glkote
@@ -58,16 +59,27 @@ export default class Metrics {
         }
 
         // Use a resize observer on #gameport, or else a resize handler on window
-        const resizehandler = () => this.on_gameport_resize()
         if (window.ResizeObserver) {
-            const gameportResizeObserver = new ResizeObserver(resizehandler)
-            gameportResizeObserver.observe(this.glkote.dom.gameport()[0])
+            this.observer = new ResizeObserver(this.on_gameport_resize)
+            this.observer.observe(this.glkote.dom.gameport()[0])
         }
         else {
-            $(window).on('resize', resizehandler)
+            $(window).on('resize', this.on_gameport_resize)
         }
         if (visualViewport) {
-            $(visualViewport).on('resize', () => this.on_visualViewport_resize())
+            $(visualViewport).on('resize', this.on_visualViewport_resize)
+        }
+    }
+
+    destroy() {
+        if (this.observer) {
+            this.observer.disconnect()
+        }
+        else {
+            $(window).off('resize', this.on_gameport_resize)
+        }
+        if (visualViewport) {
+            $(visualViewport).off('resize', this.on_visualViewport_resize)
         }
     }
 
@@ -167,7 +179,7 @@ export default class Metrics {
         }
     }, 200, {leading: false})
 
-    on_visualViewport_resize() {
+    on_visualViewport_resize = () => {
         // Don't do anything if the window is pinch zoomed
         if (is_pinch_zoomed()){
             return
