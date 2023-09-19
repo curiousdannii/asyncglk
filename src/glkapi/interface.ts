@@ -16,6 +16,8 @@ import {GlkOte} from '../glkote/common/glkote.js'
 
 import * as Const from './constants.js'
 
+type TruthyOption = boolean | number
+
 export type GlkArray = Array<number> | Uint8Array | Uint32Array
 export type GlkByteArray = Array<number> | Uint8Array
 export type GlkWordArray = Array<number> | Uint32Array
@@ -81,8 +83,8 @@ export interface GlkApiOptions {
     before_select_hook?: () => void,
     Blorb?: Blorb,
     Dialog: Dialog,
-    do_vm_autosave?: boolean,
-    exit_warning?: boolean,
+    do_vm_autosave?: TruthyOption,
+    exit_warning?: TruthyOption,
     extevent_hook?: (val: any) => void,
     GiDispa?: GiDispa,
     glk_gestalt_hook?: (sel: number, value: number, array: GlkArray | null) => number,

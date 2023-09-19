@@ -121,7 +121,7 @@ export class AsyncGlk implements Interface.GlkApi {
         else {
             throw new Error('No reference to Dialog')
         }
-        this.do_autosave = options.do_vm_autosave || false
+        this.do_autosave = !!options.do_vm_autosave
         // exit_warning
         // extevent_hook
         this.GiDispa = options.GiDispa

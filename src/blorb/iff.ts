@@ -33,7 +33,9 @@ export class IFF {
         // Parse the file
         this.type = view.getFourCC(8)
         let i = 12
-        const length = view.getUint32(4) + 8
+        // Adrift 5 Blorbs have an incorrect length, so just use the size of the buffer
+        //const length = view.getUint32(4) + 8
+        const length = data.length
         while (i < length) {
             const chunk_length = view.getUint32(i + 4)
             if (chunk_length < 0 || (chunk_length + i) > length) {

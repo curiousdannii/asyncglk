@@ -59,7 +59,7 @@ export interface ClassicSyncDialog extends ClassicDialogBase {
     /** Write a file */
     file_write(fref: FileRef, content: Uint8Array | '', raw_string?: boolean): boolean,
     /** Initialise the library */
-    init(options: DialogOptions): void,
+    init(options?: DialogOptions): void,
     streaming: false,
 }
 
