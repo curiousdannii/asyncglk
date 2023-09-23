@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {unescape} from 'lodash-es'
+
 import {FileView, utf8decoder} from '../common/misc.js'
 
 import {IFF} from './iff.js'
@@ -115,12 +117,22 @@ export class Blorb {
                         break
                     }
                     case 'IFmd': {
-                        const html = utf8decoder.decode(iff_chunk.data)
-                        // TODO: Handle this in some way that doesn't rely on jQuery.
-                        const met = $('<metadata>').html(html)
-                        const bibels = met.find('bibliographic').children()
-                        for (const el of bibels) {
-                            this.metadata[el.tagName.toLowerCase()] = el.textContent!
+                        const xml = utf8decoder.decode(iff_chunk.data)
+                        // Normally parsing XML with regexes is super unwise, but the Babel spec places enough restrictions on the metadata XML that this should be safe
+                        const bibliographic = /<bibliographic>(.+)<\/bibliographic>/is.exec(xml)
+                        const entry_pattern = /<(\w+)>(.+)<\/\1>/gi
+                        const linebreak_pattern = /<br\/>/g
+                        const whitespace_pattern = /\s+/g
+                        if (bibliographic) {
+                            let result
+                            while ((result = entry_pattern.exec(bibliographic[1]))) {
+                                const tag = result[1].toLowerCase()
+                                let content = result[2].replace(whitespace_pattern, ' ')
+                                if (tag === 'description') {
+                                    content = content.replace(linebreak_pattern, '\n')
+                                }
+                                this.metadata[tag] = unescape(content)
+                            }
                         }
                         break
                     }
