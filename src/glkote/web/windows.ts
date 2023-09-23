@@ -302,11 +302,11 @@ abstract class TextualWindow extends WindowBase {
     /** Refresh styles after a cleared window */
     refresh_styles(bg?: string, fg?: string) {
         let styles_need_refreshing
-        if (typeof bg !== undefined && bg !== this.bg) {
+        if (typeof bg !== 'undefined' && bg !== this.bg) {
             this.bg = bg
             styles_need_refreshing = 1
         }
-        if (typeof fg !== undefined && fg !== this.fg) {
+        if (typeof fg !== 'undefined' && fg !== this.fg) {
             this.fg = fg
             styles_need_refreshing = 1
         }
