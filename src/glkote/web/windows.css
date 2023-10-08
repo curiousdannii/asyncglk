@@ -75,6 +75,10 @@ https://github.com/curiousdannii/asyncglk
     display: flex;
     flex-wrap: wrap;
 }
+/* But flexbox turns inline children into inline-block, so we must now remove their padding (just like for .monospace) */
+.BufferLine:last-child span {
+    padding: 0;
+}
 
 /* Buffer window image classes */
 .FlowBreak {

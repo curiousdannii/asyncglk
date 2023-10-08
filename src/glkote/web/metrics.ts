@@ -103,8 +103,9 @@ export default class Metrics {
         create('span', 'Style_normal').text('12345678').appendTo(line)
 
         const bufwin = create('div', 'WindowFrame BufferWindow')
-        const bufline1 = line.clone().addClass('BufferLine').appendTo(bufwin)
-        const bufline2 = line.clone().addClass('BufferLine').appendTo(bufwin)
+        const bufinnerwin = create('div', 'BufferWindowInner').appendTo(bufwin)
+        const bufline1 = line.clone().addClass('BufferLine').appendTo(bufinnerwin)
+        const bufline2 = line.clone().addClass('BufferLine').appendTo(bufinnerwin)
         create('span', 'InvisibleCursor').appendTo(bufline2)
         const bufspan = bufline1.children('span')
         layout_test_pane.append(bufwin)
