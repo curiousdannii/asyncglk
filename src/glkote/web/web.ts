@@ -22,10 +22,6 @@ import Windows, {GraphicsWindow} from './windows.js'
 interface AutosaveState {
     graphics_bg?: Array<[number, string]>,
     history?: Array<string>,
-    metrics?: {
-        height: number,
-        width: number,
-    },
     transcript_recorder_session?: string,
 }
 
@@ -161,16 +157,13 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             }
         }
 
-        if (data.metrics && (data.metrics.height !== this.current_metrics.height || data.metrics.width !== this.current_metrics.width)) {
-            // Force a resize event
-            this.current_metrics.width += 2
-            this.metrics_calculator.on_gameport_resize()
-        }
-
         if (data.transcript_recorder_session && this.transcript_recorder) {
             this.transcript_recorder.session = data.transcript_recorder_session
             console.log(`Resuming autosaved transcript recording session: ${data.transcript_recorder_session}`)
         }
+
+        // Always send a rearrange event after autorestoring
+        setTimeout(() => this.send_event({type: 'arrange'}), 0)
     }
 
     protected cancel_inputs(windows: protocol.InputUpdate[]) {
@@ -312,10 +305,6 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         return {
             graphics_bg,
             history: this.windows.history,
-            metrics: {
-                height: this.current_metrics.height,
-                width: this.current_metrics.width,
-            },
             transcript_recorder_session: this.transcript_recorder?.session,
         }
     }
