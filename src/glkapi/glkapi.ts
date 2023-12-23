@@ -188,8 +188,12 @@ export class AsyncGlk implements Interface.GlkApi {
         return !!(this.GlkOte && this.VM)
     }
 
-    restore_allstate(_state: any) {}
-    save_allstate() {}
+    restore_allstate(_state: any) {
+        throw new Error('Autosaves not yet supported')
+    }
+    save_allstate() {
+        throw new Error('Autosaves not yet supported')
+    }
 
     update() {
         const state: Protocol.StateUpdate = {

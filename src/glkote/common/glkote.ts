@@ -13,6 +13,7 @@ import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 import {Dialog} from '../../dialog/common/interface.js'
+import {GlkApi} from '../../glkapi/interface.js'
 
 export interface GlkOte {
     classname: string,
@@ -43,7 +44,7 @@ export interface GlkOteOptions {
     errorcontent?: string,
     errorpane?: string,
     gameport?: string,
-    Glk?: any,
+    Glk?: GlkApi,
     loadingpane?: string,
     max_buffer_length?: number,
     /** Cookie name to opt out of transcript recording. Default: `transcript_recording_opt_out` */
