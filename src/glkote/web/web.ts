@@ -94,7 +94,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 this.windows.blorb = options.Blorb
             }
 
-            // The windport is required to already exist
+            // The windowport is required to already exist
             const windowport = this.dom.windowport()
             if (!windowport.length) {
                 throw new Error(`Cannot find windowport element #${this.dom.windowport_id}`)
@@ -103,12 +103,20 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
 
             $(document).on('scroll', this.on_document_scroll)
 
+            // Augment the viewport meta tag
+            // Rather than requiring all users to update their HTML we will add new properties here
+            // The properties we want are initial-scale, minimum-scale, width, and the new interactive-widget
+            // See https://developer.chrome.com/blog/viewport-resize-behavior
+            let viewport_meta_tag_content = 'initial-scale=1,interactive-widget=resizes-content,minimum-scale=1,width=device-width'
+
             // Prevent iOS from zooming in when focusing input, but allow Android to still pinch zoom
             // As they handle the maximum-scale viewport meta option differently, we will conditionally add it only in iOS
             // Idea from https://stackoverflow.com/a/62750441/2854284
             if (/iPhone OS/i.test(navigator.userAgent)) {
-                (document.head.querySelector('meta[name="viewport"]')! as HTMLMetaElement).content = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1'
+                viewport_meta_tag_content += ',maximum-scale=1'
             }
+
+            (document.head.querySelector('meta[name="viewport"]')! as HTMLMetaElement).content = viewport_meta_tag_content
 
             await this.metrics_calculator.measure()
 
