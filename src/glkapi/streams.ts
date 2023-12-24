@@ -281,7 +281,7 @@ export class WindowStream extends StreamBase {
         }
         this.write_count += buf.length
         this.win.put_string(String.fromCodePoint(...buf))
-        this.win.echo_str?.put_buffer(buf, uni)
+        this.win.echostr?.put_buffer(buf, uni)
     }
 
     put_char(ch: number) {
@@ -290,7 +290,7 @@ export class WindowStream extends StreamBase {
         }
         this.write_count++
         this.win.put_string(String.fromCodePoint(ch))
-        this.win.echo_str?.put_char(ch)
+        this.win.echostr?.put_char(ch)
     }
 
     put_string(str: string, style?: string) {
@@ -299,27 +299,27 @@ export class WindowStream extends StreamBase {
         }
         this.write_count += [...str].length
         this.win.put_string(str, style)
-        this.win.echo_str?.put_string(str, style)
+        this.win.echostr?.put_string(str, style)
     }
 
     set_css(name: string, val?: string | number) {
         this.win.set_css(name, val)
-        if (this.win.echo_str?.type === 'window') {
-            this.win.echo_str.set_css(name, val)
+        if (this.win.echostr?.type === 'window') {
+            this.win.echostr.set_css(name, val)
         }
     }
 
     set_hyperlink(val: number) {
         this.win.set_hyperlink(val)
-        if (this.win.echo_str?.type === 'window') {
-            this.win.echo_str.set_hyperlink(val)
+        if (this.win.echostr?.type === 'window') {
+            this.win.echostr.set_hyperlink(val)
         }
     }
 
     set_style(style: string) {
         this.win.set_style(style)
-        if (this.win.echo_str?.type === 'window') {
-            this.win.echo_str.set_style(style)
+        if (this.win.echostr?.type === 'window') {
+            this.win.echostr.set_style(style)
         }
     }
 }

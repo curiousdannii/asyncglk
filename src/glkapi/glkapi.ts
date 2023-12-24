@@ -937,7 +937,7 @@ export class AsyncGlk implements Interface.GlkApi {
     }
 
     glk_set_window(win?: Window) {
-        this.current_stream = win ? win.stream : null
+        this.current_stream = win ? win.str : null
     }
 
     glk_sound_load_hint(_sound: number, _load: number) {}
@@ -1129,7 +1129,7 @@ export class AsyncGlk implements Interface.GlkApi {
             throw new Error('Invalid Window')
         }
 
-        win.stream.close(stats)
+        win.str.close(stats)
 
         if (win === this.root_window) {
             // Close the root window, which means all windows
@@ -1224,7 +1224,7 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!win) {
             throw new Error('Invalid Window')
         }
-        return win.echo_str
+        return win.echostr
     }
 
     glk_window_get_parent(win: Window): Window | null {
@@ -1291,7 +1291,7 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!win) {
             throw new Error('Invalid Window')
         }
-        return win.stream
+        return win.str
     }
 
     glk_window_get_type(win: Window): number {
@@ -1480,7 +1480,7 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!win) {
             throw new Error('Invalid Window')
         }
-        win.echo_str = stream
+        win.echostr = stream
     }
 
     garglk_set_reversevideo(val: number) {
@@ -1755,8 +1755,8 @@ export class AsyncGlk implements Interface.GlkApi {
         // I'm going to echo first
         if (win.request_echo_line_input) {
             win.put_string(input + '\n', 'input')
-            if (win.echo_str) {
-                win.echo_str.put_string(input + '\n', 'input')
+            if (win.echostr) {
+                win.echostr.put_string(input + '\n', 'input')
             }
         }
 
@@ -1928,7 +1928,7 @@ export class AsyncGlk implements Interface.GlkApi {
             win.disprock = this.disprock_counter++
         }
         win.input.id = win.disprock
-        this.register_stream(win.stream)
+        this.register_stream(win.str)
     }
 
     private remove_window(win: Window, recurse: boolean) {
@@ -1949,8 +1949,8 @@ export class AsyncGlk implements Interface.GlkApi {
             win.key = null
         }
 
-        this.unregister_stream(win.stream)
-        win.echo_str = null
+        this.unregister_stream(win.str)
+        win.echostr = null
         win.parent = null
 
         this.GiDispa?.class_unregister('window', win)

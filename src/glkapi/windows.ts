@@ -32,6 +32,7 @@ export interface WindowUpdate {
 }
 
 abstract class WindowBase implements GlkWindow {
+    // TODO: Make most of these private?
     box: WindowBox = {
         bottom: 0,
         left: 0,
@@ -39,7 +40,7 @@ abstract class WindowBase implements GlkWindow {
         top: 0,
     }
     disprock = 0
-    echo_str: Stream | null = null
+    echostr: Stream | null = null
     input: InputUpdate = {
         id: 0,
     }
@@ -47,13 +48,13 @@ abstract class WindowBase implements GlkWindow {
     parent: PairWindow | null = null
     prev: Window | null = null
     rock: number
-    stream: WindowStream
+    str: WindowStream
     abstract type: WindowTypes
     abstract typenum: number
 
     constructor(rock: number) {
         this.rock = rock
-        this.stream = new WindowStream(this as Window)
+        this.str = new WindowStream(this as Window)
     }
 
     clear() {}
