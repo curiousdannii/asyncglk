@@ -27,7 +27,9 @@ export class TextInput {
     constructor(window: Window) {
         this.window = window
 
-        this.el = $('<input>', {
+        // We use a textarea rather than an input because mobile Chrome shows an extra bar which can't be removed
+        // See https://github.com/curiousdannii/asyncglk/issues/30
+        this.el = $('<textarea>', {
             'aria-hidden': 'true',
             autocapitalize: 'off',
             blur: () => this.onblur(),
@@ -41,7 +43,7 @@ export class TextInput {
                 keydown: (ev: JQuery.KeyDownEvent) => this.onkeydown(ev),
                 keypress: (ev: JQuery.KeyPressEvent) => this.onkeypress(ev),
             },
-            type: 'text',
+            rows: 1,
         })
             .prop('disabled', true)
             .appendTo(window.frameel)
