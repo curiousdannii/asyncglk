@@ -3,7 +3,7 @@
 GlkOte core styles
 ==================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -39,6 +39,11 @@ https://github.com/curiousdannii/asyncglk
     src: local("Times News Roman"), local("Liberation Serif");
     ascent-override: 91.7%;
     descent-override: 21.9%;
+}
+
+/* The position of #gameport must be controlled from without, but the overflow behaviour is ours. */
+div#gameport {
+    overflow: clip;
 }
 
 #windowport {

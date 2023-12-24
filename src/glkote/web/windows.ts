@@ -3,7 +3,7 @@
 GlkOte windows
 ==============
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -324,9 +324,10 @@ const inline_alignment_classes: Record<string, string> = {
     marginright: 'ImageMarginRight',
 }
 
-class BufferWindow extends TextualWindow {
+export class BufferWindow extends TextualWindow {
     type = 'buffer' as const
     innerel: JQuery<HTMLElement>
+    private is_scrolled_down = true
     lastline?: JQuery<HTMLElement>
     updatescrolltop = 0
     visibleheight: number
@@ -338,6 +339,7 @@ class BufferWindow extends TextualWindow {
             role: 'log',
             tabindex: -1,
         })
+            .on('scroll', this.onscroll)
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
             .appendTo(this.frameel)
@@ -360,6 +362,19 @@ class BufferWindow extends TextualWindow {
             }
             this.textinput.el.trigger('focus')
             return false
+        }
+    }
+
+    // When the frame element is scrolled, update whether it's scrolled to the bottom
+    private onscroll = () => {
+        const frameel = this.frameel[0]
+        this.is_scrolled_down = frameel.scrollHeight - frameel.scrollTop - frameel.clientHeight < 1
+    }
+
+    // Scroll to the bottom, unless `after_metrics_change` is set, in which case only scroll if we *should* be at the bottom (used after updating metrics)
+    scroll_to_bottom(after_metrics_change?: boolean) {
+        if (!after_metrics_change || this.is_scrolled_down) {
+            this.frameel.scrollTop(this.innerel.height()!)
         }
     }
 
@@ -875,7 +890,10 @@ export default class Windows extends Map<number, Window> {
                 top: update.top,
                 width: update.width,
             })
-            win.measure_height()
+            if (win.type === 'buffer') {
+                win.measure_height()
+                win.scroll_to_bottom(true)
+            }
         }
 
         const windowstoclose: Window[] = []

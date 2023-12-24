@@ -3,7 +3,7 @@
 GlkOte input handlers
 =====================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -14,7 +14,7 @@ import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCRE
 import * as protocol from '../../common/protocol.js'
 
 import {is_pinch_zoomed} from './shared.js'
-import {Window, apply_text_run_styles} from './windows.js'
+import {apply_text_run_styles, BufferWindow, Window} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
 
@@ -60,7 +60,7 @@ export class TextInput {
     private onfocus() {
         // Ensure a buffer window is scrolled down
         if (this.window.type === 'buffer' && !is_pinch_zoomed()) {
-            this.window.frameel.scrollTop(this.window.innerel.height()!)
+            this.scroll_to_bottom()
         }
         // Scroll the browser window over the next 600ms
         scroll_window()
@@ -197,6 +197,10 @@ export class TextInput {
         if (!this.el.parent().is(inputparent)) {
             this.el.appendTo(inputparent)
         }
+    }
+
+    private scroll_to_bottom = () => {
+        (this.window as BufferWindow).scroll_to_bottom()
     }
 
     private submit_char(val: string) {

@@ -3,7 +3,7 @@
 Metrics and resize handlers
 ===========================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -15,7 +15,6 @@ import * as protocol from '../../common/protocol.js'
 
 import {create, is_pinch_zoomed} from './shared.js'
 import WebGlkOte from './web.js'
-import {Window} from './windows.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
     return {
@@ -204,12 +203,6 @@ export default class Metrics {
 
         // Safari might have scrolled weirdly, so try to put it right
         window.scrollTo(0, 0)
-        if (input_is_active) {
-            const window: Window = $(document.activeElement!).data('window')
-            if (window && window.type === 'buffer') {
-                window.frameel.scrollTop(window.innerel.height()!)
-            }
-        }
 
         // Measure and send the new metrics
         this.on_gameport_resize()

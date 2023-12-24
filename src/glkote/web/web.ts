@@ -3,7 +3,7 @@
 Web GlkOte implementation
 =========================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2023 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -155,7 +155,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         for (const win of this.windows.values()) {
             // Scroll all buffer windows
             if (win.type === 'buffer') {
-                win.frameel.scrollTop(win.innerel.height()!)
+                win.scroll_to_bottom()
             }
         }
 
