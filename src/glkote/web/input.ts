@@ -14,7 +14,7 @@ import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCRE
 import * as protocol from '../../common/protocol.js'
 
 import {is_pinch_zoomed} from './shared.js'
-import {apply_text_run_styles, BufferWindow, Window} from './windows.js'
+import {apply_text_run_styles, Window} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
 
@@ -32,12 +32,12 @@ export class TextInput {
         this.el = $('<textarea>', {
             'aria-hidden': 'true',
             autocapitalize: 'off',
-            blur: () => this.onblur(),
             class: 'Input',
             data: {
                 window,
             },
             on: {
+                blur: () => this.onblur(),
                 focus: () => this.onfocus(),
                 input: (ev: any) => this.oninput(ev),
                 keydown: (ev: JQuery.KeyDownEvent) => this.onkeydown(ev),
@@ -60,7 +60,7 @@ export class TextInput {
     private onfocus() {
         // Ensure a buffer window is scrolled down
         if (this.window.type === 'buffer' && !is_pinch_zoomed()) {
-            this.scroll_to_bottom()
+            this.window.scroll_to_bottom()
         }
         // Scroll the browser window over the next 600ms
         scroll_window()
@@ -170,7 +170,7 @@ export class TextInput {
     refocus() {
         if (this.window.type === 'buffer') {
             const updateheight = this.window.innerel.outerHeight()! - this.window.updatescrolltop
-            if (updateheight > this.window.visibleheight) {
+            if (updateheight > this.window.height_above_keyboard) {
                 return
             }
         }
@@ -191,16 +191,11 @@ export class TextInput {
                 top: '',
                 width: '',
             })
-            .prop('disabled', true)
             .val('')
         const inputparent = this.window.type === 'buffer' ? this.window.innerel : this.window.frameel
         if (!this.el.parent().is(inputparent)) {
             this.el.appendTo(inputparent)
         }
-    }
-
-    private scroll_to_bottom = () => {
-        (this.window as BufferWindow).scroll_to_bottom()
     }
 
     private submit_char(val: string) {

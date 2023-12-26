@@ -76,7 +76,7 @@ export type EventFunc = (event: Partial<protocol.Event>) => void
 /** If we can determine that the browser is currently pinch zoomed */
 export function is_pinch_zoomed() {
     if (visualViewport) {
-        return visualViewport.scale !== 1
+        return (visualViewport.scale - 1) > 0.001
     }
     return false
 }

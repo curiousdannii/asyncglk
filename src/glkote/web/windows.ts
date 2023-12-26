@@ -99,10 +99,6 @@ abstract class WindowBase {
         ev.window = this.id
         this.manager.send_event(ev)
     }
-
-    update_textinput() {
-        this.textinput.update()
-    }
 }
 
 // Apply text run styles, accounting for reverse mode
@@ -326,11 +322,12 @@ const inline_alignment_classes: Record<string, string> = {
 
 export class BufferWindow extends TextualWindow {
     type = 'buffer' as const
+    /** How much height is available with the keyboard active */
+    height_above_keyboard: number
     innerel: JQuery<HTMLElement>
     private is_scrolled_down = true
     lastline?: JQuery<HTMLElement>
     updatescrolltop = 0
-    visibleheight: number
 
     constructor(options: WindowConstructorOptions) {
         super(options)
@@ -343,18 +340,18 @@ export class BufferWindow extends TextualWindow {
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
             .appendTo(this.frameel)
-        this.visibleheight = this.frameel.height()!
+        this.height_above_keyboard = this.frameel.height()!
     }
 
     /** Measure the height of the window that is currently visible (excluding virtual keyboards for example) */
     measure_height() {
-        this.visibleheight = this.frameel.height()!
+        this.height_above_keyboard = this.frameel.height()!
     }
 
     protected onclick(_: JQuery.ClickEvent) {
         if (this.inputs?.type && no_text_selected()) {
             // Check that we've scrolled to the bottom (if there is actually text in this window)
-            if (this.lastline && this.visibleheight) {
+            if (this.lastline && this.height_above_keyboard) {
                 const rect = this.lastline[0].getBoundingClientRect()
                 if (rect.bottom < 0 || rect.top > document.documentElement.clientHeight) {
                     return false
@@ -375,12 +372,14 @@ export class BufferWindow extends TextualWindow {
     scroll_to_bottom(after_metrics_change?: boolean) {
         if (!after_metrics_change || this.is_scrolled_down) {
             this.frameel.scrollTop(this.innerel.height()!)
+            this.is_scrolled_down = true
         }
     }
 
     update(data: protocol.BufferWindowContentUpdate) {
         if (data.clear) {
             this.innerel.children('.BufferLine').remove()
+            this.is_scrolled_down = true
             this.lastline = undefined
             this.last_run_styles = undefined
             this.refresh_styles(data.bg, data.fg)
@@ -767,8 +766,8 @@ export default class Windows extends Map<number, Window> {
             if (!update && win.inputs) {
                 if (win.textinput.el.is(':focus')) {
                     this.active_window = win
-                    win.textinput.el.trigger('blur')
                 }
+                win.textinput.el.prop('disabled', true)
                 delete win.inputs
             }
         }
@@ -891,7 +890,6 @@ export default class Windows extends Map<number, Window> {
                 width: update.width,
             })
             if (win.type === 'buffer') {
-                win.measure_height()
                 win.scroll_to_bottom(true)
             }
         }
@@ -941,7 +939,7 @@ export default class Windows extends Map<number, Window> {
             win.inputs = update
             if (update.type){
                 if (update.gen !== oldgen) {
-                    win.update_textinput()
+                    win.textinput.update()
                 }
             }
         }
