@@ -378,6 +378,8 @@ export class BufferWindow extends TextualWindow {
 
     update(data: protocol.BufferWindowContentUpdate) {
         if (data.clear) {
+            // Reset the text input before removing the window's buffer lines so that it won't be detached from the document (which would then remove its event handlers)
+            this.textinput.reset()
             this.innerel.children('.BufferLine').remove()
             this.is_scrolled_down = true
             this.lastline = undefined
