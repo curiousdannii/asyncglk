@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {cloneDeep} from 'lodash-es'
+
 import {BufferWindowImage, ContentUpdate, GraphicsWindowOperation, InputUpdate, TextRun, WindowStyles, WindowUpdate as SizeUpdate} from '../common/protocol.js'
 
 import {winmethod_Above, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_Right, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid} from './constants.js'
@@ -109,7 +111,7 @@ export abstract class TextWindow extends WindowBase {
 
     constructor(rock: number, stylehints: WindowStyles) {
         super(rock)
-        this.stylehints = stylehints
+        this.stylehints = cloneDeep(stylehints)
     }
 
     update(): WindowUpdate {

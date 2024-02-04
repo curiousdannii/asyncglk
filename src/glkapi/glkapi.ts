@@ -354,14 +354,14 @@ export class AsyncGlk implements Interface.GlkApi {
         if (!win) {
             throw new Error('Invalid Window')
         }
-        if (win.input.type !== 'line' || (win.type !== 'buffer' && win.type !== 'grid')) {
+        if (win.input.type !== 'line') {
             if (ev) {
                 set_event(ev)
             }
             return
         }
 
-        this.handle_line_input(win, this.partial_inputs?.[win.disprock] ?? '', ev)
+        this.handle_line_input(win as TextWindow, this.partial_inputs?.[win.disprock] ?? '', ev)
     }
 
     glk_cancel_mouse_event(win: Window) {
@@ -1071,7 +1071,7 @@ export class AsyncGlk implements Interface.GlkApi {
             stylevalue = (1 + value * 0.1) + 'em'
         }
         if (hint === stylehint_Weight) {
-            stylevalue = weights[value]
+            stylevalue = weights[value + 1]
         }
         if (hint === stylehint_Oblique) {
             stylevalue = value ? 'italic' : 'normal'
