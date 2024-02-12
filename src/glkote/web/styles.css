@@ -3,49 +3,49 @@
 GlkOte Glk styles
 ====================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
 
-span.Style_normal {}
+.Style_normal {}
 
-span.Style_emphasized {
+.Style_emphasized {
     font-style: italic;
 }
 
-.BufferWindow span.Style_preformatted {
+.BufferWindow .Style_preformatted {
     display: inline-block;
     font-family: var(--glkote-mono-family);
     padding: 0;
 }
 
-span.Style_header {
+.Style_header {
     font-weight: bold;
 }
 
-.BufferWindow span.Style_header {
+.BufferWindow .Style_header {
     font-size: 1.13333em; /* 17px when using the default 15px buffer window text size */
 }
 
-span.Style_subheader {
+.Style_subheader {
     font-weight: bold;
 }
 
-span.Style_alert {
+.Style_alert {
     font-weight: bold;
 }
 
-span.Style_note {
+.Style_note {
     font-style: italic;
 }
 
-div.Style_blockquote {
+.Style_blockquote_par {
     margin: 0 2em;
 }
 
-span.Style_input {
+.Style_input {
     font-weight: bold;
     color: var(--glkote-input-fg);
 }

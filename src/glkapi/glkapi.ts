@@ -3,7 +3,7 @@
 GlkApi
 ======
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -25,7 +25,7 @@ import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, ev
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
-import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, KEY_NAMES_TO_CODES, STYLE_NAMES, TERMINATOR_KEYS, TERMINATOR_KEYS_TO_CODES} from './lib_constants.js'
+import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, KEY_NAMES_TO_CODES, MAX_LATIN1, QUESTION_MARK, STYLE_NAMES, TERMINATOR_KEYS, TERMINATOR_KEYS_TO_CODES} from './lib_constants.js'
 import {ArrayBackedStream, FileStream, NullStream, Stream} from './streams.js'
 import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
 
@@ -525,7 +525,7 @@ export class AsyncGlk implements Interface.GlkApi {
 
         switch (sel) {
             case gestalt_Version:
-                return 0x00000704
+                return 0x00000705
             case gestalt_CharInput:
                 // Known special keys can be returned
                 if (val <= keycode_Left && val >= keycode_Func12) {
@@ -552,6 +552,7 @@ export class AsyncGlk implements Interface.GlkApi {
             case gestalt_LineTerminatorKey:
                 return +(val === keycode_Escape || (val >= keycode_Func12 && val <= keycode_Func1))
             // These are dependent on what GlkOte tells us it supports
+            // TODO: check all of these
             case gestalt_DrawImage:
                 return +((val === wintype_Graphics || val === wintype_TextBuffer) && this.support.includes('graphics'))
             case gestalt_GarglkText:
@@ -918,14 +919,16 @@ export class AsyncGlk implements Interface.GlkApi {
         }
     }
 
-    glk_set_terminators_line_event(win: Window, keycodes: GlkArray) {
+    glk_set_terminators_line_event(win: Window, keycodes: GlkArray | null) {
         if (!win) {
             throw new Error('Invalid Window')
         }
         const terminators: TerminatorCode[] = []
-        for (const code of keycodes) {
-            if (TERMINATOR_KEYS[code]) {
-                terminators.push(TERMINATOR_KEYS[code])
+        if (keycodes) {
+            for (const code of keycodes) {
+                if (TERMINATOR_KEYS[code]) {
+                    terminators.push(TERMINATOR_KEYS[code])
+                }
             }
         }
         if (terminators.length) {
@@ -1023,7 +1026,7 @@ export class AsyncGlk implements Interface.GlkApi {
     }
 
     glk_stylehint_clear(wintype: number, style: number, hint: number) {
-        const selector = `${hint <= stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
+        const selector = `.Style_${STYLE_NAMES[style]}${hint <= stylehint_Justification ? '_par' : ''}`
         function remove_style(styles: WindowStyles) {
             if (styles[selector]) {
                 delete styles[selector][CSS_STYLE_PROPERTIES[hint]]
@@ -1056,7 +1059,7 @@ export class AsyncGlk implements Interface.GlkApi {
         }
 
         const stylehints = wintype === wintype_TextBuffer ? this.stylehints.buffer : this.stylehints.grid
-        const selector = `${hint <= stylehint_Justification ? 'div' : 'span'}.Style_${STYLE_NAMES[style]}`
+        const selector = `.Style_${STYLE_NAMES[style]}${hint <= stylehint_Justification ? '_par' : ''}`
         const justifications = ['left', 'justify', 'center', 'right']
         const weights = ['lighter', 'normal', 'bold']
         let stylevalue: string | number | undefined
@@ -1573,8 +1576,8 @@ export class AsyncGlk implements Interface.GlkApi {
                 type = evtype_CharInput
                 if (ev.value.length === 1) {
                     val1 = ev.value.codePointAt(0)!
-                    if (!(win as TextWindow).uni_input) {
-                        val1 = val1 & 0xFF
+                    if (!(win as TextWindow).uni_input && val1 > MAX_LATIN1) {
+                        val1 = QUESTION_MARK
                     }
                 }
                 else {
@@ -1585,6 +1588,7 @@ export class AsyncGlk implements Interface.GlkApi {
                 if (!win?.input.hyperlink) {
                     return
                 }
+                delete win.input.hyperlink
                 type = evtype_Hyperlink
                 val1 = ev.value
                 break
@@ -1600,6 +1604,7 @@ export class AsyncGlk implements Interface.GlkApi {
                 if (!win?.input.mouse) {
                     return
                 }
+                delete win.input.mouse
                 type = evtype_MouseInput
                 val1 = ev.x
                 val2 = ev.y

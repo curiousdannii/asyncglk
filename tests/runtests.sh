@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 cd "$(dirname "$0")"
 
@@ -8,35 +8,54 @@ fi
 
 # The default 1 second timeout is just on the threshhold of being too short, so just bump them up to a standard 10 seconds to be safe
 
-echo 'Quixe'
-python regtest.py -i "./quixe.js" -t 10 glulxercise.ulx.regtest
-echo 'ZVM'
-python regtest.py -i "./zvm.js" -t 10 praxix.z5.regtest
-python regtest.py -i "./zvm.js --rem=1" -r -t 10 advent.z5.regtest
+FAILURES=0
+
+run_test() {
+    python regtest.py -i "./quixe.js --rem=1" -r -t ${2:-10} $1 || ((FAILURES++))
+}
+
+echo 'Quixe tests'
+echo ' glulxercise'
+run_test glulxercise.ulx.regtest
+# TODO: fix save
+#echo ' advent'
+#run_test advent.ulx.regtest
+#rm adventtest
+echo 'ZVM tests'
+echo ' praxix'
+python regtest.py -i "./zvm.js" -t 10 praxix.z5.regtest || ((FAILURES++))
+echo ' advent'
+python regtest.py -i "./zvm.js --rem=1" -r -t 10 advent.z5.regtest || ((FAILURES++))
 rm adventtest
 
 echo 'Glk tests'
 echo ' datetimetest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 datetimetest.ulx.regtest
+run_test datetimetest.ulx.regtest
 echo ' extbinaryfile'
-python regtest.py -i "./quixe.js --rem=1" -t 10 extbinaryfile.ulx.regtest
+run_test extbinaryfile.ulx.regtest
 echo ' externalfile'
-python regtest.py -i "./quixe.js --rem=1" -t 10 externalfile.ulx.regtest
+run_test externalfile.ulx.regtest
 echo ' graphwintest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 graphwintest.gblorb.regtest
+# TODO: support refresh
+run_test graphwintest.gblorb.regtest
 echo ' imagetest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 imagetest.gblorb.regtest
+# TODO: support refresh
+run_test imagetest.gblorb.regtest
 echo ' inputeventtest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 inputeventtest.ulx.regtest
+run_test inputeventtest.ulx.regtest
+echo ' inputfeaturetest'
+run_test inputfeaturetest.ulx.regtest
 echo ' memstreamtest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 memstreamtest.ulx.regtest
+run_test memstreamtest.ulx.regtest
 echo ' resstreamtest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 resstreamtest.gblorb.regtest
+run_test resstreamtest.gblorb.regtest
 echo ' startsavetest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 startsavetest.gblorb.regtest
+run_test startsavetest.gblorb.regtest
 echo ' unicasetest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 unicasetest.ulx.regtest
+run_test unicasetest.ulx.regtest
 echo ' unicodetest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 unicodetest.ulx.regtest
+run_test unicodetest.ulx.regtest
 echo ' windowtest'
-python regtest.py -i "./quixe.js --rem=1" -t 10 windowtest.ulx.regtest
+run_test windowtest.ulx.regtest
+
+exit $FAILURES

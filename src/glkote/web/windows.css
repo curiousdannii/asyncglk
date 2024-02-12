@@ -59,7 +59,7 @@ https://github.com/curiousdannii/asyncglk
     padding: 0;
 }
 
-.BufferLine span.Style_preformatted.proportional {
+.BufferLine .Style_preformatted.proportional {
     display: inline;
     font-family: var(--glkote-prop-family);
     padding: var(--glkote-prop-half-leading) 0;

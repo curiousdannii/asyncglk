@@ -206,13 +206,13 @@ abstract class TextualWindow extends WindowBase {
 
             // Copy styles for the <input>
             // May not play nice with reverse
-            if (styles[`${windowid} span.Style_input`]) {
-                styles[`${windowid} .LineInput`] = styles[`${windowid} span.Style_input`]
+            if (styles[`${windowid} .Style_input`]) {
+                styles[`${windowid} .LineInput`] = styles[`${windowid} .Style_input`]
             }
         }
 
         // Set window background colour, for normal and reverse mode
-        const normal_styles = styles[`${windowid} span.Style_normal`]
+        const normal_styles = styles[`${windowid} .Style_normal`]
         const bg = this.bg || normal_styles?.['background-color']
         const fg = this.fg || normal_styles?.color
         if (bg || fg) {
@@ -241,7 +241,7 @@ abstract class TextualWindow extends WindowBase {
     create_text_run(run: protocol.TextRun, split_words?: boolean): JQuery<HTMLElement> {
         const run_style = run.style
         // Is this run or this style monospace mode?
-        const monospace_val = run.css_styles?.monospace ?? this.styles?.[`span.Style_${run_style}`]?.monospace
+        const monospace_val = run.css_styles?.monospace ?? this.styles?.[`.Style_${run_style}`]?.monospace
         let monospace_class = ''
         // Only add the class if we're changing the default font-family for this style
         if (typeof monospace_val !== 'undefined') {
@@ -255,7 +255,7 @@ abstract class TextualWindow extends WindowBase {
             }
         }
         // Is this run or this style reverse mode?
-        const reverse = run.css_styles?.reverse ?? this.styles?.[`span.Style_${run_style}`]?.reverse
+        const reverse = run.css_styles?.reverse ?? this.styles?.[`.Style_${run_style}`]?.reverse
         // Create a template span and apply classes and styles
         const el = create('span', `Style_${run_style}${reverse ? ' reverse' : ''}${monospace_class}`)
         if (run.css_styles) {
@@ -461,7 +461,7 @@ export class BufferWindow extends TextualWindow {
                 }
                 if (!line_has_style) {
                     line_has_style = 1
-                    divel.addClass(`Style_${run.style}`)
+                    divel.addClass(`Style_${run.style}_par`)
                 }
                 divel.append(this.create_text_run(run, line_index === data.text.length ? true : undefined))
                 // Store the last text run for setting styles in the input
