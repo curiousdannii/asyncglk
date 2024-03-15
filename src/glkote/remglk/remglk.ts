@@ -25,6 +25,8 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         this.stdin = process.stdin
         this.stdout = process.stdout
 
+        // Pause stdin because with `init` being an async function the data event handler won't be attached in time to catch the init event
+        this.stdin.pause()
         if (this.stdin.isTTY) {
             this.stdin.setRawMode(true)
         }
@@ -64,6 +66,7 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
                 }
             }
         })
+        this.stdin.resume()
 
         this.is_inited = true
     }
