@@ -3,7 +3,7 @@
 Generic GlkOte implementation
 =============================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
-import {Dialog} from '../../dialog/common/interface.js'
+import {Dialog, filetype_to_extension} from '../../dialog/common/interface.js'
 import {GlkApi} from '../../glkapi/interface.js'
 
 export interface GlkOte {
@@ -272,7 +272,14 @@ export abstract class GlkOteBase implements GlkOte {
                     setTimeout(() => replyfunc(null), 0)
                 }
                 else {
-                    this.Dialog.open(data.filemode !== 'read', data.filetype, data.gameid, replyfunc)
+                    if (this.Dialog.async) {
+                        this.Dialog.prompt(filetype_to_extension(data.filetype), data.filemode !== 'read').then(filename => {
+                            replyfunc(filename ? {filename} : null)
+                        })
+                    }
+                    else {
+                        this.Dialog.open(data.filemode !== 'read', data.filetype, data.gameid, replyfunc)
+                    }
                 }
             }
             catch (ex) {

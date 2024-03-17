@@ -48,6 +48,7 @@ export class FileBuffer {
 
 /** A Dialog class that wraps another Dialog instance, caching files so that they can be written asyncronously */
 export class CachingDialogWrapper implements ClassicSyncDialog {
+    'async' = false as const
     private cache: Record<string, FileBuffer> = {}
     classname = 'CachingDialogWrapper'
     private Dialog: ClassicSyncDialog | ClassicStreamingDialog

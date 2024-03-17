@@ -33,6 +33,7 @@ import {
 } from '../../glkapi/constants.js'
 
 export default abstract class NodeStreamingDialog implements ClassicStreamingDialog {
+    'async' = false as const
     abstract classname: string
     private extfilepath: string
     private GlkOte?: GlkOte

@@ -3,19 +3,24 @@
 Dialog interfaces
 =================
 
-Copyright (c) 2022 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
-import {FileRef} from '../../common/protocol.js'
+import {FileRef, FileType} from '../../common/protocol.js'
 
 import {GlkOte} from '../../glkote/common/glkote.js'
 
-export type Dialog = ClassicSyncDialog | ClassicStreamingDialog
+export type Dialog = AsyncDialog | ClassicSyncDialog | ClassicStreamingDialog
 
 export type AutosaveData = {
     ram?: Array<number> | Uint8Array,
+}
+
+export interface DialogDirectories {
+    temp: string
+    working: string
 }
 
 export interface DialogOptions {
@@ -23,7 +28,26 @@ export interface DialogOptions {
     GlkOte: GlkOte,
 }
 
+export interface AsyncDialog {
+    async: true
+    /** Delete a file */
+    delete(path: string): void
+    /** Check if a file exists */
+    exists(path: string): Promise<boolean>
+    /** Get directories */
+    get_dirs(): DialogDirectories
+    /** Initialise the library */
+    init(options: DialogOptions): Promise<void>
+    /** Prompt the user for a filename */
+    prompt(extension: string, save: boolean): Promise<string | null>
+    /** Read a file */
+    read(path: string): Promise<Uint8Array | null>
+    /** Write a file */
+    write(path: string, data: Uint8Array): void
+}
+
 interface ClassicDialogBase {
+    async: false
     /** Clear an autosave */
     autosave_clear?(): Promise<void>,
     /** Read an autosave */
@@ -96,6 +120,21 @@ export interface ClassicFileStream {
      * given, that many bytes are written; the buffer must be at least len
      * bytes long. Return the number of bytes written. */
     fwrite(buf: Uint8Array, len?: number): number,
+}
+
+/** File extensions for Glk file types */
+export function filetype_to_extension(filetype: FileType): string {
+    switch (filetype) {
+        case 'command':
+        case 'transcript':
+            return 'txt'
+        case 'data':
+            return 'glkdata'
+        case 'save':
+            return 'glksave'
+        default:
+            return 'glkdata'
+    }
 }
 
 /** Construct a file-filter list for a given usage type. */

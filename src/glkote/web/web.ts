@@ -217,10 +217,13 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         }
 
         // If autorestoring, add a link to restart after clearing the autosave
-        if (this.autorestoring && this.Dialog?.autosave_clear) {
+        // TODO: fix for AsyncDialog
+        if (this.autorestoring && !this.Dialog?.async && this.Dialog?.autosave_clear) {
             const link = $('<a>', {
                 click: async () => {
-                    await this.Dialog!.autosave_clear!()
+                    if (!this.Dialog!.async) {
+                        await this.Dialog!.autosave_clear!()
+                    }
                     location.reload()
                 },
                 text: 'Clear autosave and restart',

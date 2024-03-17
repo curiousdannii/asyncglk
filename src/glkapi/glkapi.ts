@@ -115,7 +115,8 @@ export class AsyncGlk implements Interface.GlkApi {
     init(options: GlkApiOptions) {
         this.before_select_hook = options.before_select_hook
         this.Blorb = options.Blorb
-        if (options.Dialog) {
+        if (options.Dialog && !options.Dialog.async) {
+            // This synchronous GlkApi doesn't support AsyncDialog
             this.Dialog = new CachingDialogWrapper(options.Dialog)
         }
         else {

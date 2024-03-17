@@ -3,7 +3,7 @@
 AsyncGlk exports
 ================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -17,8 +17,8 @@ export * as constants from './common/constants.js'
 export {FileView} from './common/misc.js'
 export * as protocol from './common/protocol.js'
 
-export type {AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogOptions} from './dialog/common/interface.js'
-export {filters_for_usage} from './dialog/common/interface.js'
+export type {AsyncDialog, AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogDirectories, DialogOptions} from './dialog/common/interface.js'
+export {filetype_to_extension, filters_for_usage} from './dialog/common/interface.js'
 
 export type {GiDispa, GlkApi, GlkApiAsync, GlkApiOptions, GlkClassName, GlkFref, GlkObject, GlkSchannel, GlkStream, GlkVM, GlkWindow} from './glkapi/interface.js'
 export {AsyncGlk, RefBox, RefStruct} from './glkapi/glkapi.js'
