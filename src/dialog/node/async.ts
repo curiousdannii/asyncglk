@@ -19,10 +19,18 @@ import {get_stdio, HackableReadline} from '../../glkote/cheap/stdio.js'
 
 export class CheapAsyncDialog implements AsyncDialog {
     'async' = true as const
+    private dirs: DialogDirectories
     private rl: HackableReadline
     private stdout: MuteStream
 
     constructor() {
+        const cwd = process.cwd()
+        this.dirs = {
+            storyfile: cwd,
+            temp: os.tmpdir(),
+            working: cwd,
+        }
+
         const cheap_stdio = get_stdio()
         this.rl = cheap_stdio.rl
         this.stdout = cheap_stdio.stdout
@@ -49,11 +57,8 @@ export class CheapAsyncDialog implements AsyncDialog {
         }
     }
 
-    get_dirs(): DialogDirectories {
-        return {
-            temp: os.tmpdir(),
-            working: process.cwd(),
-        }
+    get_dirs() {
+        return this.dirs
     }
 
     prompt(extension: string, _save: boolean): Promise<string | null> {
@@ -72,6 +77,12 @@ export class CheapAsyncDialog implements AsyncDialog {
         catch (ex) {
             return null
         }
+    }
+
+    set_storyfile_dir(path: string) {
+        this.dirs.storyfile = path
+        this.dirs.working = path
+        return this.dirs
     }
 
     write(path: string, data: Uint8Array) {

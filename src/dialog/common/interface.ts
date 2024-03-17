@@ -19,6 +19,7 @@ export type AutosaveData = {
 }
 
 export interface DialogDirectories {
+    storyfile: string
     temp: string
     working: string
 }
@@ -42,6 +43,8 @@ export interface AsyncDialog {
     prompt(extension: string, save: boolean): Promise<string | null>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
+    /** Set storyfile directory and return directories */
+    set_storyfile_dir(path: string): DialogDirectories
     /** Write a file */
     write(path: string, data: Uint8Array): void
 }
