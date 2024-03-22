@@ -8,7 +8,7 @@ MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
-import {FileRef, FileType} from '../../common/protocol.js'
+import {FileRef} from '../../common/protocol.js'
 
 import {GlkOte} from '../../glkote/common/glkote.js'
 
@@ -16,12 +16,6 @@ export type Dialog = AsyncDialog | ClassicSyncDialog | ClassicStreamingDialog
 
 export type AutosaveData = {
     ram?: Array<number> | Uint8Array,
-}
-
-export interface DialogDirectories {
-    storyfile: string
-    temp: string
-    working: string
 }
 
 export interface DialogOptions {
@@ -44,9 +38,16 @@ export interface AsyncDialog {
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
     /** Set storyfile directory and return directories */
-    set_storyfile_dir(path: string): DialogDirectories
+    set_storyfile_dir(path: string): Partial<DialogDirectories>
     /** Write a file */
     write(path: string, data: Uint8Array): void
+}
+
+export interface DialogDirectories {
+    storyfile: string
+    system_cwd: string
+    temp: string
+    working: string
 }
 
 interface ClassicDialogBase {
@@ -123,35 +124,4 @@ export interface ClassicFileStream {
      * given, that many bytes are written; the buffer must be at least len
      * bytes long. Return the number of bytes written. */
     fwrite(buf: Uint8Array, len?: number): number,
-}
-
-/** File extensions for Glk file types */
-export function filetype_to_extension(filetype: FileType): string {
-    switch (filetype) {
-        case 'command':
-        case 'transcript':
-            return 'txt'
-        case 'data':
-            return 'glkdata'
-        case 'save':
-            return 'glksave'
-        default:
-            return 'glkdata'
-    }
-}
-
-/** Construct a file-filter list for a given usage type. */
-export function filters_for_usage(usage: string | null) {
-    switch (usage) {
-        case 'data': 
-            return [ { name: 'Glk Data File', extensions: ['glkdata'] } ]
-        case 'save': 
-            return [ { name: 'Glk Save File', extensions: ['glksave'] } ]
-        case 'transcript': 
-            return [ { name: 'Transcript File', extensions: ['txt'] } ]
-        case 'command': 
-            return [ { name: 'Command File', extensions: ['txt'] } ]
-        default:
-            return []
-    }
 }

@@ -14,23 +14,16 @@ import fs_async from 'fs/promises'
 import MuteStream from 'mute-stream'
 import os from 'os'
 
-import {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
+import {path_native_to_posix, path_posix_to_native} from '../common/common.js'
+import {AsyncDialog, DialogOptions} from '../common/interface.js'
 import {get_stdio, HackableReadline} from '../../glkote/cheap/stdio.js'
 
 export class CheapAsyncDialog implements AsyncDialog {
     'async' = true as const
-    private dirs: DialogDirectories
     private rl: HackableReadline
     private stdout: MuteStream
 
     constructor() {
-        const cwd = process.cwd()
-        this.dirs = {
-            storyfile: cwd,
-            temp: os.tmpdir(),
-            working: cwd,
-        }
-
         const cheap_stdio = get_stdio()
         this.rl = cheap_stdio.rl
         this.stdout = cheap_stdio.stdout
@@ -42,14 +35,14 @@ export class CheapAsyncDialog implements AsyncDialog {
 
     delete(path: string) {
         try {
-            fs.unlinkSync(path)
+            fs.unlinkSync(path_posix_to_native(path))
         }
         catch (_) {}
     }
 
     async exists(path: string) {
         try {
-            await fs_async.access(path, fs.constants.F_OK)
+            await fs_async.access(path_posix_to_native(path), fs.constants.F_OK)
             return true
         }
         catch (ex) {
@@ -58,7 +51,13 @@ export class CheapAsyncDialog implements AsyncDialog {
     }
 
     get_dirs() {
-        return this.dirs
+        const cwd = path_native_to_posix(process.cwd())
+        return {
+            storyfile: cwd,
+            system_cwd: cwd,
+            temp: path_native_to_posix(os.tmpdir()),
+            working: cwd,
+        }
     }
 
     prompt(extension: string, _save: boolean): Promise<string | null> {
@@ -70,22 +69,19 @@ export class CheapAsyncDialog implements AsyncDialog {
         })
     }
 
-    async read(path: string): Promise<Uint8Array | null> {
-        try {
-            return fs_async.readFile(path)
-        }
-        catch (ex) {
-            return null
-        }
+    read(path: string): Promise<Uint8Array | null> {
+        return fs_async.readFile(path_posix_to_native(path))
+            .catch(() => null)
     }
 
     set_storyfile_dir(path: string) {
-        this.dirs.storyfile = path
-        this.dirs.working = path
-        return this.dirs
+        return {
+            storyfile: path,
+            working: path,
+        }
     }
 
     write(path: string, data: Uint8Array) {
-        fs.writeFileSync(path, data, {flush: true})
+        fs.writeFileSync(path_posix_to_native(path), data, {flush: true})
     }
 }

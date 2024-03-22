@@ -14,7 +14,8 @@ import os from 'os'
 
 import {FileRef} from '../../common/protocol.js'
 
-import {ClassicStreamingDialog, filters_for_usage} from '../common/interface.js'
+import {filters_for_usage} from '../common/common.js'
+import {ClassicStreamingDialog} from '../common/interface.js'
 import NodeStreamingDialog from './node-streaming.js'
 import {get_stdio, HackableReadline} from '../../glkote/cheap/stdio.js'
 

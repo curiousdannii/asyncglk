@@ -9,7 +9,6 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import ansiEscapes from 'ansi-escapes'
 import MuteStream from 'mute-stream'
 import * as readline from 'readline'
 import * as TTY from 'tty'
@@ -17,6 +16,15 @@ import * as TTY from 'tty'
 import {get_stdio, HackableReadline} from './stdio.js'
 import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
+
+// Ansi escapes
+// From https://github.com/sindresorhus/ansi-escapes/blob/main/index.js
+const isTerminalApp = process.env.TERM_PROGRAM === 'Apple_Terminal'
+const ESC = '\u001B['
+const cursorRestorePosition = isTerminalApp ? '\u001B8' : ESC + 'u'
+const cursorSavePosition = isTerminalApp ? '\u001B7' : ESC + 's'
+const eraseEndLine = ESC + 'K'
+const scrollDown = ESC + 'T'
 
 const KEY_REPLACEMENTS: Record<string, string> = {
     '\x7F': 'delete',
@@ -131,7 +139,7 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
     private handle_line_input(line: string) {
         if (this.current_input_type === 'line') {
             if (this.stdout.isTTY) {
-                this.stdout.write(ansiEscapes.scrollDown + ansiEscapes.cursorRestorePosition + ansiEscapes.eraseEndLine)
+                this.stdout.write(scrollDown + cursorRestorePosition + eraseEndLine)
             }
             this.current_input_type = null
             this.detach_handlers()
@@ -177,7 +185,7 @@ export default class CheapGlkOte extends GlkOte.GlkOteBase implements GlkOte.Glk
 
             if (windows[0].type === 'line') {
                 if (this.stdout.isTTY) {
-                    this.stdout.write(ansiEscapes.cursorSavePosition)
+                    this.stdout.write(cursorSavePosition)
                 }
                 this.current_input_type = 'line'
             }
