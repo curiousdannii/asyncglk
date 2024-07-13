@@ -8,8 +8,8 @@ MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
-import {FileRef} from '../../common/protocol.js'
 
+import {FileRef} from '../../common/protocol.js'
 import {GlkOte} from '../../glkote/common/glkote.js'
 
 export type Dialog = AsyncDialog | ClassicSyncDialog | ClassicStreamingDialog
@@ -34,6 +34,7 @@ export interface AsyncDialog {
     /** Initialise the library */
     init(options: DialogOptions): Promise<void>
     /** Prompt the user for a filename */
+    // TODO: support multiple extensions
     prompt(extension: string, save: boolean): Promise<string | null>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
