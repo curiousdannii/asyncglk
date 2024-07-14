@@ -31,6 +31,17 @@ export interface DirEntry {
     name: string
 }
 
+export interface FileData {
+    accessed: number
+    created: number
+    etag?: string
+    data: Uint8Array
+    'last-modified'?: string
+    modified: number
+    path_prefix: string
+    story_id?: string
+}
+
 export class NullProvider implements Provider {
     next: Provider = this
     async delete(_path: string) {

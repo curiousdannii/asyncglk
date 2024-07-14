@@ -13,6 +13,7 @@
   ],
   "type": "module",
   "dependencies": {
+    "base32768": "^3.0.1",
     "lodash-es": "^4.17.21",
     "mute-stream": "1.0.0"
   },

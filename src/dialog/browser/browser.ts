@@ -12,6 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
 import {DownloadOptions, DownloadProvider, ProgressCallback} from './download.js'
 import {Provider} from './interface.js'
+import {WebStorageProvider} from './storage.js'
 
 export class BrowserDialog implements AsyncDialog {
     'async' = true as const
@@ -26,8 +27,11 @@ export class BrowserDialog implements AsyncDialog {
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
         this.downloader = new DownloadProvider(options)
+        // TODO: ensure that localStorage is wrapped in a try/catch in case it's disabled
         this.providers = [
             this.downloader,
+            new WebStorageProvider('/tmp', sessionStorage),
+            new WebStorageProvider('/', localStorage),
         ]
 
         for (const [i, provider] of this.providers.entries()) {
@@ -47,7 +51,7 @@ export class BrowserDialog implements AsyncDialog {
     }
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
-        throw new Error('Method not implemented.')
+        return prompt('Filename')
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {
@@ -59,7 +63,7 @@ export class BrowserDialog implements AsyncDialog {
     }
 
     async exists(path: string): Promise<boolean> {
-        return (await this.providers[0].exists(path))!
+        return !!(await this.providers[0].exists(path))
     }
 
     async read(path: string): Promise<Uint8Array | null> {
