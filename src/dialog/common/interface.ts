@@ -45,9 +45,13 @@ export interface AsyncDialog {
 }
 
 export interface DialogDirectories {
+    /** The storyfile directory, used by `garglk_add_resource_from_file` */
     storyfile: string
+    /** The system current working directory, used by `glkunix_stream_open_pathname` */
     system_cwd: string
+    /** Temp folder */
     temp: string
+    /** The Glk "current directory", used by `glk_fileref_create_by_name`/`glk_fileref_create_by_prompt` */
     working: string
 }
 

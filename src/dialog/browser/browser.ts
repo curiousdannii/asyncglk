@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import path from 'path-browserify-esm'
+
 import type {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
 import {type DownloadOptions, DownloadProvider, type ProgressCallback} from './download.js'
 import type {Provider} from './interface.js'
@@ -20,7 +22,7 @@ export class BrowserDialog implements AsyncDialog {
     private dialog: DialogUI | undefined
     private dirs: DialogDirectories = {
         storyfile: '',
-        system_cwd: '/usr',
+        system_cwd: '/',
         temp: '/tmp',
         working: '/usr',
     }
@@ -48,7 +50,11 @@ export class BrowserDialog implements AsyncDialog {
     }
 
     async download(url: string, progress_callback?: ProgressCallback): Promise<string> {
-        return this.downloader!.download(url, progress_callback)
+        const file_path = await this.downloader!.download(url, progress_callback)
+        const parsed_path = path.parse(file_path)
+        this.dirs.storyfile = parsed_path.dir
+        this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
+        return file_path
     }
 
     get_dirs(): DialogDirectories {
@@ -57,13 +63,17 @@ export class BrowserDialog implements AsyncDialog {
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
         const dir_browser = await this.providers[0].browse()
-        return this.dialog!.prompt({
-            dir: '/usr',
+        const result = await this.dialog!.prompt({
+            dir: this.dirs.working,
             dir_browser,
             save,
             submit_label: save ? 'Save' : 'Restore',
             title: 'Filename',
         })
+        if (result) {
+            this.dirs.working = path.parse(result).dir
+        }
+        return result
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {

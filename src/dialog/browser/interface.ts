@@ -27,7 +27,7 @@ export interface Provider {
 
 /** Browse a directory; may cache all the files or request each time you change directory */
 export interface DirBrowser {
-    browse(path: string): Promise<DirEntry[]>
+    browse(path: string, filter?: string[]): Promise<DirEntry[]>
 }
 
 export interface DirEntry {

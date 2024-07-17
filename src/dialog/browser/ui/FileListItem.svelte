@@ -8,33 +8,52 @@
     export let data: DirEntry
     export let file_index: number
     export let selected: boolean = false
-    //export let selecting: boolean
 
-    const select_file = (event: MouseEvent) => {
-        const target = (event.target as HTMLElement)
-        dispatch('file_selected', file_index)
-        selected = true
+    function file_icon(filename: string) {
+        if (filename.endsWith('.glksave') || filename.endsWith('.sav')) {
+            return '🖫'
+        }
+        else if (filename.endsWith('.txt')) {
+            return '🗎'
+        }
+        return '🗋'
+    }
+
+    const on_doubleclick = () => {
+        dispatch('file_doubleclicked', data)
+    }
+    const on_select_file = () => {
+        if (!data.dir) {
+            dispatch('file_selected', file_index)
+            selected = true
+        }
     }
 </script>
 
 <style>
     button {
-        background: none;
-        border: 0;
-        display: block;
-        font-size: inherit;
+        display: flex;
         width: 100%;
     }
 
     :global(.selecting) button.selected {
         background: #cee0f2;
     }
+
+    .name {
+        flex: 1;
+        text-align: left;
+    }
 </style>
 
 <button
     aria-selected="{selected}"
+    class="flat"
     class:selected
-    data-fullpath={data.full_path}
-    on:click={select_file}
+    on:click={on_select_file}
+    on:dblclick|preventDefault|stopPropagation ={on_doubleclick}
     role="option"
->{data.name}</button>
+>
+    <div class="icon" aria-hidden="true">{data.dir ? '📁' : file_icon(data.name)}</div>
+    <div class="name">{data.name}</div>
+</button>

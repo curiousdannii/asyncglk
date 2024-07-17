@@ -11,13 +11,14 @@
 </script>
 
 <script lang="ts">
+    import DirTree from './DirTree.svelte'
     import FileList from './FileList.svelte'
 
     let chosen_fullpath: string | undefined
-    let cur_dir: string
     let cur_direntry: DirEntry[] = []
     let dialog: HTMLDialogElement
     let dir_browser: DirBrowser
+    let dir_tree: string[] = ['usr']
     let file_list: FileList
     let filename_input: HTMLInputElement
     let promise: Promise<string | null>
@@ -34,19 +35,35 @@
     }
 
     export async function prompt(opts: PromptOptions): Promise<string | null> {
-        cur_dir = opts.dir
         dir_browser = opts.dir_browser
+        dir_tree = opts.dir.substring(1).split('/')
         saving = opts.save
         submit_label = opts.submit_label
         title = opts.title
-        cur_direntry = (await dir_browser.browse(cur_dir)).sort((a, b) => a.name.localeCompare(b.name))
+        await update_direntry(opts.dir)
         promise = new Promise((resolve) => promise_resolve = resolve)
         file_list.clear()
         dialog.showModal()
         if (saving) {
             filename_input.focus()
+            filename_input.value = ''
         }
         return promise
+    }
+
+    async function update_direntry(path: string) {
+        cur_direntry = (await dir_browser.browse(path)).sort((a, b) => {
+            if (a.dir !== b.dir) {
+                return +b.dir - +a.dir
+            }
+            return a.name.localeCompare(b.name)
+        })
+    }
+
+    async function on_change_dir(ev: CustomEvent) {
+        const path: string = ev.detail
+        await update_direntry(path)
+        dir_tree = path.substring(1).split('/')
     }
 
     function on_close() {
@@ -54,10 +71,28 @@
         promise_resolve(null)
     }
 
+    function on_create_input(node: HTMLInputElement) {
+        filename_input = node
+    }
+
+    async function on_file_doubleclicked(ev: CustomEvent) {
+        const data: DirEntry = ev.detail
+        if (data.dir) {
+            await update_direntry(data.full_path)
+            dir_tree.push(data.name)
+            dir_tree = dir_tree
+        }
+        else {
+            dialog.close()
+            promise_resolve(data.full_path)
+        }
+    }
+
     function on_submit() {
         dialog.close()
         if (saving) {
-            promise_resolve(filename_input.value || null)
+            const filename = filename_input.value.trim()
+            promise_resolve(filename ? '/' + dir_tree.join('/') + '/' + filename : null)
         }
         else {
             promise_resolve(chosen_fullpath || null)
@@ -72,6 +107,7 @@
         font-family: sans-serif;
         max-height: 500px;
         max-width: 700px;
+        user-select: none;
         width: 100%;
     }
 
@@ -84,6 +120,10 @@
         flex-direction: column;
         height: 100%;
         width: 100%;
+    }
+
+    .inner > :global(div) {
+        padding: 5px 0;
     }
 
     .head .close {
@@ -100,20 +140,29 @@
     }
 </style>
 
-<dialog bind:this={dialog} class:selecting={!saving} on:close={on_close}>
+<dialog bind:this={dialog}
+    class:selecting={!saving}
+    on:close={on_close}
+>
     <div class="inner">
         <div class="head">
             <h1>{title}</h1>
             <button class="close" aria-label="Close" on:click={on_close}>✖</button>
         </div>
+        <DirTree
+            dir_tree={dir_tree}
+            on:change_dir={on_change_dir}
+        />
         <FileList bind:this={file_list}
             bind:chosen_fullpath={chosen_fullpath}
             bind:selected_filename={selected_filename}
             files={cur_direntry}
+            on:file_doubleclicked={on_file_doubleclicked}
         />
         {#if saving}
             <div class="filename">
-                <input bind:this={filename_input}>
+                <label for="filename_input">File name:</label>
+                <input id="filename_input" use:on_create_input>
             </div>
         {/if}
         <div class="foot">

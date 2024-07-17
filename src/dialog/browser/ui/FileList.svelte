@@ -14,10 +14,11 @@
             selected_item.$set({selected: false})
         }
         chosen_fullpath = undefined
+        selected_filename = undefined
         selected_item = undefined
     }
 
-    function handleFileSelected(ev: CustomEvent) {
+    function on_file_selected(ev: CustomEvent) {
         const file_metadata = files[ev.detail]
         const new_item = file_elems[ev.detail]
         if (selected_item && selected_item !== new_item) {
@@ -32,17 +33,19 @@
 </script>
 
 <style>
-    .filelist {
+    div {
         flex: 1;
+        overflow-y: scroll;
     }
 </style>
 
-<div class="filelist" role="listbox">
+<div role="listbox">
     {#each files as file, i}
         <FileListItem bind:this={file_elems[i]}
             data={file}
             file_index={i}
-            on:file_selected={handleFileSelected}
+            on:file_doubleclicked
+            on:file_selected={on_file_selected}
         />
     {/each}
 </div>

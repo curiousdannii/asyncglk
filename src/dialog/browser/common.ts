@@ -54,23 +54,7 @@ export class CachingDirBrowser implements DirBrowser {
         for (const [file_path, meta] of Object.entries(files)) {
             if (file_path.startsWith('/usr/')) {
                 const parsed_path = path.parse(file_path)
-                const dirs = parsed_path.dir.substring(1).split('/')
-                dirs.shift()
-                // Find the directory for this file, creating it if necessary
-                let dir_entry = this.files
-                for (const subdir of dirs) {
-                    let new_subdir = dir_entry.children!.find(child => child.name === subdir)
-                    if (!new_subdir) {
-                        new_subdir = {
-                            children: [],
-                            dir: true,
-                            full_path: dir_entry.full_path + '/' + subdir,
-                            name: subdir,
-                        }
-                        dir_entry.children!.push(new_subdir)
-                    }
-                    dir_entry = new_subdir
-                }
+                const dir_entry = this.cd(parsed_path.dir)
                 dir_entry.children!.push({
                     dir: false,
                     full_path: file_path,
@@ -81,20 +65,30 @@ export class CachingDirBrowser implements DirBrowser {
         }
     }
 
-    async browse(dir_path: string): Promise<DirEntry[]> {
+    async browse(dir_path: string, _filter?: string[]): Promise<DirEntry[]> {
         if (!dir_path.startsWith('/usr')) {
             throw new Error('Can only browse /usr')
         }
-        const parsed_path = path.parse(dir_path)
-        const dirs = parsed_path.dir.substring(1).split('/')
+        return this.cd(dir_path).children!
+    }
+
+    private cd(path: string): NestableDirEntry {
+        const dirs = path.substring(1).split('/')
         dirs.shift()
         let dir_entry = this.files
         for (const subdir of dirs) {
-            dir_entry = dir_entry.children!.find(child => child.name === subdir)!
-            if (!dir_entry) {
-                throw new Error('Invalid directory state')
+            let new_subdir = dir_entry.children!.find(child => child.name === subdir)!
+            if (!new_subdir) {
+                new_subdir = {
+                    children: [],
+                    dir: true,
+                    full_path: dir_entry.full_path + '/' + subdir,
+                    name: subdir,
+                }
+                dir_entry.children!.push(new_subdir)
             }
+            dir_entry = new_subdir
         }
-        return dir_entry.children!
+        return dir_entry
     }
 }
