@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {FileType} from '../../common/protocol.js'
+import type {FileType} from '../../common/protocol.js'
 
 /** File extensions for Glk file types */
 export function filetype_to_extension(filetype: FileType): string {

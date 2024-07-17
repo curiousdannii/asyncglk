@@ -10,9 +10,9 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import {Blorb} from '../blorb/blorb.js'
-import {FileRef} from '../common/protocol.js'
-import {Dialog} from '../dialog/common/interface.js'
-import {GlkOte} from '../glkote/common/glkote.js'
+import type {FileRef} from '../common/protocol.js'
+import type {Dialog} from '../dialog/common/interface.js'
+import type {GlkOte} from '../glkote/common/glkote.js'
 
 import * as Const from './constants.js'
 

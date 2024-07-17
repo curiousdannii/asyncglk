@@ -9,12 +9,12 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {GlkTypedArray} from '../common/misc.js'
-import {FileRef as DialogFileRef} from '../common/protocol.js'
+import type {GlkTypedArray} from '../common/misc.js'
+import type {FileRef as DialogFileRef} from '../common/protocol.js'
 import {CachingDialogWrapper, FileBuffer} from '../dialog/common/cache.js'
 
 import {fileusage_TextMode} from './constants.js'
-import {GlkFref} from './interface.js'
+import type {GlkFref} from './interface.js'
 
 export class FileRef implements GlkFref {
     binary: boolean

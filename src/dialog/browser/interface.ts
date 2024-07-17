@@ -10,53 +10,38 @@ https://github.com/curiousdannii/asyncglk
 */
 
 /** A provider handles part of the filesystem, and can cascade down to another provider for files it doesn't handle */
-// Inspired by Koa
 export interface Provider {
     /** A link to the next provider */
     next: Provider
+    /** Get a `DirBrowser` instance for browsing */
+    browse(): Promise<DirBrowser>
     /** Delete a file */
     delete(path: string): Promise<void | null>
     /** Check if a file exists */
     exists(path: string): Promise<boolean | null>
-    /** Directory listing */
-    list(path: string): Promise<DirEntry[] | null>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
     /** Write a file */
     write(path: string, data: Uint8Array): Promise<void | null>
 }
 
+/** Browse a directory; may cache all the files or request each time you change directory */
+export interface DirBrowser {
+    browse(path: string): Promise<DirEntry[]>
+}
+
 export interface DirEntry {
     dir: boolean
+    full_path: string
     name: string
+    meta?: FileData
 }
 
 export interface FileData {
-    accessed: number
-    created: number
+    atime: number
     etag?: string
-    data: Uint8Array
     'last-modified'?: string
-    modified: number
-    path_prefix: string
+    mtime: number
+    path_prefix?: string
     story_id?: string
-}
-
-export class NullProvider implements Provider {
-    next: Provider = this
-    async delete(_path: string) {
-        return null
-    }
-    async exists(_path: string) {
-        return null
-    }
-    async list(_path: string) {
-        return null
-    }
-    async read(_path: string) {
-        return null
-    }
-    async write(_path: string, _data: Uint8Array) {
-        return null
-    }
 }

@@ -9,13 +9,13 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {GlkTypedArray, is_unicode_array} from '../common/misc.js'
+import {type GlkTypedArray, is_unicode_array} from '../common/misc.js'
 
 import {filemode_Write, seekmode_Current, seekmode_End} from './constants.js'
 import {FileRef} from './filerefs.js'
-import {GlkArray, GlkStream, RefStructArg} from './interface.js'
+import type {GlkArray, GlkStream, RefStructArg} from './interface.js'
 import {GLK_NULL, MAX_LATIN1, QUESTION_MARK} from './lib_constants.js'
-import {Window} from './windows.js'
+import type {Window} from './windows.js'
 
 export type Stream = ArrayBackedStream | FileStream | NullStream | WindowStream
 type StreamType = 'array' | 'null' | 'window'

@@ -13,8 +13,8 @@ import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 import {filetype_to_extension} from '../../dialog/common/common.js'
-import {Dialog} from '../../dialog/common/interface.js'
-import {GlkApi} from '../../glkapi/interface.js'
+import type {Dialog} from '../../dialog/common/interface.js'
+import type {GlkApi} from '../../glkapi/interface.js'
 
 export interface GlkOte {
     classname: string,

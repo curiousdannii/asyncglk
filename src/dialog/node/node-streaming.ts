@@ -15,9 +15,9 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
-import {FileRef} from '../../common/protocol.js'
-import {GlkOte} from '../../glkote/common/glkote.js'
-import {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions} from '../common/interface.js'
+import type {FileRef} from '../../common/protocol.js'
+import type {GlkOte} from '../../glkote/common/glkote.js'
+import type {AutosaveData, ClassicFileStream, ClassicStreamingDialog, DialogOptions} from '../common/interface.js'
 
 import {
     filemode_Read,

@@ -16,7 +16,7 @@ import {NBSP} from '../../common/constants.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM, EventFunc, is_pinch_zoomed} from './shared.js'
+import {create, DOM, type EventFunc, is_pinch_zoomed} from './shared.js'
 import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow

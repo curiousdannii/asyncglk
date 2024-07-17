@@ -14,7 +14,7 @@ import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCRE
 import * as protocol from '../../common/protocol.js'
 
 import {is_pinch_zoomed} from './shared.js'
-import {apply_text_run_styles, Window} from './windows.js'
+import {apply_text_run_styles, type Window} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
 

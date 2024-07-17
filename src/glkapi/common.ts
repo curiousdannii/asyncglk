@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {GlkTypedArray} from '../common/misc.js'
+import type {GlkTypedArray} from '../common/misc.js'
 
 export function copy_array(source: GlkTypedArray, target: number[], length: number) {
     const copy_length = Math.min(length, target.length)

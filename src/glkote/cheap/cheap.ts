@@ -13,7 +13,7 @@ import MuteStream from 'mute-stream'
 import * as readline from 'readline'
 import * as TTY from 'tty'
 
-import {get_stdio, HackableReadline} from './stdio.js'
+import {get_stdio, type HackableReadline} from './stdio.js'
 import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 

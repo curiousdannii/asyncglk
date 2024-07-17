@@ -9,13 +9,15 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
-import {DownloadOptions, DownloadProvider, ProgressCallback} from './download.js'
-import {Provider} from './interface.js'
+import type {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
+import {type DownloadOptions, DownloadProvider, type ProgressCallback} from './download.js'
+import type {Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
+import DialogUI from './ui/Dialog.svelte'
 
 export class BrowserDialog implements AsyncDialog {
     'async' = true as const
+    private dialog: DialogUI | undefined
     private dirs: DialogDirectories = {
         storyfile: '',
         system_cwd: '/usr',
@@ -26,12 +28,15 @@ export class BrowserDialog implements AsyncDialog {
     private providers: Provider[] = []
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
+        this.dialog = new DialogUI({
+            target: document.body,
+        })
         this.downloader = new DownloadProvider(options)
         // TODO: ensure that localStorage is wrapped in a try/catch in case it's disabled
         this.providers = [
             this.downloader,
             new WebStorageProvider('/tmp', sessionStorage),
-            new WebStorageProvider('/', localStorage),
+            new WebStorageProvider('/', localStorage, true),
         ]
 
         for (const [i, provider] of this.providers.entries()) {
@@ -51,7 +56,14 @@ export class BrowserDialog implements AsyncDialog {
     }
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
-        return prompt('Filename')
+        const dir_browser = await this.providers[0].browse()
+        return this.dialog!.prompt({
+            dir: '/usr',
+            dir_browser,
+            save,
+            submit_label: save ? 'Save' : 'Restore',
+            title: 'Filename',
+        })
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {

@@ -15,8 +15,8 @@ import MuteStream from 'mute-stream'
 import os from 'os'
 
 import {path_native_to_posix, path_posix_to_native} from '../common/common.js'
-import {AsyncDialog, DialogOptions} from '../common/interface.js'
-import {get_stdio, HackableReadline} from '../../glkote/cheap/stdio.js'
+import type {AsyncDialog, DialogOptions} from '../common/interface.js'
+import {get_stdio, type HackableReadline} from '../../glkote/cheap/stdio.js'
 
 export class CheapAsyncDialog implements AsyncDialog {
     'async' = true as const

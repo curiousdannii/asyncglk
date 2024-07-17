@@ -9,8 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {FileRef} from '../../common/protocol.js'
-import {GlkOte} from '../../glkote/common/glkote.js'
+import type {FileRef} from '../../common/protocol.js'
+import type {GlkOte} from '../../glkote/common/glkote.js'
 
 export type Dialog = AsyncDialog | ClassicSyncDialog | ClassicStreamingDialog
 

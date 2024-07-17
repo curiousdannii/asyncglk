@@ -10,7 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import * as protocol from '../../common/protocol.js'
-import {GlkOteOptions, TranscriptRecordingData} from '../common/glkote.js'
+import type {GlkOteOptions, TranscriptRecordingData} from '../common/glkote.js'
 
 import Windows from './windows.js'
 

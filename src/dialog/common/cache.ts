@@ -11,10 +11,10 @@ https://github.com/curiousdannii/asyncglk
 
 import {debounce} from 'lodash-es'
 
-import {Array_to_BEBuffer, GlkTypedArray, is_unicode_array, utf8encoder} from '../../common/misc.js'
-import {FileRef} from '../../common/protocol.js'
+import {Array_to_BEBuffer, type GlkTypedArray, is_unicode_array, utf8encoder} from '../../common/misc.js'
+import type {FileRef} from '../../common/protocol.js'
 import {filemode_Read, filemode_Write, seekmode_End, seekmode_Start} from '../../glkapi/constants.js'
-import {AutosaveData, ClassicSyncDialog, ClassicStreamingDialog, DialogOptions} from './interface.js'
+import type {AutosaveData, ClassicSyncDialog, ClassicStreamingDialog, DialogOptions} from './interface.js'
 
 /** A file buffer which stores its data in its preferred stream format, only converting back to a Uint8Array when required */
 export class FileBuffer {

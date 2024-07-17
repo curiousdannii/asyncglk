@@ -11,23 +11,24 @@ https://github.com/curiousdannii/asyncglk
 
 import {cloneDeep} from 'lodash-es'
 
-import {Blorb, ImageInfo} from '../blorb/blorb.js'
+import {Blorb, type ImageInfo} from '../blorb/blorb.js'
 import {DEFAULT_METRICS, PACKAGE_VERSION} from '../common/constants.js'
-import {BEBuffer_to_Array, GlkTypedArray, GlkTypedArrayConstructor, utf8decoder} from '../common/misc.js'
+import {BEBuffer_to_Array, type GlkTypedArray, type GlkTypedArrayConstructor, utf8decoder} from '../common/misc.js'
 import * as Protocol from '../common/protocol.js'
-import {BufferWindowImage, FileRef as DialogFileRef, ImageOperation, NormalisedMetrics, SpecialInput, TerminatorCode, WindowStyles} from '../common/protocol.js'
+import type {BufferWindowImage, FileRef as DialogFileRef, ImageOperation, NormalisedMetrics, SpecialInput, TerminatorCode, WindowStyles} from '../common/protocol.js'
 import {CachingDialogWrapper} from '../dialog/common/cache.js'
-import {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
+import type {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
 
-import {copy_array, TimerData} from './common.js'
+import {copy_array, type TimerData} from './common.js'
 import * as Const from './constants.js'
 import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, evtype_MouseInput, evtype_None, evtype_Redraw, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, keycode_Unknown, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
-import {DidNotReturn, GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
+import type {GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
+import {DidNotReturn} from './interface.js'
 import {CSS_STYLE_PROPERTIES, FILE_MODES, FILE_TYPES, IMAGE_ALIGNMENTS, KEY_NAMES_TO_CODES, MAX_LATIN1, QUESTION_MARK, STYLE_NAMES, TERMINATOR_KEYS, TERMINATOR_KEYS_TO_CODES} from './lib_constants.js'
-import {ArrayBackedStream, FileStream, NullStream, Stream} from './streams.js'
-import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, Window, WindowBox} from './windows.js'
+import {ArrayBackedStream, FileStream, NullStream, type Stream} from './streams.js'
+import {BlankWindow, BufferWindow, GraphicsWindow, GridWindow, PairWindow, TextWindow, type Window, type WindowBox} from './windows.js'
 
 export class RefBox implements Interface.RefBox {
     private value: RefStructValue = 0

@@ -11,7 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
-import {DirEntry, NullProvider, Provider} from './interface.js'
+import {NullProvider} from './common.js'
+import {type DirBrowser, type Provider} from './interface.js'
 import {utf8decoder} from '../../common/misc.js'
 
 export interface DownloadOptions {
@@ -41,6 +42,10 @@ export class DownloadProvider implements Provider {
         return path
     }
 
+    async browse(): Promise<DirBrowser> {
+        return this.next.browse()
+    }
+
     async delete(path: string): Promise<void | null> {
         if (this.store.has(path)) {
             this.store.delete(path)
@@ -57,10 +62,6 @@ export class DownloadProvider implements Provider {
         else {
             return this.next.exists(path)
         }
-    }
-
-    async list(path: string): Promise<DirEntry[] | null> {
-        throw new Error('Should not be browsing the download provider')
     }
 
     async read(path: string): Promise<Uint8Array | null> {
