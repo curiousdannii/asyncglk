@@ -1,9 +1,10 @@
 <script context="module" lang="ts">
+    import type {Filter} from '../browser.js'
     import type {DirBrowser, DirEntry} from '../interface.js'
 
     export interface PromptOptions {
-        dir: string
         dir_browser: DirBrowser
+        filter?: Filter
         save: boolean
         submit_label: string,
         title: string
@@ -15,12 +16,15 @@
     import FileList from './FileList.svelte'
 
     let chosen_fullpath: string | undefined
+    let cur_dir: string
     let cur_direntry: DirEntry[] = []
+    let cur_filter: string = ''
     let dialog: HTMLDialogElement
-    let dir_browser: DirBrowser
+    export let dir_browser: DirBrowser
     let dir_tree: string[] = ['usr']
     let file_list: FileList
     let filename_input: HTMLInputElement
+    let filter: Filter | undefined
     let promise: Promise<string | null>
     let promise_resolve: (res: string | null) => void
     let saving: boolean
@@ -29,41 +33,50 @@
     let title = ''
 
     $: {
-        if (saving && selected_filename) {
+        if (saving && filename_input && selected_filename) {
             filename_input.value = selected_filename
         }
     }
 
     export async function prompt(opts: PromptOptions): Promise<string | null> {
         dir_browser = opts.dir_browser
-        dir_tree = opts.dir.substring(1).split('/')
+        if (opts.filter?.extensions.join() !== filter?.extensions.join()) {
+            if (cur_filter !== '*') {
+                cur_filter = opts.filter?.extensions.join() ?? '*'
+            }
+            filter = opts.filter
+            if (!filter) {
+                cur_filter = '*'
+            }
+        }
         saving = opts.save
         submit_label = opts.submit_label
         title = opts.title
-        await update_direntry(opts.dir)
+        await update_direntry(cur_dir)
         promise = new Promise((resolve) => promise_resolve = resolve)
         file_list.clear()
         dialog.showModal()
-        if (saving) {
+        if (saving && filename_input) {
             filename_input.focus()
             filename_input.value = ''
         }
         return promise
     }
 
-    async function update_direntry(path: string) {
+    export async function update_direntry(path: string) {
+        cur_dir = path
         cur_direntry = (await dir_browser.browse(path)).sort((a, b) => {
             if (a.dir !== b.dir) {
                 return +b.dir - +a.dir
             }
             return a.name.localeCompare(b.name)
         })
+        dir_tree = path.substring(1).split('/')
     }
 
     async function on_change_dir(ev: CustomEvent) {
         const path: string = ev.detail
         await update_direntry(path)
-        dir_tree = path.substring(1).split('/')
     }
 
     function on_close() {
@@ -73,18 +86,25 @@
 
     function on_create_input(node: HTMLInputElement) {
         filename_input = node
+        filename_input.focus()
+        filename_input.value = ''
     }
 
     async function on_file_doubleclicked(ev: CustomEvent) {
         const data: DirEntry = ev.detail
         if (data.dir) {
             await update_direntry(data.full_path)
-            dir_tree.push(data.name)
-            dir_tree = dir_tree
         }
         else {
             dialog.close()
             promise_resolve(data.full_path)
+        }
+    }
+
+    function on_input_keydown(ev: KeyboardEvent) {
+        if (ev.code === 'Enter') {
+            on_submit()
+            ev.preventDefault()
         }
     }
 
@@ -135,7 +155,18 @@
         top: 10px;
     }
 
+    .filename {
+        display: flex;
+    }
+
+    #filename_input {
+        flex-grow: 1;
+        margin-left: 6px;
+    }
+
     .foot {
+        display: flex;
+        justify-content: space-between;
         text-align: right;
     }
 </style>
@@ -153,21 +184,39 @@
             dir_tree={dir_tree}
             on:change_dir={on_change_dir}
         />
-        <FileList bind:this={file_list}
-            bind:chosen_fullpath={chosen_fullpath}
-            bind:selected_filename={selected_filename}
-            files={cur_direntry}
-            on:file_doubleclicked={on_file_doubleclicked}
-        />
+        {#key cur_filter}
+            <FileList bind:this={file_list}
+                bind:chosen_fullpath={chosen_fullpath}
+                bind:selected_filename={selected_filename}
+                files={cur_direntry}
+                filter={cur_filter}
+                on:file_doubleclicked={on_file_doubleclicked}
+            />
+        {/key}
         {#if saving}
             <div class="filename">
                 <label for="filename_input">File name:</label>
-                <input id="filename_input" use:on_create_input>
+                <input id="filename_input" on:keydown={on_input_keydown} use:on_create_input>
             </div>
         {/if}
         <div class="foot">
-            <button class="close" aria-label="Cancel" on:click={on_close}>Cancel</button>
-            <button class="submit" aria-label="{submit_label}" on:click={on_submit}>{submit_label}</button>
+            <div>
+                {#if filter}
+                    <label for="dialog_filter">File type:</label>
+                    <select id="dialog_filter" bind:value={cur_filter}>
+                        {#if filter.label}
+                            <option value="{filter.extensions.join()}">{filter.label} ({filter.extensions.join(', ')})</option>
+                        {:else}
+                            <option value="{filter.extensions.join()}">{filter.extensions[0]} file</option>
+                        {/if}
+                        <option value="*">All files</option>
+                    </select>
+                {/if}
+            </div>
+            <div>
+                <button class="close" aria-label="Cancel" on:click={on_close}>Cancel</button>
+                <button class="submit" aria-label="{submit_label}" on:click={on_submit}>{submit_label}</button>
+            </div>
         </div>
     </div>
 </dialog>

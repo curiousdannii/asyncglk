@@ -16,13 +16,11 @@ export function filetype_to_extension(filetype: FileType): string {
     switch (filetype) {
         case 'command':
         case 'transcript':
-            return 'txt'
-        case 'data':
-            return 'glkdata'
+            return '.txt'
         case 'save':
-            return 'glksave'
+            return '.glksave'
         default:
-            return 'glkdata'
+            return '.glkdata'
     }
 }
 

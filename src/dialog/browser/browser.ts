@@ -30,9 +30,6 @@ export class BrowserDialog implements AsyncDialog {
     private providers: Provider[] = []
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
-        this.dialog = new DialogUI({
-            target: document.body,
-        })
         this.downloader = new DownloadProvider(options)
         // TODO: ensure that localStorage is wrapped in a try/catch in case it's disabled
         this.providers = [
@@ -47,6 +44,15 @@ export class BrowserDialog implements AsyncDialog {
                 provider.next = next
             }
         }
+
+        // Set up the Svelte UI
+        const dir_browser = await this.providers[0].browse()
+        this.dialog = new DialogUI({
+            target: document.body,
+            props: {
+                dir_browser,
+            },
+        })
     }
 
     async download(url: string, progress_callback?: ProgressCallback): Promise<string> {
@@ -54,6 +60,7 @@ export class BrowserDialog implements AsyncDialog {
         const parsed_path = path.parse(file_path)
         this.dirs.storyfile = parsed_path.dir
         this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
+        await this.dialog!.update_direntry(this.dirs.working)
         return file_path
     }
 
@@ -62,18 +69,13 @@ export class BrowserDialog implements AsyncDialog {
     }
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
-        const dir_browser = await this.providers[0].browse()
-        const result = await this.dialog!.prompt({
-            dir: this.dirs.working,
-            dir_browser,
+        return this.dialog!.prompt({
+            dir_browser: await this.providers[0].browse(),
+            filter: extension_to_filter(extension),
             save,
             submit_label: save ? 'Save' : 'Restore',
             title: 'Filename',
         })
-        if (result) {
-            this.dirs.working = path.parse(result).dir
-        }
-        return result
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {
@@ -94,5 +96,30 @@ export class BrowserDialog implements AsyncDialog {
 
     write(path: string, data: Uint8Array): void {
         this.providers[0].write(path, data)
+    }
+}
+
+export interface Filter {
+    extensions: string[]
+    label?: string
+}
+
+function extension_to_filter(extension: string): Filter | undefined {
+    switch (extension) {
+        case '.glkdata':
+            return {
+                extensions: ['.glkdata'],
+                label: 'Data file',
+            }
+        case '.glksave':
+            return {
+                extensions: ['.glksave', '.sav'],
+                label: 'Save file',
+            }
+        case '.txt':
+            return {
+                extensions: ['.txt'],
+                label: 'Transcript or log',
+            }
     }
 }
