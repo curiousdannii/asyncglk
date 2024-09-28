@@ -65,7 +65,7 @@ export class CachingDirBrowser implements DirBrowser {
         }
     }
 
-    async browse(dir_path: string, _filter?: string[]): Promise<DirEntry[]> {
+    async browse(dir_path: string): Promise<DirEntry[]> {
         if (!dir_path.startsWith('/usr')) {
             throw new Error('Can only browse /usr')
         }

@@ -3,7 +3,6 @@
 
     import FileListItem from './FileListItem.svelte'
 
-    export let chosen_fullpath: string | undefined
     let file_elems: FileListItem[] = []
     export let files: DirEntry[]
     export let filter: string
@@ -14,7 +13,6 @@
         if (selected_item) {
             selected_item.$set({selected: false})
         }
-        chosen_fullpath = undefined
         selected_filename = undefined
         selected_item = undefined
     }
@@ -39,7 +37,6 @@
             selected_item.$set({selected: false})
         }
         if (!file_metadata.dir) {
-            chosen_fullpath = file_metadata.full_path
             selected_filename = file_metadata.name
             selected_item = new_item
         }

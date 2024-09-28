@@ -15,7 +15,7 @@ import type {AsyncDialog, DialogDirectories, DialogOptions} from '../common/inte
 import {type DownloadOptions, DownloadProvider, type ProgressCallback} from './download.js'
 import type {Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
-import DialogUI from './ui/Dialog.svelte'
+import DialogUI from './ui/FileDialog.svelte'
 
 export class BrowserDialog implements AsyncDialog {
     'async' = true as const

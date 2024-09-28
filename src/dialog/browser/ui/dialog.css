@@ -14,3 +14,10 @@ button.flat {
     border: 0;
     font-size: inherit;
 }
+
+.foot {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    text-align: right;
+}
