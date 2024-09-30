@@ -12,7 +12,7 @@
 </script>
 
 <script lang="ts">
-    import AlertDialog, {AlertMode} from './AlertDialog.svelte'
+    import AlertDialog, {ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from './AlertDialog.svelte'
     import BaseDialog from './BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
     import FileList from './FileList.svelte'
@@ -107,7 +107,7 @@
     }
 
     async function on_new_folder() {
-        let new_folder_name = await alert_dialog.open(AlertMode.PROMPT, 'New folder', 'Enter new folder name')
+        let new_folder_name = await alert_dialog.open(ALERT_MODE_PROMPT, 'New folder', 'Enter new folder name')
         if (new_folder_name) {
             update_direntry(cur_dir + '/' + new_folder_name)
         }
@@ -118,7 +118,7 @@
             const filename = filename_input.value.trim()
             for (const entry of cur_direntry) {
                 if (!entry.dir && filename === entry.name) {
-                    const overwrite = await alert_dialog.open(AlertMode.CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`)
+                    const overwrite = await alert_dialog.open(ALERT_MODE_CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`)
                     if (!overwrite) {
                         return
                     }

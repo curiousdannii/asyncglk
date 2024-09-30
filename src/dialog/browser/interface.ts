@@ -9,6 +9,23 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import type {AsyncDialog} from '../common/interface.js'
+
+export type ProgressCallback = (bytes: number) => void
+
+export interface BrowserDialog extends AsyncDialog {
+    download(url: string, progress_callback?: ProgressCallback): Promise<string>
+}
+
+export interface DownloadOptions {
+    /** Domains to access directly: should always have both Access-Control-Allow-Origin and compression headers */
+    direct_domains: string[],
+    /** URL of Proxy */
+    proxy_url: string,
+    /** Disable the file proxy, which may mean that some files can't be loaded */
+    use_proxy?: boolean | number,
+}
+
 /** A provider handles part of the filesystem, and can cascade down to another provider for files it doesn't handle */
 export interface Provider {
     /** A link to the next provider */

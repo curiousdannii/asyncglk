@@ -1,9 +1,8 @@
 <script context="module" lang="ts">
-    export const enum AlertMode {
-        ALERT = 0,
-        CONFIRM = 1,
-        PROMPT = 2,
-    }
+    export const ALERT_MODE_ALERT = 0
+    export const ALERT_MODE_CONFIRM = 1
+    export const ALERT_MODE_PROMPT = 2
+    export type AlertMode = typeof ALERT_MODE_ALERT | typeof ALERT_MODE_CONFIRM | typeof ALERT_MODE_PROMPT
 </script>
 
 <script lang="ts">
@@ -43,7 +42,7 @@
     }
 
     function on_submit() {
-        if (mode === AlertMode.PROMPT) {
+        if (mode === ALERT_MODE_PROMPT) {
             const val = val_input.value.trim()
             base_dialog.resolve(val || false)
         }
@@ -63,13 +62,13 @@
 <BaseDialog bind:this={base_dialog}>
     <p>{message}</p>
     <div>
-        {#if mode === AlertMode.PROMPT}
+        {#if mode === ALERT_MODE_PROMPT}
             <input id="val_input" on:keydown={on_input_keydown} use:on_create_input>
         {/if}
     </div>
     <div class="foot">
         <div>
-            {#if mode !== AlertMode.ALERT}
+            {#if mode !== ALERT_MODE_ALERT}
                 <button class="close" on:click={on_cancel}>Cancel</button>
             {/if}
             <button class="submit" on:click={on_submit}>Ok</button>

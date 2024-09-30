@@ -11,13 +11,13 @@ https://github.com/curiousdannii/asyncglk
 
 import path from 'path-browserify-esm'
 
-import type {AsyncDialog, DialogDirectories, DialogOptions} from '../common/interface.js'
-import {type DownloadOptions, DownloadProvider, type ProgressCallback} from './download.js'
-import type {Provider} from './interface.js'
+import type {DialogDirectories, DialogOptions} from '../common/interface.js'
+import {DownloadProvider} from './download.js'
+import type {BrowserDialog, DownloadOptions, ProgressCallback, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
 import DialogUI from './ui/FileDialog.svelte'
 
-export class BrowserDialog implements AsyncDialog {
+export class ProviderBasedBrowserDialog implements BrowserDialog {
     'async' = true as const
     private dialog: DialogUI | undefined
     private dirs: DialogDirectories = {

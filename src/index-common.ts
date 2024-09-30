@@ -20,6 +20,8 @@ export * as protocol from './common/protocol.js'
 export {filetype_to_extension, filters_for_usage, path_native_to_posix, path_posix_to_native} from './dialog/common/common.js'
 export type {AsyncDialog, AutosaveData, ClassicFileStream, ClassicStreamingDialog, ClassicSyncDialog, Dialog, DialogDirectories, DialogOptions} from './dialog/common/interface.js'
 
+export type {BrowserDialog, DownloadOptions, ProgressCallback} from './dialog/browser/interface.js'
+
 export type {GiDispa, GlkApi, GlkApiAsync, GlkApiOptions, GlkClassName, GlkFref, GlkObject, GlkSchannel, GlkStream, GlkVM, GlkWindow} from './glkapi/interface.js'
 export {AsyncGlk, RefBox, RefStruct} from './glkapi/glkapi.js'
 

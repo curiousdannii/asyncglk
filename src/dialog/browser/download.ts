@@ -12,19 +12,8 @@ https://github.com/curiousdannii/asyncglk
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
 import {NullProvider} from './common.js'
-import {type DirBrowser, type Provider} from './interface.js'
+import type {DirBrowser, DownloadOptions, ProgressCallback, Provider} from './interface.js'
 import {utf8decoder} from '../../common/misc.js'
-
-export interface DownloadOptions {
-    /** Domains to access directly: should always have both Access-Control-Allow-Origin and compression headers */
-    direct_domains: string[],
-    /** URL of Proxy */
-    proxy_url: string,
-    /** Disable the file proxy, which may mean that some files can't be loaded */
-    use_proxy?: boolean | number,
-}
-
-export type ProgressCallback = (bytes: number) => void
 
 export class DownloadProvider implements Provider {
     next = new NullProvider()
