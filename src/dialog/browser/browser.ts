@@ -79,7 +79,9 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {
-        throw new Error('Method not implemented.')
+        return {
+            storyfile: path,
+        }
     }
 
     delete(path: string): void {

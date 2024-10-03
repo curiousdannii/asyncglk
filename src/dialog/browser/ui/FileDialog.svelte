@@ -147,8 +147,9 @@
     }
 </style>
 
-<BaseDialog bind:this={base_dialog}
-    extra_class={!saving ? 'selecting' : ''}
+<BaseDialog
+    bind:this={base_dialog}
+    extra_class="asyncglk_file_dialog {!saving ? 'selecting' : ''}"
     max_height=500px
     max_width=700px
 >
