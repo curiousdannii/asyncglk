@@ -11,10 +11,10 @@ https://github.com/curiousdannii/asyncglk
 
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 
-import {CachingDirBrowser, NullProvider} from './common.js'
-import type {DirBrowser, FileData, Provider} from './interface.js'
+import {DirBrowser, NullProvider} from './common.js'
+import type {Provider} from './interface.js'
 
-type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
+//type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
 
 const METADATA_KEY = 'dialog_metadata'
 
@@ -40,8 +40,8 @@ export class WebStorageProvider implements Provider {
 
     async browse(): Promise<DirBrowser> {
         if (this.browseable) {
-            const metadata = this.get_metadata()
-            return new CachingDirBrowser(metadata, this)
+            const metadata = this.metadata()
+            return new DirBrowser(metadata, this)
         }
         else {
             return this.next.browse()
@@ -65,6 +65,10 @@ export class WebStorageProvider implements Provider {
         else {
             return this.next.exists(path)
         }
+    }
+
+    metadata() {
+        return JSON.parse(this.store.getItem(METADATA_KEY) || '{}')
     }
 
     async read(path: string): Promise<Uint8Array | null> {
@@ -93,13 +97,9 @@ export class WebStorageProvider implements Provider {
         }
     }
 
-    private get_metadata(): Record<string, WebStorageFileMetadata> {
-        return JSON.parse(this.store.getItem(METADATA_KEY) || '{}')
-    }
-
     private update_metadata(path: string, op: MetadataUpdateOperation) {
         const now = Date.now()
-        const metadata = this.get_metadata()
+        const metadata = this.metadata()
         switch (op) {
             case MetadataUpdateOperation.DELETE:
                 delete metadata[path]

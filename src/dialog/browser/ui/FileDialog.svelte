@@ -1,6 +1,7 @@
 <script context="module" lang="ts">
     import type {Filter} from '../browser.js'
-    import type {DirBrowser, DirEntry} from '../interface.js'
+    import type {DirBrowser} from '../common.js'
+    import type {DirEntry} from '../interface.js'
 
     export interface PromptOptions {
         dir_browser: DirBrowser
@@ -12,11 +13,14 @@
 </script>
 
 <script lang="ts">
+    import {read_uploaded_file} from '../download.js'
+
     import AlertDialog, {ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from './AlertDialog.svelte'
     import BaseDialog from './BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
     import FileList from './FileList.svelte'
 
+    let upload_files: HTMLInputElement
     let alert_dialog: AlertDialog
     let base_dialog: BaseDialog
     let cur_dir: string
@@ -37,7 +41,7 @@
         }
     }
 
-    export async function prompt(opts: PromptOptions): Promise<string | null> {
+    export function prompt(opts: PromptOptions): Promise<string | null> {
         dir_browser = opts.dir_browser
         if (opts.filter?.extensions.join() !== filter?.extensions.join()) {
             if (cur_filter !== '*') {
@@ -50,7 +54,7 @@
         }
         saving = opts.save
         submit_label = opts.submit_label
-        await update_direntry(cur_dir)
+        update_direntry(cur_dir)
         const promise = base_dialog.open(opts.title)
         file_list.clear()
         if (saving && filename_input) {
@@ -62,16 +66,29 @@
         })
     }
 
-    export async function update_direntry(path: string) {
+    export function update_direntry(path: string) {
         file_list.clear()
         cur_dir = path
-        cur_direntry = (await dir_browser.browse(path)).sort((a, b) => {
+        cur_direntry = (dir_browser.browse(path)).sort((a, b) => {
             if (a.dir !== b.dir) {
                 return +b.dir - +a.dir
             }
             return a.name.localeCompare(b.name)
         })
         dir_tree = path.substring(1).split('/')
+    }
+
+    async function check_overwrite(filename: string) {
+        for (const entry of cur_direntry) {
+            if (!entry.dir && filename === entry.name) {
+                return !!(await alert_dialog.open(ALERT_MODE_CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`))
+            }
+        }
+        return true
+    }
+
+    function on_add_file() {
+        upload_files.click()
     }
 
     function on_change_dir(ev: CustomEvent) {
@@ -117,19 +134,32 @@
     async function on_submit() {
         if (saving) {
             const filename = filename_input.value.trim()
-            for (const entry of cur_direntry) {
-                if (!entry.dir && filename === entry.name) {
-                    const overwrite = await alert_dialog.open(ALERT_MODE_CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`)
-                    if (!overwrite) {
-                        return
-                    }
-                }
+            if (await check_overwrite(filename)) {
+                base_dialog.resolve(filename ? cur_dir + '/' + filename : false)
             }
-            base_dialog.resolve(filename ? '/' + dir_tree.join('/') + '/' + filename : false)
         }
         else {
-            base_dialog.resolve('/' + dir_tree.join('/') + '/' + selected_filename || false)
+            base_dialog.resolve(selected_filename ? cur_dir + '/' + selected_filename : false)
         }
+    }
+
+    async function on_upload_files() {
+        if (upload_files.files) {
+            const files: Record<string, Uint8Array> = {}
+            let have_files = false
+            for (const file of upload_files.files) {
+                if (await check_overwrite(file.name)) {
+                    files[cur_dir + '/' + file.name] = await read_uploaded_file(file)
+                    have_files = true
+                }
+            }
+            if (have_files) {
+                await dir_browser.add_files(files)
+            }
+        }
+        upload_files.value = ''
+        // Update the current file list
+        update_direntry(cur_dir)
     }
 </script>
 
@@ -146,6 +176,10 @@
         flex-grow: 1;
         margin-left: 6px;
     }
+
+    #add_file {
+        display: none;
+    }
 </style>
 
 <BaseDialog
@@ -154,11 +188,10 @@
     max_height=500px
     max_width=700px
 >
-    {#if saving}
-        <div class="actions">
-            <button on:click={on_new_folder}>New Folder</button>
-        </div>
-    {/if}
+    <div class="actions">
+        <button on:click={on_add_file}>Add file</button>
+        <button on:click={on_new_folder}>New Folder</button>
+    </div>
     <DirTree
         dir_tree={dir_tree}
         on:change_dir={on_change_dir}
@@ -196,5 +229,6 @@
             {/if}
         </div>
     </div>
+    <input bind:this={upload_files} id="add_file" type="file" multiple on:change={on_upload_files}>
     <AlertDialog bind:this={alert_dialog}></AlertDialog>
 </BaseDialog>

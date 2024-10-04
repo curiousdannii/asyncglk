@@ -60,7 +60,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         const parsed_path = path.parse(file_path)
         this.dirs.storyfile = parsed_path.dir
         this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
-        await this.dialog!.update_direntry(this.dirs.working)
+        this.dialog!.update_direntry(this.dirs.working)
         return file_path
     }
 

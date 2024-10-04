@@ -11,8 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
-import {NullProvider} from './common.js'
-import type {DirBrowser, DownloadOptions, ProgressCallback, Provider} from './interface.js'
+import {DirBrowser, NullProvider} from './common.js'
+import type {DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
 import {utf8decoder} from '../../common/misc.js'
 
 export class DownloadProvider implements Provider {
@@ -51,6 +51,10 @@ export class DownloadProvider implements Provider {
         else {
             return this.next.exists(path)
         }
+    }
+
+    metadata(): Promise<FilesMetadata> {
+        throw new Error('Cannot get metadata from DownloadProvider')
     }
 
     async read(path: string): Promise<Uint8Array | null> {
@@ -176,6 +180,16 @@ export async function read_response(response: Response, progress_callback?: Prog
         result.set(chunk, offset)
     }
     return result
+}
+
+/** Read an uploaded file and return it as a Uint8Array */
+export function read_uploaded_file(file: File): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onerror = () => reject(reader.error)
+        reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer))
+        reader.readAsArrayBuffer(file)
+    })
 }
 
 function url_to_path(url: string) {

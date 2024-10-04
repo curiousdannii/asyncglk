@@ -11,18 +11,21 @@ https://github.com/curiousdannii/asyncglk
 
 import path from 'path-browserify-esm'
 
-import type {Provider, DirBrowser, FileData, DirEntry} from './interface.js'
+import type {DirEntry, FileData, FilesMetadata, Provider} from './interface.js'
 
 export class NullProvider implements Provider {
     next: Provider = this
     async browse(): Promise<DirBrowser> {
-        return new CachingDirBrowser({}, this)
+        throw new Error('A NullProvider should not be browsed')
     }
     async delete(_path: string) {
         return null
     }
     async exists(_path: string) {
         return null
+    }
+    metadata(): Promise<FilesMetadata> {
+        throw new Error('Cannot get metadata from NullProvider')
     }
     async read(_path: string) {
         return null
@@ -40,32 +43,23 @@ interface NestableDirEntry extends DirEntry {
 }
 
 /** A caching directory browser that receives the list of files once and remembers for as long as the dialog is open */
-export class CachingDirBrowser implements DirBrowser {
-    files: NestableDirEntry = {
-        children: [],
-        dir: true,
-        full_path: '/usr',
-        name: 'usr',
-    }
+export class DirBrowser {
+    files!: NestableDirEntry
     provider: Provider
 
-    constructor(files: Record<string, FileData>, provider: Provider) {
+    constructor(files: FilesMetadata, provider: Provider) {
         this.provider = provider
-        for (const [file_path, meta] of Object.entries(files)) {
-            if (file_path.startsWith('/usr/')) {
-                const parsed_path = path.parse(file_path)
-                const dir_entry = this.cd(parsed_path.dir)
-                dir_entry.children!.push({
-                    dir: false,
-                    full_path: file_path,
-                    name: parsed_path.base,
-                    meta,
-                })
-            }
-        }
+        this.update(files)
     }
 
-    async browse(dir_path: string): Promise<DirEntry[]> {
+    async add_files(files: Record<string, Uint8Array>) {
+        for (const [path, data] of Object.entries(files)) {
+            await this.provider.write(path, data)
+        }
+        this.update(await this.provider.metadata())
+    }
+
+    browse(dir_path: string): DirEntry[] {
         if (!dir_path.startsWith('/usr')) {
             throw new Error('Can only browse /usr')
         }
@@ -90,5 +84,26 @@ export class CachingDirBrowser implements DirBrowser {
             dir_entry = new_subdir
         }
         return dir_entry
+    }
+
+    private update(metadata: FilesMetadata) {
+        this.files = {
+            children: [],
+            dir: true,
+            full_path: '/usr',
+            name: 'usr',
+        }
+        for (const [file_path, meta] of Object.entries(metadata)) {
+            if (file_path.startsWith('/usr/')) {
+                const parsed_path = path.parse(file_path)
+                const dir_entry = this.cd(parsed_path.dir)
+                dir_entry.children!.push({
+                    dir: false,
+                    full_path: file_path,
+                    name: parsed_path.base,
+                    meta,
+                })
+            }
+        }
     }
 }
