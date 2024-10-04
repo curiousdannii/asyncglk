@@ -59,7 +59,7 @@
     }
 
     :global(.selecting) button.selected {
-        background: #cee0f2;
+        background: var(--asyncglk-ui-selected);
     }
 
     .name {

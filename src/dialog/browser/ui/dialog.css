@@ -9,12 +9,6 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-button.flat {
-    background: none;
-    border: 0;
-    font-size: inherit;
-}
-
 .foot {
     display: flex;
     flex-direction: row-reverse;

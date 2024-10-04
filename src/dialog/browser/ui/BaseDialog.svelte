@@ -24,8 +24,29 @@
 </script>
 
 <style>
+    /* A light theme (loosely) based on Material design */
+    :global(:root) {
+        --asyncglk-ui-bg: #fff;
+        --asyncglk-ui-border: #666;
+        --asyncglk-ui-fg: #222;
+        --asyncglk-ui-selected: #cee0f2;
+        --asyncglk-ui-textbox: #fff;
+    }
+
+    /* A dark theme (loosely) based on Material design */
+    :global([data-theme="dark"]) {
+        --asyncglk-ui-bg: #111;
+        --asyncglk-ui-border: #666;
+        --asyncglk-ui-fg: #ddd;
+        --asyncglk-ui-selected: #153351;
+        --asyncglk-ui-textbox: #111;
+    }
+
     dialog {
         box-sizing: border-box;
+        background: var(--asyncglk-ui-bg);
+        border-color: var(--asyncglk-ui-border);
+        color: var(--asyncglk-ui-fg);
         font-family: sans-serif;
         height: 100%;
         user-select: none;
@@ -58,6 +79,19 @@
         position: absolute;
         right: 10px;
         top: 10px;
+    }
+
+    /* Some styles to be applied to everything in the dialog */
+    dialog :global(button), dialog :global(input), dialog :global(select) {
+        background: var(--asyncglk-ui-bg);
+        border: 2px solid var(--asyncglk-ui-border);
+        color: var(--asyncglk-ui-fg);
+    }
+
+    dialog :global(button.flat) {
+        background: none;
+        border: 0;
+        font-size: inherit;
     }
 </style>
 

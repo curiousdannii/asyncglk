@@ -63,6 +63,7 @@
     }
 
     export async function update_direntry(path: string) {
+        file_list.clear()
         cur_dir = path
         cur_direntry = (await dir_browser.browse(path)).sort((a, b) => {
             if (a.dir !== b.dir) {
