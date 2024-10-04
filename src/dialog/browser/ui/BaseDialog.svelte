@@ -1,8 +1,6 @@
 <script lang="ts">
     let dialog: HTMLDialogElement
     export let extra_class = ''
-    export let max_height = '200px'
-    export let max_width = '300px'
     let promise_resolve: (res: string | boolean) => void
     let title = ''
 
@@ -49,6 +47,8 @@
         color: var(--asyncglk-ui-fg);
         font-family: sans-serif;
         height: 100%;
+        max-height: 200px;
+        max-width: 300px;
         user-select: none;
         width: 100%;
     }
@@ -98,7 +98,6 @@
 <dialog bind:this={dialog}
     class={extra_class}
     on:close={on_close}
-    style="max-height: {max_height}; max-width: {max_width}"
 >
     <div class="inner">
         <div class="head">

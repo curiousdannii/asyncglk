@@ -164,6 +164,18 @@
 </script>
 
 <style>
+    :global(dialog.asyncglk_file_dialog) {
+        max-height: 500px !important;
+        max-width: 700px !important;
+    }
+
+    @media screen and (max-width: 767px) {
+        :global(dialog.asyncglk_file_dialog) {
+            max-height: none !important;
+            max-width: none !important;
+        }
+    }
+
     .actions {
         text-align: right;
     }
@@ -185,8 +197,6 @@
 <BaseDialog
     bind:this={base_dialog}
     extra_class="asyncglk_file_dialog {!saving ? 'selecting' : ''}"
-    max_height=500px
-    max_width=700px
 >
     <div class="actions">
         <button on:click={on_add_file}>Add file</button>
