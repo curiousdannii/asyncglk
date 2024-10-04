@@ -57,10 +57,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
 
     async download(url: string, progress_callback?: ProgressCallback): Promise<string> {
         const file_path = await this.downloader!.download(url, progress_callback)
-        const parsed_path = path.parse(file_path)
-        this.dirs.storyfile = parsed_path.dir
-        this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
-        this.dialog!.update_direntry(this.dirs.working)
+        this.setup(file_path)
         return file_path
     }
 
@@ -84,6 +81,12 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         }
     }
 
+    async upload(file: File) {
+        const file_path = await this.downloader!.upload(file)
+        this.setup(file_path)
+        return file_path
+    }
+
     delete(path: string): void {
         this.providers[0].delete(path)
     }
@@ -98,6 +101,13 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
 
     write(path: string, data: Uint8Array): void {
         this.providers[0].write(path, data)
+    }
+
+    private setup(file_path: string) {
+        const parsed_path = path.parse(file_path)
+        this.dirs.storyfile = parsed_path.dir
+        this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
+        this.dialog!.update_direntry(this.dirs.working)
     }
 }
 

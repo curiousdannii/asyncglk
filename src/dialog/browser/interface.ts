@@ -17,6 +17,7 @@ export type ProgressCallback = (bytes: number) => void
 
 export interface BrowserDialog extends AsyncDialog {
     download(url: string, progress_callback?: ProgressCallback): Promise<string>
+    upload(file: File): Promise<string>
 }
 
 export interface DownloadOptions {

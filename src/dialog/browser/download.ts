@@ -31,6 +31,13 @@ export class DownloadProvider implements Provider {
         return path
     }
 
+    async upload(file: File) {
+        const data = await read_uploaded_file(file)
+        const path = '/upload/' + file.name
+        this.store.set(path, data)
+        return path
+    }
+
     async browse(): Promise<DirBrowser> {
         return this.next.browse()
     }
