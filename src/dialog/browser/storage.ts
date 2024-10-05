@@ -12,11 +12,12 @@ https://github.com/curiousdannii/asyncglk
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 
 import {DirBrowser, NullProvider} from './common.js'
-import type {Provider} from './interface.js'
+import type {FilesMetadata, Provider} from './interface.js'
 
 //type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
 
 const METADATA_KEY = 'dialog_metadata'
+const STORAGE_VERSION_KEY = 'dialog_storage_version'
 
 const enum MetadataUpdateOperation {
     DELETE = 1,
@@ -35,7 +36,9 @@ export class WebStorageProvider implements Provider {
         this.prefix = prefix
         this.store = store
 
-        // TODO: upgrade storage
+        if (store === localStorage) {
+            migrate_localStorage()
+        }
     }
 
     async browse(): Promise<DirBrowser> {
@@ -99,7 +102,7 @@ export class WebStorageProvider implements Provider {
 
     private update_metadata(path: string, op: MetadataUpdateOperation) {
         const now = Date.now()
-        const metadata = this.metadata()
+        const metadata: FilesMetadata = this.metadata()
         switch (op) {
             case MetadataUpdateOperation.DELETE:
                 delete metadata[path]
@@ -117,5 +120,49 @@ export class WebStorageProvider implements Provider {
                 metadata[path].mtime = now
         }
         this.store.setItem(METADATA_KEY, JSON.stringify(metadata))
+    }
+}
+
+const DIALOG_V1_TYPES_TO_EXTS: Record<string, string> = {
+    data: 'glkdata',
+    save: 'glksave',
+    transcript: 'txt',
+}
+export function migrate_localStorage() {
+    const now = Date.now()
+    const version = parseInt(localStorage.getItem(STORAGE_VERSION_KEY) || '', 10)
+    if (version < 2) {
+        console.log('Dialog: updating localStorage to version 2')
+        const metadata: FilesMetadata = {}
+        for (let [key, data] of Object.entries<string>(localStorage)) {
+            if (key.startsWith('autosave:')) {
+                // We're not keeping any old autosaves
+                localStorage.removeItem(key)
+            }
+            if (key.startsWith('content:')) {
+                const key_data = /^content:(\w+):(\w*):(.+)$/.exec(key)
+                if (key_data) {
+                    const path = `/usr/${key_data[3]}.${DIALOG_V1_TYPES_TO_EXTS[key_data[1]] || key_data[1]}`
+                    if (data !== '' && version < 1) {
+                        data = base32768_encode(/\[[,\d]*\]/.test(data) ? JSON.parse(data) : Uint8Array.from(data, ch => ch.charCodeAt(0)))
+                    }
+                    localStorage.setItem(path, data)
+                    const dirent_key = 'dirent' + key.substring(7)
+                    const dirent = localStorage.getItem(dirent_key) || ''
+                    const dirent_data = /^created:\d+,modified:(\d+)$/.exec(dirent)
+                    metadata[path] = {
+                        atime: parseInt(dirent_data?.[1] || '', 10) || now,
+                        mtime: parseInt(dirent_data?.[1] || '', 10) || now,
+                    }
+                    localStorage.removeItem(dirent_key)
+                }
+                localStorage.removeItem(key)
+            }
+        }
+        localStorage.setItem(METADATA_KEY, JSON.stringify(metadata))
+        localStorage.setItem(STORAGE_VERSION_KEY, '2')
+    }
+    if (version > 2) {
+        throw new Error('dialog_storage_version is newer than this library supports')
     }
 }
