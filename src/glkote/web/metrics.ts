@@ -11,9 +11,10 @@ https://github.com/curiousdannii/asyncglk
 
 import {throttle} from 'lodash-es'
 
+import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
-import {create, is_pinch_zoomed} from './shared.js'
+import {create} from './shared.js'
 import WebGlkOte from './web.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {

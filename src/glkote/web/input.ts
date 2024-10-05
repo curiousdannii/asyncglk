@@ -3,7 +3,7 @@
 GlkOte input handlers
 =====================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -11,9 +11,9 @@ https://github.com/curiousdannii/asyncglk
 import {throttle} from 'lodash-es'
 
 import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCREEN_OFFSET} from '../../common/constants.js'
+import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
-import {is_pinch_zoomed} from './shared.js'
 import {apply_text_run_styles, type Window} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25

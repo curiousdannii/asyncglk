@@ -1,6 +1,10 @@
 <script lang="ts">
+    import {is_pinch_zoomed} from '../../../common/misc.js'
+
     let dialog: HTMLDialogElement
     export let extra_class = ''
+    /** Whether or not the dialog should use the full viewport in mobile browsers*/
+    export let fullscreen = false
     let promise_resolve: (res: string | boolean) => void
     let title = ''
 
@@ -8,16 +12,34 @@
         title = _title
         const promise: Promise<string | boolean> = new Promise((resolve) => promise_resolve = resolve)
         dialog.showModal()
+        if (fullscreen && visualViewport) {
+            visualViewport.addEventListener('resize', on_visualViewport_resize)
+        }
         return promise
     }
 
     export function resolve(val: string | boolean) {
         dialog.close()
+        if (fullscreen && visualViewport) {
+            visualViewport.removeEventListener('resize', on_visualViewport_resize)
+            dialog.style.height = ''
+        }
         promise_resolve(val)
     }
 
     function on_close() {
         resolve(false)
+    }
+
+    function on_visualViewport_resize() {
+        // Don't do anything if the window is pinch zoomed
+        if (is_pinch_zoomed()){
+            return
+        }
+
+        // The iOS virtual keyboard does not change the layout height, but it does change the viewport
+        // Try to account for this by setting the dialog to the viewport height
+        dialog.style.height = visualViewport!.height + 'px'
     }
 </script>
 
@@ -51,6 +73,15 @@
         max-width: 300px;
         user-select: none;
         width: 100%;
+    }
+
+    @media screen and (max-width: 767px) {
+        dialog.fullscreen {
+            border: none !important;
+            margin-top: 0;
+            max-height: none !important;
+            max-width: none !important;
+        }
     }
 
     dialog::backdrop {
@@ -96,6 +127,7 @@
 </style>
 
 <dialog bind:this={dialog}
+    class:fullscreen
     class={extra_class}
     on:close={on_close}
 >

@@ -164,16 +164,10 @@
 </script>
 
 <style>
+    /* TODO: consider changing to an ID rather than a class, however that would need a regtest-html update */
     :global(dialog.asyncglk_file_dialog) {
         max-height: 500px !important;
         max-width: 700px !important;
-    }
-
-    @media screen and (max-width: 767px) {
-        :global(dialog.asyncglk_file_dialog) {
-            max-height: none !important;
-            max-width: none !important;
-        }
     }
 
     .actions {
@@ -198,6 +192,7 @@
 <BaseDialog
     bind:this={base_dialog}
     extra_class="asyncglk_file_dialog {!saving ? 'selecting' : ''}"
+    fullscreen
 >
     <div class="actions">
         <button on:click={on_add_file}>Add file</button>

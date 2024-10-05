@@ -3,7 +3,7 @@
 GlkOte windows
 ==============
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -13,10 +13,11 @@ import {debounce} from 'lodash-es'
 
 import {Blorb} from '../../blorb/blorb.js'
 import {NBSP} from '../../common/constants.js'
+import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM, type EventFunc, is_pinch_zoomed} from './shared.js'
+import {create, DOM, type EventFunc} from './shared.js'
 import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow

@@ -3,7 +3,7 @@
 Miscellaneous common things
 ===========================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -64,6 +64,14 @@ export function BEBuffer_to_Array(buf: Uint8Array) {
         arr[i / 4] = dv.getUint32(i)
     }
     return arr
+}
+
+/** If we can determine that the browser is currently pinch zoomed */
+export function is_pinch_zoomed() {
+    if (visualViewport) {
+        return (visualViewport.scale - 1) > 0.001
+    }
+    return false
 }
 
 export function is_unicode_array(arr: GlkTypedArray) {
