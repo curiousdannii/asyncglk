@@ -11,7 +11,7 @@
     let base_dialog: BaseDialog
     let message: string
     let mode: AlertMode
-    let val_input: HTMLInputElement
+    let val_input: HTMLTextAreaElement
 
     export function open(_mode: AlertMode, title: string, _message: string): Promise<string | boolean> {
         message = _message
@@ -28,7 +28,7 @@
         base_dialog.resolve(false)
     }
 
-    function on_create_input(node: HTMLInputElement) {
+    function on_create_input(node: HTMLTextAreaElement) {
         val_input = node
         val_input.focus()
         val_input.value = ''
@@ -55,6 +55,7 @@
 <style>
     #val_input {
         box-sizing: border-box;
+        resize: none;
         width: 100%;
     }
 </style>
@@ -63,7 +64,7 @@
     <p>{message}</p>
     <div>
         {#if mode === ALERT_MODE_PROMPT}
-            <input id="val_input" on:keydown={on_input_keydown} use:on_create_input>
+            <textarea id="val_input" autocapitalize="off" rows="1" on:keydown={on_input_keydown} use:on_create_input></textarea>
         {/if}
     </div>
     <div class="foot">

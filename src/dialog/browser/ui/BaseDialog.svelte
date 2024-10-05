@@ -82,7 +82,7 @@
     }
 
     /* Some styles to be applied to everything in the dialog */
-    dialog :global(button), dialog :global(input), dialog :global(select) {
+    dialog :global(button), dialog :global(select), dialog :global(textarea) {
         background: var(--asyncglk-ui-bg);
         border: 2px solid var(--asyncglk-ui-border);
         color: var(--asyncglk-ui-fg);

@@ -29,7 +29,7 @@
     export let dir_browser: DirBrowser
     let dir_tree: string[] = ['usr']
     let file_list: FileList
-    let filename_input: HTMLInputElement
+    let filename_input: HTMLTextAreaElement
     let filter: Filter | undefined
     let saving: boolean
     let selected_filename: string | undefined
@@ -100,7 +100,7 @@
         base_dialog.resolve(false)
     }
 
-    function on_create_input(node: HTMLInputElement) {
+    function on_create_input(node: HTMLTextAreaElement) {
         filename_input = node
         filename_input.focus()
         filename_input.value = ''
@@ -187,6 +187,7 @@
     #filename_input {
         flex-grow: 1;
         margin-left: 6px;
+        resize: none;
     }
 
     #add_file {
@@ -217,7 +218,7 @@
     {#if saving}
         <div class="filename">
             <label for="filename_input">File name:</label>
-            <input id="filename_input" on:keydown={on_input_keydown} use:on_create_input>
+            <textarea id="filename_input" autocapitalize="off" rows="1" on:keydown={on_input_keydown} use:on_create_input></textarea>
         </div>
     {/if}
     <div class="foot">
