@@ -6,10 +6,9 @@
     const dispatch = createEventDispatcher()
 
     export let data: DirEntry
-    export let file_index: number
-    export let selected: boolean = false
+    export let selected: boolean
 
-    function file_icon(filename: string) {
+    /*function file_icon(filename: string) {
         if (filename.endsWith('.glksave') || filename.endsWith('.sav')) {
             return '🖫'
         }
@@ -17,10 +16,18 @@
             return '🗎'
         }
         return '🗋'
+    }*/
+
+    const on_click = () => {
+        dispatch('file_selected', data)
     }
 
     const on_doubleclick = () => {
         dispatch('file_doubleclicked', data)
+    }
+
+    const on_download = () => {
+        dispatch('file_download', data)
     }
 
     function on_keydown(ev: KeyboardEvent) {
@@ -43,40 +50,55 @@
             ev.preventDefault()
         }
     }
-
-    const on_select_file = () => {
-        if (!data.dir) {
-            dispatch('file_selected', file_index)
-            selected = true
-        }
-    }
 </script>
 
 <style>
-    button {
-        display: flex;
-        width: 100%;
+    div.filelistitem.selected {
+        background: var(--asyncglk-ui-selected);
+        padding-bottom: 2px;
     }
 
-    :global(.selecting) button.selected {
-        background: var(--asyncglk-ui-selected);
+    div.filelistitem button.flat {
+        display: flex;
+        padding: 3px 0;
+        width: 100%;
     }
 
     .name {
         flex: 1;
         text-align: left;
     }
+
+    .actions, .date {
+        padding: 2px 20px;
+    }
 </style>
 
-<button
-    aria-selected="{selected}"
-    class="flat"
+<div
+    class="filelistitem"
     class:selected
-    on:click={on_select_file}
-    on:dblclick|preventDefault|stopPropagation={on_doubleclick}
-    on:keydown={on_keydown}
-    role="option"
 >
-    <div class="icon" aria-hidden="true">{data.dir ? '📁' : file_icon(data.name)}</div>
-    <div class="name">{data.name}</div>
-</button>
+    <button
+        aria-selected="{selected}"
+        class="flat"
+        on:click={on_click}
+        on:dblclick|preventDefault|stopPropagation={on_doubleclick}
+        on:keydown={on_keydown}
+        role="option"
+    >
+        <!--<div class="icon" aria-hidden="true">{data.dir ? '📁' : file_icon(data.name)}</div>-->
+        <div class="name">{data.name}</div>
+    </button>
+    {#if selected}
+        {#if !data.dir && data.meta}
+            <div class="date">Last modified: {(new Date(data.meta.mtime)).toDateString()}</div>
+        {/if}
+        <div class="actions">
+            {#if !data.dir}
+                <button on:click={on_download}>Download</button>
+            {/if}
+            <button>Rename</button>
+            <button>Delete</button>
+        </div>
+    {/if}
+</div>

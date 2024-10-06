@@ -96,10 +96,11 @@
     }
 
     .inner > :global(div) {
-        padding: 5px 0;
+        margin: 4px 0;
     }
 
-    .head h1 {
+    .head #title {
+        font: bold 20px sans-serif;
         margin: 0;
     }
 
@@ -113,16 +114,41 @@
     }
 
     /* Some styles to be applied to everything in the dialog */
+    dialog :global(.uirow) {
+        line-height: 28px;
+    }
+
     dialog :global(button), dialog :global(select), dialog :global(textarea) {
         background: var(--asyncglk-ui-bg);
         border: 2px solid var(--asyncglk-ui-border);
         color: var(--asyncglk-ui-fg);
+        font-size: 15px;
+        padding: 3px 6px 4px;
     }
 
     dialog :global(button.flat) {
         background: none;
         border: 0;
+        display: inline;
         font-size: inherit;
+        padding: 0;
+    }
+
+    dialog :global(label) {
+        line-height: 28px;
+    }
+
+    dialog :global(select) {
+        padding: 2px 3px 3px;
+    }
+
+    dialog :global(textarea) {
+        font-size: 14px;
+        padding: 4px 6px;
+    }
+
+    dialog :global(.foot) {
+        text-align: right;
     }
 </style>
 
@@ -133,7 +159,7 @@
 >
     <div class="inner">
         <div class="head">
-            <h1>{title}</h1>
+            <div id="title">{title}</div>
             <button class="close" aria-label="Close" on:click={on_close}>✖</button>
         </div>
         <slot></slot>

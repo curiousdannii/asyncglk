@@ -66,12 +66,14 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
     }
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
+        const action = save ? 'Save' : 'Restore'
+        const filter = extension_to_filter(extension)
         return this.dialog!.prompt({
             dir_browser: await this.providers[0].browse(),
-            filter: extension_to_filter(extension),
+            filter,
             save,
-            submit_label: save ? 'Save' : 'Restore',
-            title: 'Filename',
+            submit_label: action,
+            title: `${action} a ${filter?.title}`,
         })
     }
 
@@ -116,22 +118,25 @@ export interface Filter {
     label?: string
 }
 
-function extension_to_filter(extension: string): Filter | undefined {
+function extension_to_filter(extension: string): (Filter & {title: string}) | undefined {
     switch (extension) {
         case '.glkdata':
             return {
                 extensions: ['.glkdata'],
                 label: 'Data file',
+                title: 'data file',
             }
         case '.glksave':
             return {
                 extensions: ['.glksave', '.sav'],
                 label: 'Save file',
+                title: 'savefile',
             }
         case '.txt':
             return {
                 extensions: ['.txt'],
                 label: 'Transcript or log',
+                title: 'log',
             }
     }
 }

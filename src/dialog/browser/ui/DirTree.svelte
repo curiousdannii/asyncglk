@@ -12,6 +12,12 @@
 </script>
 
 <style>
+    #dirtree {
+        display: flex;
+        flex-wrap: wrap;
+        line-height: 28px;
+    }
+
     button {
         padding: 0;
     }
@@ -21,7 +27,7 @@
     }
 </style>
 
-<div>
+<div id="dirtree">
     {#each dir_tree as dir, i}
         {#if i !== 0}
             <span class="slash">&nbsp;/&nbsp;</span>

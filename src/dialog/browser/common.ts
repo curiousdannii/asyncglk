@@ -10,6 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import path from 'path-browserify-esm'
+import {saveAs as filesave_saveAs} from 'file-saver'
 
 import type {DirEntry, FileData, FilesMetadata, Provider} from './interface.js'
 
@@ -84,6 +85,11 @@ export class DirBrowser {
             dir_entry = new_subdir
         }
         return dir_entry
+    }
+
+    async download(file: DirEntry) {
+        const data = (await this.provider.read(file.full_path))!
+        filesave_saveAs(new Blob([data]), file.name)
     }
 
     private update(metadata: FilesMetadata) {

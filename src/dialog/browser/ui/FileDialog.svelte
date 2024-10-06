@@ -107,14 +107,18 @@
     }
 
     function on_file_doubleclicked(ev: CustomEvent) {
-        const data: DirEntry = ev.detail
-        if (data.dir) {
-            update_direntry(data.full_path)
+        const file: DirEntry = ev.detail
+        if (file.dir) {
+            update_direntry(file.full_path)
         }
         else {
-            filename_input.value = data.name
+            filename_input.value = file.name
             on_submit()
         }
+    }
+
+    function on_file_download(ev: CustomEvent) {
+        dir_browser.download(ev.detail)
     }
 
     function on_input_keydown(ev: KeyboardEvent) {
@@ -170,7 +174,8 @@
         max-width: 700px !important;
     }
 
-    .actions {
+    #actions {
+        float: right;
         text-align: right;
     }
 
@@ -184,6 +189,10 @@
         resize: none;
     }
 
+    #filter {
+        float: left;
+    }
+
     #add_file {
         display: none;
     }
@@ -194,20 +203,23 @@
     extra_class="asyncglk_file_dialog {!saving ? 'selecting' : ''}"
     fullscreen
 >
-    <div class="actions">
-        <button on:click={on_add_file}>Add file</button>
-        <button on:click={on_new_folder}>New Folder</button>
+    <div>
+        <div id="actions">
+            <button on:click={on_add_file}>Add file</button>
+            <button on:click={on_new_folder}>New Folder</button>
+        </div>
+        <DirTree
+            dir_tree={dir_tree}
+            on:change_dir={on_change_dir}
+        />
     </div>
-    <DirTree
-        dir_tree={dir_tree}
-        on:change_dir={on_change_dir}
-    />
     {#key cur_filter}
         <FileList bind:this={file_list}
             bind:selected_filename={selected_filename}
             files={cur_direntry}
             filter={cur_filter}
             on:file_doubleclicked={on_file_doubleclicked}
+            on:file_download={on_file_download}
         />
     {/key}
     {#if saving}
@@ -216,12 +228,8 @@
             <textarea id="filename_input" autocapitalize="off" rows="1" on:keydown={on_input_keydown} use:on_create_input></textarea>
         </div>
     {/if}
-    <div class="foot">
-        <div>
-            <button class="close" on:click={on_close}>Cancel</button>
-            <button class="submit" on:click={on_submit}>{submit_label}</button>
-        </div>
-        <div>
+    <div class="foot uirow">
+        <div id="filter">
             {#if filter}
                 <label for="dialog_filter">File type:</label>
                 <select id="dialog_filter" bind:value={cur_filter}>
@@ -233,6 +241,10 @@
                     <option value="*">All files</option>
                 </select>
             {/if}
+        </div>
+        <div>
+            <button class="close" on:click={on_close}>Cancel</button>
+            <button class="submit" on:click={on_submit}>{submit_label}</button>
         </div>
     </div>
     <input bind:this={upload_files} id="add_file" type="file" multiple on:change={on_upload_files}>

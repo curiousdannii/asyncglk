@@ -67,7 +67,7 @@
             <textarea id="val_input" autocapitalize="off" rows="1" on:keydown={on_input_keydown} use:on_create_input></textarea>
         {/if}
     </div>
-    <div class="foot">
+    <div class="foot uirow">
         <div>
             {#if mode !== ALERT_MODE_ALERT}
                 <button class="close" on:click={on_cancel}>Cancel</button>
