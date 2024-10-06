@@ -125,7 +125,7 @@
     }
 
     async function on_new_folder() {
-        let new_folder_name = await alert_dialog.open(ALERT_MODE_PROMPT, 'New folder', 'Enter new folder name')
+        const new_folder_name = await alert_dialog.open(ALERT_MODE_PROMPT, 'New folder', 'Enter new folder name')
         if (new_folder_name) {
             update_direntry(cur_dir + '/' + new_folder_name)
         }

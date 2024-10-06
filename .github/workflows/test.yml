@@ -18,4 +18,5 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run lint
+      - run: npm run svelte-check
       - run: ./tests/runtests.sh

@@ -1,7 +1,7 @@
 <script lang="ts">
     import {createEventDispatcher} from 'svelte'
 
-    import type {DirEntry} from "../interface.js"
+    import type {DirEntry} from '../interface.js'
 
     const dispatch = createEventDispatcher()
 

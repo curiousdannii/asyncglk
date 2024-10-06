@@ -2087,7 +2087,7 @@ function date_struct_to_timestamp_local(struct: RefStruct): number {
         struct.get_field(4) as number,
         struct.get_field(5) as number,
         struct.get_field(6) as number,
-        struct.get_field(7) as number / 1000
+        struct.get_field(7) as number / 1000,
     )
     return date.getTime()
 }

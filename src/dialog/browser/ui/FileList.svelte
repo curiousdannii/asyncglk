@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type {DirEntry} from "../interface.js"
+    import type {DirEntry} from '../interface.js'
 
     import FileListItem from './FileListItem.svelte'
 
-    let file_elems: FileListItem[] = []
+    const file_elems: FileListItem[] = []
     export let files: DirEntry[]
     export let filter: string
     export let selected_filename: string | undefined

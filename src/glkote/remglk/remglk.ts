@@ -52,7 +52,7 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
                 try {
                     event = JSON.parse(buffer)
                 }
-                catch (e) {}
+                catch {}
                 if (event) {
                     buffer = ''
                     if (event.type === 'init') {

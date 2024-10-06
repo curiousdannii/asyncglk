@@ -73,11 +73,11 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
                 const ram = Array.from(buf.values())
                 snapshot.ram = ram
             }
-            catch (ex) {}
+            catch {}
 
             return snapshot
         }
-        catch (ex) {
+        catch {
             return null
         }
     }
@@ -90,21 +90,21 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
         try {
             stat = fs.statSync(gamedirpath)
         }
-        catch (ex) {}
+        catch {}
         if (!stat || !stat.isDirectory()) {
             try {
                 fs.mkdirSync(path.join(this.userpath, 'games'))
             }
-            catch (ex) {}
+            catch {}
             try {
                 fs.mkdirSync(gamedirpath)
             }
-            catch (ex) {}
+            catch {}
             stat = null
             try {
                 stat = fs.statSync(gamedirpath)
             }
-            catch (ex) {}
+            catch {}
             if (!stat || !stat.isDirectory()) {
                 // Can't create the directory; give up.
                 this.GlkOte!.log('Unable to create gamedirpath: ' + gamedirpath)
@@ -123,11 +123,11 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
             try {
                 fs.unlinkSync(pathj)
             }
-            catch (ex) {}
+            catch {}
             try {
                 fs.unlinkSync(pathr)
             }
-            catch (ex) {}
+            catch {}
             return
         }
 
@@ -251,7 +251,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
             fs.accessSync(fref.filename, fs.constants.F_OK)
             return true
         }
-        catch (ex) {
+        catch {
             return false
         }
     }
@@ -260,7 +260,7 @@ export default abstract class NodeStreamingDialog implements ClassicStreamingDia
         try {
             fs.unlinkSync(fref.filename)
         }
-        catch (ex) {}
+        catch {}
     }
 
     getlibrary(name: string): GlkOte | null {
@@ -403,7 +403,7 @@ export class NodeFileStream implements ClassicFileStream {
                 const stats = fs.fstatSync(this.fd!)
                 val = stats.size + pos
             }
-            catch (ex) {
+            catch {
                 val = this.mark + pos
             }
         }

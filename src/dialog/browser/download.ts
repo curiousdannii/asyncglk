@@ -110,7 +110,7 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
             response = await fetch('' + story_url)
         }
         // We can't specifically detect CORS errors but that's probably what happened
-        catch (_) {
+        catch {
             throw new Error('Failed to fetch storyfile (possible CORS error)')
         }
     }

@@ -37,7 +37,7 @@ export class CheapAsyncDialog implements AsyncDialog {
         try {
             fs.unlinkSync(path_posix_to_native(path))
         }
-        catch (_) {}
+        catch {}
     }
 
     async exists(path: string) {
@@ -45,7 +45,7 @@ export class CheapAsyncDialog implements AsyncDialog {
             await fs_async.access(path_posix_to_native(path), fs.constants.F_OK)
             return true
         }
-        catch (ex) {
+        catch {
             return false
         }
     }
