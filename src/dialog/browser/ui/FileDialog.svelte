@@ -1,11 +1,10 @@
 <script context="module" lang="ts">
     import type {Filter} from '../browser.js'
-    import type {DirBrowser} from '../common.js'
-    import type {DirEntry} from '../interface.js'
+    import type {DirEntry, FilesMetadata} from '../interface.js'
 
     export interface PromptOptions {
-        dir_browser: DirBrowser
         filter?: Filter
+        metadata: FilesMetadata
         save: boolean
         submit_label: string,
         title: string
@@ -13,36 +12,39 @@
 </script>
 
 <script lang="ts">
-    import {read_uploaded_file} from '../download.js'
+    import path from 'path-browserify-esm'
 
-    import AlertDialog, {ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from './AlertDialog.svelte'
+    import {DialogController} from '../browser.js'
+
+    import AlertDialog, {type AlertMode, ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from './AlertDialog.svelte'
     import BaseDialog from './BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
-    import FileList from './FileList.svelte'
+    import FileListItem from './FileListItem.svelte'
 
-    let upload_files: HTMLInputElement
-    let alert_dialog: AlertDialog
     let base_dialog: BaseDialog
-    let cur_dir: string
+    export let controller: DialogController
+    export let cur_dir: string = '/usr'
     let cur_direntry: DirEntry[] = []
     let cur_filter: string = ''
-    export let dir_browser: DirBrowser
-    let dir_tree: string[] = ['usr']
-    let file_list: FileList
     let filename_input: HTMLTextAreaElement
     let filter: Filter | undefined
+    export let metadata: FilesMetadata = {}
     let saving: boolean
-    let selected_filename: string | undefined
+    let selected_file: DirEntry | undefined
     let submit_label = ''
+    let upload_files: HTMLInputElement
+
+    $: selected_file = (cur_dir, undefined)
+    $: cur_direntry = filter_files(cur_dir, cur_filter, metadata)
 
     $: {
-        if (saving && filename_input && selected_filename) {
-            filename_input.value = selected_filename
+        if (saving && filename_input && selected_file && !selected_file.dir) {
+            filename_input.value = selected_file.name
         }
     }
 
     export function prompt(opts: PromptOptions): Promise<string | null> {
-        dir_browser = opts.dir_browser
+        metadata = opts.metadata
         if (opts.filter?.extensions.join() !== filter?.extensions.join()) {
             if (cur_filter !== '*') {
                 cur_filter = opts.filter?.extensions.join() ?? '*'
@@ -54,9 +56,8 @@
         }
         saving = opts.save
         submit_label = opts.submit_label
-        update_direntry(cur_dir)
+        selected_file = undefined
         const promise = base_dialog.open(opts.title)
-        file_list.clear()
         if (saving && filename_input) {
             filename_input.focus()
             filename_input.value = ''
@@ -66,22 +67,77 @@
         })
     }
 
-    export function update_direntry(path: string) {
-        file_list.clear()
-        cur_dir = path
-        cur_direntry = (dir_browser.browse(path)).sort((a, b) => {
+    // Filter the metadata down to the current directory
+    function filter_files(cur_dir: string, filter: string, metadata: FilesMetadata): DirEntry[] {
+        const files: Record<string, DirEntry> = {}
+        const working = cur_dir + '/'
+        const working_length = working.length
+        for (const [full_path, meta] of Object.entries(metadata)) {
+            if (full_path.startsWith(working)) {
+                const subset_file_path = full_path.substring(working_length)
+                const parsed_path = path.parse(subset_file_path)
+                if (parsed_path.dir) {
+                    if (!parsed_path.dir.includes('/') && !files[parsed_path.dir]) {
+                        files[parsed_path.dir] = {
+                            dir: true,
+                            full_path: working + parsed_path.dir,
+                            name: parsed_path.dir,
+                        }
+                    }
+                }
+                else {
+                    files[parsed_path.base] = {
+                        dir: false,
+                        full_path,
+                        meta,
+                        name: parsed_path.base,
+                    }
+                }
+            }
+        }
+        const files_list = Object.values(files).filter(file => {
+            if (file.name.endsWith('.fakefile')) {
+                return false
+            }
+            if (file.dir || filter === '*') {
+                return true
+            }
+            const filters = filter.split(',')
+            for (const ext of filters) {
+                if (file.name.endsWith(ext)) {
+                    return true
+                }
+            }
+            return false
+        }).sort((a, b) => {
             if (a.dir !== b.dir) {
                 return +b.dir - +a.dir
             }
             return a.name.localeCompare(b.name)
         })
-        dir_tree = path.substring(1).split('/')
+        return files_list
+    }
+
+    export async function open_alert_dialog(mode: AlertMode, title: string, message: string, initial?: string): Promise<string | boolean> {
+        const dialog = new AlertDialog({
+            target: document.body,
+            props: {
+                initial,
+                message,
+                mode,
+                title,
+            },
+        })
+        const result = await dialog.open()
+        await dialog.$destroy()
+        return result
     }
 
     async function check_overwrite(filename: string) {
+        // TODO: also check with default extension
         for (const entry of cur_direntry) {
-            if (!entry.dir && filename === entry.name) {
-                return !!(await alert_dialog.open(ALERT_MODE_CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`))
+            if (filename === entry.name) {
+                return !!(await open_alert_dialog(ALERT_MODE_CONFIRM, 'Overwrite file', `Are you sure you want to overwrite ${filename}?`))
             }
         }
         return true
@@ -89,11 +145,6 @@
 
     function on_add_file() {
         upload_files.click()
-    }
-
-    function on_change_dir(ev: CustomEvent) {
-        const path: string = ev.detail
-        update_direntry(path)
     }
 
     function on_close() {
@@ -107,17 +158,16 @@
     }
 
     async function on_file_delete(ev: CustomEvent) {
-        const file = ev.detail
-        if (await alert_dialog.open(ALERT_MODE_CONFIRM, 'Delete file', `Are you sure you want to delete ${file.name}?`)) {
-            await dir_browser.delete(file)
-            update_direntry(cur_dir)
+        const file: DirEntry = ev.detail
+        if (await open_alert_dialog(ALERT_MODE_CONFIRM, 'Delete file', `Are you sure you want to delete ${file.dir ? 'the folder ' : ''}${file.name}?`)) {
+            controller.delete(file)
         }
     }
 
     function on_file_doubleclicked(ev: CustomEvent) {
         const file: DirEntry = ev.detail
         if (file.dir) {
-            update_direntry(file.full_path)
+            cur_dir = file.full_path
         }
         else {
             filename_input.value = file.name
@@ -126,7 +176,19 @@
     }
 
     function on_file_download(ev: CustomEvent) {
-        dir_browser.download(ev.detail)
+        const file: DirEntry = ev.detail
+        controller.download(file)
+    }
+
+    async function on_file_rename(ev: CustomEvent) {
+        const file: DirEntry = ev.detail
+        const file_type = file.dir ? 'folder' : 'file'
+        const new_file_name = await open_alert_dialog(ALERT_MODE_PROMPT, `Rename ${file_type}`, `Enter new ${file_type} name`, file.name) as string | undefined
+        if (new_file_name) {
+            if (await check_overwrite(new_file_name)) {
+                controller.rename(file, new_file_name)
+            }
+        }
     }
 
     function on_input_keydown(ev: KeyboardEvent) {
@@ -137,9 +199,10 @@
     }
 
     async function on_new_folder() {
-        const new_folder_name = await alert_dialog.open(ALERT_MODE_PROMPT, 'New folder', 'Enter new folder name')
+        const new_folder_name = await open_alert_dialog(ALERT_MODE_PROMPT, 'New folder', 'Enter new folder name')
         if (new_folder_name) {
-            update_direntry(cur_dir + '/' + new_folder_name)
+            const path = cur_dir + '/' + new_folder_name
+            controller.new_folder(path)
         }
     }
 
@@ -151,27 +214,25 @@
             }
         }
         else {
-            base_dialog.resolve(selected_filename ? cur_dir + '/' + selected_filename : false)
+            base_dialog.resolve(selected_file?.full_path ?? false)
         }
     }
 
     async function on_upload_files() {
         if (upload_files.files) {
-            const files: Record<string, Uint8Array> = {}
+            const files: Record<string, File> = {}
             let have_files = false
             for (const file of upload_files.files) {
                 if (await check_overwrite(file.name)) {
-                    files[cur_dir + '/' + file.name] = await read_uploaded_file(file)
+                    files[cur_dir + '/' + file.name] = file
                     have_files = true
                 }
             }
             if (have_files) {
-                await dir_browser.add_files(files)
+                controller.upload(files)
             }
         }
         upload_files.value = ''
-        // Update the current file list
-        update_direntry(cur_dir)
     }
 </script>
 
@@ -185,6 +246,13 @@
     #actions {
         float: right;
         text-align: right;
+    }
+
+    #filelist {
+        border: 2px solid var(--asyncglk-ui-border);
+        flex: 1;
+        overflow-y: scroll;
+        padding: 6px;
     }
 
     .filename {
@@ -216,21 +284,21 @@
             <button on:click={on_add_file}>Add file</button>
             <button on:click={on_new_folder}>New Folder</button>
         </div>
-        <DirTree
-            dir_tree={dir_tree}
-            on:change_dir={on_change_dir}
-        />
+        <DirTree bind:cur_dir/>
     </div>
-    {#key cur_filter}
-        <FileList bind:this={file_list}
-            bind:selected_filename={selected_filename}
-            files={cur_direntry}
-            filter={cur_filter}
-            on:file_delete={on_file_delete}
-            on:file_doubleclicked={on_file_doubleclicked}
-            on:file_download={on_file_download}
-        />
-    {/key}
+    <div id="filelist" role="listbox">
+        {#each cur_direntry as file}
+            <FileListItem
+                data={file}
+                bind:selected_file
+                selected={file.full_path === selected_file?.full_path}
+                on:file_delete={on_file_delete}
+                on:file_doubleclicked={on_file_doubleclicked}
+                on:file_download={on_file_download}
+                on:file_rename={on_file_rename}
+            />
+        {/each}
+    </div>
     {#if saving}
         <div class="filename">
             <label for="filename_input">File name:</label>
@@ -257,5 +325,4 @@
         </div>
     </div>
     <input bind:this={upload_files} id="add_file" type="file" multiple on:change={on_upload_files}>
-    <AlertDialog bind:this={alert_dialog}></AlertDialog>
 </BaseDialog>

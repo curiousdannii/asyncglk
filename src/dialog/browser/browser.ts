@@ -9,17 +9,18 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {saveAs as filesave_saveAs} from 'file-saver'
 import path from 'path-browserify-esm'
 
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
-import {DownloadProvider} from './download.js'
-import type {BrowserDialog, DownloadOptions, ProgressCallback, Provider} from './interface.js'
+import {DownloadProvider, read_uploaded_file} from './download.js'
+import type {BrowserDialog, DirEntry, DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
-import DialogUI from './ui/FileDialog.svelte'
+import FileDialog from './ui/FileDialog.svelte'
 
 export class ProviderBasedBrowserDialog implements BrowserDialog {
     'async' = true as const
-    private dialog: DialogUI | undefined
+    private controller!: DialogController
     private dirs: DialogDirectories = {
         storyfile: '',
         system_cwd: '/',
@@ -43,16 +44,11 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             if (next) {
                 provider.next = next
             }
+            // Set up the Svelte UI
+            if (provider.browseable) {
+                this.controller = new DialogController(provider)
+            }
         }
-
-        // Set up the Svelte UI
-        const dir_browser = await this.providers[0].browse()
-        this.dialog = new DialogUI({
-            target: document.body,
-            props: {
-                dir_browser,
-            },
-        })
     }
 
     async download(url: string, progress_callback?: ProgressCallback): Promise<string> {
@@ -65,16 +61,8 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         return this.dirs
     }
 
-    async prompt(extension: string, save: boolean): Promise<string | null> {
-        const action = save ? 'Save' : 'Restore'
-        const filter = extension_to_filter(extension)
-        return this.dialog!.prompt({
-            dir_browser: await this.providers[0].browse(),
-            filter,
-            save,
-            submit_label: action,
-            title: `${action} a ${filter?.title}`,
-        })
+    prompt(extension: string, save: boolean): Promise<string | null> {
+        return this.controller.prompt(extension, save)
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {
@@ -109,7 +97,99 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         const parsed_path = path.parse(file_path)
         this.dirs.storyfile = parsed_path.dir
         this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
-        this.dialog!.update_direntry(this.dirs.working)
+        this.controller.update_working(this.dirs.working)
+    }
+}
+
+/** Controller for FileDialog */
+export class DialogController {
+    private dialog: FileDialog
+    private metadata: FilesMetadata = {}
+    private provider: Provider
+
+    constructor(provider: Provider) {
+        this.dialog = new FileDialog({
+            target: document.body,
+            props: {
+                controller: this,
+            },
+        })
+        this.provider = provider
+    }
+
+    async prompt(extension: string, save: boolean): Promise<string | null> {
+        const action = save ? 'Save' : 'Restore'
+        const filter = extension_to_filter(extension)
+        this.metadata = await this.provider.metadata()
+        return this.dialog.prompt({
+            filter,
+            metadata: this.metadata,
+            save,
+            submit_label: action,
+            title: `${action} a ${filter?.title}`,
+        })
+    }
+
+    async delete(file: DirEntry) {
+        if (file.dir) {
+            const dir_path = file.full_path + '/'
+            for (const path of Object.keys(this.metadata)) {
+                if (path.startsWith(dir_path)) {
+                    delete this.metadata[path]
+                    if (!path.endsWith('.fakefile')) {
+                        await this.provider.delete(path)
+                    }
+                }
+            }
+        }
+        else {
+            await this.provider.delete(file.full_path)
+            delete this.metadata[file.full_path]
+        }
+        await this.update()
+    }
+
+    async download(file: DirEntry) {
+        const data = (await this.provider.read(file.full_path))!
+        filesave_saveAs(new Blob([data]), file.name)
+    }
+
+    new_folder(path: string) {
+        this.metadata[path + '/.fakefile'] = {atime: 0, mtime: 0}
+        this.dialog.$set({
+            cur_dir: path,
+            metadata: this.metadata,
+        })
+    }
+
+    async rename(file: DirEntry, new_file_name: string) {
+        const parsed_path = path.parse(file.full_path)
+        const new_path = parsed_path.dir + '/' + new_file_name
+        await this.provider.rename(file.dir, file.full_path, new_path)
+        await this.update(true)
+    }
+
+    async update(refresh: boolean = false) {
+        if (refresh) {
+            this.metadata = await this.provider.metadata()
+        }
+        this.dialog.$set({metadata: this.metadata})
+    }
+
+    update_working(path: string) {
+        this.dialog.$set({cur_dir: path})
+    }
+
+    async upload(files: Record<string, File>) {
+        const now = Date.now()
+        for (const [path, data] of Object.entries(files)) {
+            await this.provider.write(path, await read_uploaded_file(data))
+            this.metadata[path] = {
+                atime: now,
+                mtime: now,
+            }
+        }
+        await this.update()
     }
 }
 

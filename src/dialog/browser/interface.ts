@@ -11,8 +11,6 @@ https://github.com/curiousdannii/asyncglk
 
 import type {AsyncDialog} from '../common/interface.js'
 
-import {DirBrowser} from './common.js'
-
 export type ProgressCallback = (bytes: number) => void
 
 export interface BrowserDialog extends AsyncDialog {
@@ -31,10 +29,10 @@ export interface DownloadOptions {
 
 /** A provider handles part of the filesystem, and can cascade down to another provider for files it doesn't handle */
 export interface Provider {
+    /** Whether we can browse this provider */
+    browseable: boolean
     /** A link to the next provider */
     next: Provider
-    /** Get a `DirBrowser` instance for browsing */
-    browse(): Promise<DirBrowser>
     /** Delete a file */
     delete(path: string): Promise<void | null>
     /** Check if a file exists */
@@ -43,6 +41,8 @@ export interface Provider {
     metadata(): Promise<FilesMetadata>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
+    /** Rename a file or folder */
+    rename(dir: boolean, path: string, new_name: string): Promise<void>
     /** Write a file */
     write(path: string, data: Uint8Array): Promise<void | null>
 }
@@ -50,8 +50,8 @@ export interface Provider {
 export interface DirEntry {
     dir: boolean
     full_path: string
-    name: string
     meta?: FileData
+    name: string
 }
 
 export type FilesMetadata = Record<string, FileData>

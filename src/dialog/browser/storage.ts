@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 
-import {DirBrowser, NullProvider} from './common.js'
+import {NullProvider} from './common.js'
 import type {FilesMetadata, Provider} from './interface.js'
 
 //type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
@@ -22,11 +22,12 @@ const STORAGE_VERSION_KEY = 'dialog_storage_version'
 const enum MetadataUpdateOperation {
     DELETE = 1,
     READ = 2,
-    WRITE = 3,
+    RENAME = 3,
+    WRITE = 4,
 }
 
 export class WebStorageProvider implements Provider {
-    private browseable: boolean
+    browseable: boolean
     next = new NullProvider()
     private prefix: string
     private store: Storage
@@ -41,20 +42,10 @@ export class WebStorageProvider implements Provider {
         }
     }
 
-    async browse(): Promise<DirBrowser> {
-        if (this.browseable) {
-            const metadata = this.metadata()
-            return new DirBrowser(metadata, this)
-        }
-        else {
-            return this.next.browse()
-        }
-    }
-
     async delete(path: string): Promise<void | null> {
         if (path.startsWith(this.prefix)) {
             this.store.removeItem(path)
-            this.update_metadata(path, MetadataUpdateOperation.DELETE)
+            await this.update_metadata(path, MetadataUpdateOperation.DELETE)
         }
         else {
             return this.next.delete(path)
@@ -70,7 +61,7 @@ export class WebStorageProvider implements Provider {
         }
     }
 
-    metadata() {
+    async metadata(): Promise<FilesMetadata> {
         return JSON.parse(this.store.getItem(METADATA_KEY) || '{}')
     }
 
@@ -78,7 +69,7 @@ export class WebStorageProvider implements Provider {
         if (path.startsWith(this.prefix)) {
             const res = this.store.getItem(path)
             if (res !== null) {
-                this.update_metadata(path, MetadataUpdateOperation.READ)
+                await this.update_metadata(path, MetadataUpdateOperation.READ)
                 return base32768_decode(res)
             }
             return null
@@ -88,11 +79,29 @@ export class WebStorageProvider implements Provider {
         }
     }
 
+    async rename(dir: boolean, old_path: string, new_path: string): Promise<void> {
+        if (dir) {
+            const metadata = await this.metadata()
+            for (const path of Object.keys(metadata)) {
+                if (path.startsWith(old_path)) {
+                    const new_file_path = path.replace(old_path, new_path)
+                    await this.rename(false, path, new_file_path)
+                }
+            }
+        }
+        else {
+            const data = await this.read(old_path)
+            await this.write(new_path, data!)
+            await this.update_metadata(new_path, MetadataUpdateOperation.RENAME, old_path)
+            await this.delete(old_path)
+        }
+    }
+
     async write(path: string, data: Uint8Array): Promise<void | null> {
         if (path.startsWith(this.prefix)) {
             // TODO: detect out of space
             this.store.setItem(path, base32768_encode(data))
-            this.update_metadata(path, MetadataUpdateOperation.WRITE)
+            await this.update_metadata(path, MetadataUpdateOperation.WRITE)
             return null
         }
         else {
@@ -100,15 +109,19 @@ export class WebStorageProvider implements Provider {
         }
     }
 
-    private update_metadata(path: string, op: MetadataUpdateOperation) {
+    private async update_metadata(path: string, op: MetadataUpdateOperation, old_path?: string) {
         const now = Date.now()
-        const metadata: FilesMetadata = this.metadata()
+        const metadata: FilesMetadata = await this.metadata()
         switch (op) {
             case MetadataUpdateOperation.DELETE:
                 delete metadata[path]
                 break
             case MetadataUpdateOperation.READ:
                 metadata[path].atime = now
+                break
+            case MetadataUpdateOperation.RENAME:
+                metadata[path] = metadata[old_path!]
+                delete metadata[old_path!]
                 break
             case MetadataUpdateOperation.WRITE:
                 if (!metadata[path]) {

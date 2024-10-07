@@ -1,13 +1,12 @@
 <script lang="ts">
-    import {createEventDispatcher} from 'svelte'
+    export let cur_dir: string
+    let dir_tree: string[]
 
-    const dispatch = createEventDispatcher()
-
-    export let dir_tree: string[]
+    $: dir_tree = cur_dir.substring(1).split('/')
 
     const on_click = (ev: MouseEvent) => {
         const target = ev.target as HTMLButtonElement
-        dispatch('change_dir', target.dataset.path)
+        cur_dir = target.dataset.path!
     }
 </script>
 

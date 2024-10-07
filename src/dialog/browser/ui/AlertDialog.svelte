@@ -9,16 +9,16 @@
     import BaseDialog from './BaseDialog.svelte'
 
     let base_dialog: BaseDialog
-    let message: string
-    let mode: AlertMode
+    export let initial: string | undefined
+    export let message: string
+    export let mode: AlertMode
+    export let title: string
     let val_input: HTMLTextAreaElement
 
-    export function open(_mode: AlertMode, title: string, _message: string): Promise<string | boolean> {
-        message = _message
-        mode = _mode
+    export function open(): Promise<string | boolean> {
         const promise = base_dialog.open(title)
         if (val_input) {
-            val_input.value = ''
+            val_input.value = initial || ''
             val_input.focus()
         }
         return promise
@@ -31,7 +31,7 @@
     function on_create_input(node: HTMLTextAreaElement) {
         val_input = node
         val_input.focus()
-        val_input.value = ''
+        val_input.value = initial || ''
     }
 
     function on_input_keydown(ev: KeyboardEvent) {
