@@ -106,6 +106,14 @@
         filename_input.value = ''
     }
 
+    async function on_file_delete(ev: CustomEvent) {
+        const file = ev.detail
+        if (await alert_dialog.open(ALERT_MODE_CONFIRM, 'Delete file', `Are you sure you want to delete ${file.name}?`)) {
+            await dir_browser.delete(file)
+            update_direntry(cur_dir)
+        }
+    }
+
     function on_file_doubleclicked(ev: CustomEvent) {
         const file: DirEntry = ev.detail
         if (file.dir) {
@@ -218,6 +226,7 @@
             bind:selected_filename={selected_filename}
             files={cur_direntry}
             filter={cur_filter}
+            on:file_delete={on_file_delete}
             on:file_doubleclicked={on_file_doubleclicked}
             on:file_download={on_file_download}
         />

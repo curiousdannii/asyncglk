@@ -50,6 +50,7 @@
             <FileListItem bind:this={file_elems[i]}
                 data={file}
                 selected={file.full_path === selected_item?.full_path}
+                on:file_delete
                 on:file_doubleclicked
                 on:file_download
                 on:file_selected={on_file_selected}

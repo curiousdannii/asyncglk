@@ -87,6 +87,11 @@ export class DirBrowser {
         return dir_entry
     }
 
+    async delete(file: DirEntry) {
+        await this.provider.delete(file.full_path)
+        this.update(await this.provider.metadata())
+    }
+
     async download(file: DirEntry) {
         const data = (await this.provider.read(file.full_path))!
         filesave_saveAs(new Blob([data]), file.name)

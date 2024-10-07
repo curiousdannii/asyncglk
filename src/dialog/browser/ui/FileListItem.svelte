@@ -22,6 +22,10 @@
         dispatch('file_selected', data)
     }
 
+    const on_delete = () => {
+        dispatch('file_delete', data)
+    }
+
     const on_doubleclick = () => {
         dispatch('file_doubleclicked', data)
     }
@@ -98,7 +102,7 @@
                 <button on:click={on_download}>Download</button>
             {/if}
             <button>Rename</button>
-            <button>Delete</button>
+            <button on:click={on_delete}>Delete</button>
         </div>
     {/if}
 </div>
