@@ -1,11 +1,5 @@
-<script context="module" lang="ts">
-    export const ALERT_MODE_ALERT = 0
-    export const ALERT_MODE_CONFIRM = 1
-    export const ALERT_MODE_PROMPT = 2
-    export type AlertMode = typeof ALERT_MODE_ALERT | typeof ALERT_MODE_CONFIRM | typeof ALERT_MODE_PROMPT
-</script>
-
 <script lang="ts">
+    import {type AlertMode, ALERT_MODE_ALERT, ALERT_MODE_PROMPT} from '../common.js'
     import BaseDialog from './BaseDialog.svelte'
 
     let base_dialog: BaseDialog

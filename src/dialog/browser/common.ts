@@ -12,7 +12,10 @@ https://github.com/curiousdannii/asyncglk
 import type {Provider} from './interface.js'
 import AlertDialog from './ui/AlertDialog.svelte'
 
-const ALERT_MODE_ALERT = 0
+export const ALERT_MODE_ALERT = 0
+export const ALERT_MODE_CONFIRM = 1
+export const ALERT_MODE_PROMPT = 2
+export type AlertMode = typeof ALERT_MODE_ALERT | typeof ALERT_MODE_CONFIRM | typeof ALERT_MODE_PROMPT
 
 export class NullProvider implements Provider {
     browseable = false

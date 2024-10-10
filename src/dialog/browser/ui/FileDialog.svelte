@@ -15,8 +15,9 @@
     import path from 'path-browserify-esm'
 
     import {DialogController} from '../browser.js'
+    import {type AlertMode, ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from '../common.js'
 
-    import AlertDialog, {type AlertMode, ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from './AlertDialog.svelte'
+    import AlertDialog from './AlertDialog.svelte'
     import BaseDialog from './BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
     import FileListItem from './FileListItem.svelte'
@@ -242,10 +243,15 @@
 <style>
     /* TODO: consider changing to an ID rather than a class, however that would need a regtest-html update */
     :global(dialog.asyncglk_file_dialog) {
-        height: 100% !important;
         max-height: 500px !important;
         max-width: 700px !important;
-        width: 100% !important;
+    }
+
+    :global(dialog.asyncglk_file_dialog .inner) {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
     }
 
     #actions {
