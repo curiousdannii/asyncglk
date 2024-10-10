@@ -16,11 +16,14 @@ import type {DialogDirectories, DialogOptions} from '../common/interface.js'
 import {DownloadProvider, read_uploaded_file} from './download.js'
 import type {BrowseableProvider, BrowserDialog, DirEntry, DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
+import AlertDialog from './ui/AlertDialog.svelte'
 import FileDialog from './ui/FileDialog.svelte'
+
+const ALERT_MODE_ALERT = 0
 
 export class ProviderBasedBrowserDialog implements BrowserDialog {
     'async' = true as const
-    private controller!: DialogController
+    private controller?: DialogController
     private dirs: DialogDirectories = {
         storyfile: '',
         system_cwd: '/',
@@ -32,12 +35,18 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
         this.downloader = new DownloadProvider(options)
-        // TODO: ensure that localStorage is wrapped in a try/catch in case it's disabled
-        this.providers = [
-            this.downloader,
-            new WebStorageProvider('/tmp', sessionStorage, this.dirs),
-            new WebStorageProvider('/', localStorage, this.dirs, true),
-        ]
+        try {
+            this.providers = [
+                this.downloader,
+                new WebStorageProvider('/tmp', sessionStorage, this.dirs),
+                new WebStorageProvider('/', localStorage, this.dirs, true),
+            ]
+        }
+        catch {
+            this.providers = [
+                this.downloader,
+            ]
+        }
 
         for (const [i, provider] of this.providers.entries()) {
             const next = this.providers[i + 1]
@@ -61,8 +70,23 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         return this.dirs
     }
 
-    prompt(extension: string, save: boolean): Promise<string | null> {
-        return this.controller.prompt(extension, save)
+    async prompt(extension: string, save: boolean): Promise<string | null> {
+        if (this.controller) {
+            return this.controller.prompt(extension, save)
+        }
+        else {
+            const alert = new AlertDialog({
+                target: document.body,
+                props: {
+                    message: 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.',
+                    mode: ALERT_MODE_ALERT,
+                    title: `Cannot ${save ? 'save' : 'open'}`,
+                },
+            })
+            await alert.open()
+            alert.$destroy()
+            return null
+        }
     }
 
     set_storyfile_dir(path: string): Partial<DialogDirectories> {
@@ -97,7 +121,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         const parsed_path = path.parse(file_path)
         this.dirs.storyfile = parsed_path.dir
         this.dirs.working = '/usr/' + parsed_path.name.toLowerCase().trim()
-        this.controller.update_working(this.dirs.working)
+        this.controller?.update_working(this.dirs.working)
     }
 }
 
@@ -118,7 +142,7 @@ export class DialogController {
     }
 
     async prompt(extension: string, save: boolean): Promise<string | null> {
-        const action = save ? 'Save' : 'Restore'
+        const action = save ? 'Save' : 'Open'
         const filter = extension_to_filter(extension)
         this.metadata = await this.provider.metadata()
         return this.dialog.prompt({

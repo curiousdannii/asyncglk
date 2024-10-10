@@ -68,11 +68,9 @@
         border-color: var(--asyncglk-ui-border);
         color: var(--asyncglk-ui-fg);
         font-family: sans-serif;
-        height: 100%;
-        max-height: 200px;
-        max-width: 300px;
+        max-width: 500px;
+        min-width: 300px;
         user-select: none;
-        width: 100%;
     }
 
     @media screen and (max-width: 767px) {

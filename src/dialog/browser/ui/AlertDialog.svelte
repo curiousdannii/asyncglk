@@ -9,7 +9,7 @@
     import BaseDialog from './BaseDialog.svelte'
 
     let base_dialog: BaseDialog
-    export let initial: string | undefined
+    export let initial: string | undefined = undefined
     export let message: string
     export let mode: AlertMode
     export let title: string

@@ -118,7 +118,7 @@
         return files_list
     }
 
-    export async function open_alert_dialog(mode: AlertMode, title: string, message: string, initial?: string): Promise<string | boolean> {
+    async function open_alert_dialog(mode: AlertMode, title: string, message: string, initial?: string): Promise<string | boolean> {
         const dialog = new AlertDialog({
             target: document.body,
             props: {
@@ -239,8 +239,10 @@
 <style>
     /* TODO: consider changing to an ID rather than a class, however that would need a regtest-html update */
     :global(dialog.asyncglk_file_dialog) {
+        height: 100% !important;
         max-height: 500px !important;
         max-width: 700px !important;
+        width: 100% !important;
     }
 
     #actions {
@@ -267,6 +269,10 @@
 
     #filter {
         float: left;
+    }
+
+    #dialog_filter {
+        min-width: 100px;
     }
 
     #add_file {
@@ -311,7 +317,7 @@
                 <label for="dialog_filter">File type:</label>
                 <select id="dialog_filter" bind:value={cur_filter}>
                     {#if filter.label}
-                        <option value="{filter.extensions.join()}">{filter.label} ({filter.extensions.join(', ')})</option>
+                        <option value="{filter.extensions.join()}">{filter.label}</option>
                     {:else}
                         <option value="{filter.extensions.join()}">{filter.extensions[0]} file</option>
                     {/if}
