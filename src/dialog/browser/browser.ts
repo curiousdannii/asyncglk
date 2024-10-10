@@ -13,13 +13,11 @@ import {saveAs as filesave_saveAs} from 'file-saver'
 import path from 'path-browserify-esm'
 
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
+import {show_alert} from './common.js'
 import {DownloadProvider, read_uploaded_file} from './download.js'
 import type {BrowseableProvider, BrowserDialog, DirEntry, DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
-import AlertDialog from './ui/AlertDialog.svelte'
 import FileDialog from './ui/FileDialog.svelte'
-
-const ALERT_MODE_ALERT = 0
 
 export class ProviderBasedBrowserDialog implements BrowserDialog {
     'async' = true as const
@@ -75,16 +73,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             return this.controller.prompt(extension, save)
         }
         else {
-            const alert = new AlertDialog({
-                target: document.body,
-                props: {
-                    message: 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.',
-                    mode: ALERT_MODE_ALERT,
-                    title: `Cannot ${save ? 'save' : 'open'}`,
-                },
-            })
-            await alert.open()
-            alert.$destroy()
+            await show_alert(`Cannot ${save ? 'save' : 'open'}`, 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.')
             return null
         }
     }

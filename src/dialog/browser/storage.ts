@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 
 import type {DialogDirectories} from '../common/interface.js'
-import {NullProvider} from './common.js'
+import {NullProvider, show_alert} from './common.js'
 import type {BrowseableProvider, FilesMetadata} from './interface.js'
 
 //type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
@@ -45,7 +45,7 @@ export class WebStorageProvider implements BrowseableProvider {
         }
     }
 
-    async delete(path: string): Promise<void | null> {
+    async delete(path: string) {
         if (path.startsWith(this.prefix)) {
             this.store.removeItem(path)
             await this.update_metadata(path, MetadataUpdateOperation.DELETE)
@@ -103,12 +103,16 @@ export class WebStorageProvider implements BrowseableProvider {
         }
     }
 
-    async write(path: string, data: Uint8Array): Promise<void | null> {
+    write(path: string, data: Uint8Array) {
         if (path.startsWith(this.prefix)) {
-            // TODO: detect out of space
-            this.store.setItem(path, base32768_encode(data))
-            await this.update_metadata(path, MetadataUpdateOperation.WRITE)
-            return null
+            try {
+                this.store.setItem(path, base32768_encode(data))
+                this.update_metadata(path, MetadataUpdateOperation.WRITE)
+            }
+            catch {
+                // TODO: remove autosaves first
+                show_alert('localStorage full', `The file ${path.replace(/\//g, '/\u200b')} could not be written as your browser's localStorage is full! Please delete some files, and then try again.`)
+            }
         }
         else {
             return this.next.write(path, data)
