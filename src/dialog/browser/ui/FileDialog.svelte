@@ -96,7 +96,7 @@
             }
         }
         const files_list = Object.values(files).filter(file => {
-            if (file.name.endsWith('.fakefile')) {
+            if (file.name.endsWith('.dir')) {
                 return false
             }
             if (file.dir || filter === '*') {

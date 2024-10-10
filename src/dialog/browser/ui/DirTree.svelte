@@ -4,7 +4,7 @@
 
     $: dir_tree = cur_dir.substring(1).split('/')
 
-    const on_click = (ev: MouseEvent) => {
+    function on_click(ev: MouseEvent) {
         const target = ev.target as HTMLButtonElement
         cur_dir = target.dataset.path!
     }

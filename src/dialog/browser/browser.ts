@@ -14,7 +14,7 @@ import path from 'path-browserify-esm'
 
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
 import {DownloadProvider, read_uploaded_file} from './download.js'
-import type {BrowserDialog, DirEntry, DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
+import type {BrowseableProvider, BrowserDialog, DirEntry, DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
 import FileDialog from './ui/FileDialog.svelte'
 
@@ -28,15 +28,15 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         working: '/usr',
     }
     private downloader: DownloadProvider | undefined
-    private providers: Provider[] = []
+    private providers: (Provider | BrowseableProvider)[] = []
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
         this.downloader = new DownloadProvider(options)
         // TODO: ensure that localStorage is wrapped in a try/catch in case it's disabled
         this.providers = [
             this.downloader,
-            new WebStorageProvider('/tmp', sessionStorage),
-            new WebStorageProvider('/', localStorage, true),
+            new WebStorageProvider('/tmp', sessionStorage, this.dirs),
+            new WebStorageProvider('/', localStorage, this.dirs, true),
         ]
 
         for (const [i, provider] of this.providers.entries()) {
@@ -46,7 +46,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             }
             // Set up the Svelte UI
             if (provider.browseable) {
-                this.controller = new DialogController(provider)
+                this.controller = new DialogController(provider as BrowseableProvider)
             }
         }
     }
@@ -105,9 +105,9 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
 export class DialogController {
     private dialog: FileDialog
     private metadata: FilesMetadata = {}
-    private provider: Provider
+    private provider: BrowseableProvider
 
-    constructor(provider: Provider) {
+    constructor(provider: BrowseableProvider) {
         this.dialog = new FileDialog({
             target: document.body,
             props: {
@@ -136,9 +136,7 @@ export class DialogController {
             for (const path of Object.keys(this.metadata)) {
                 if (path.startsWith(dir_path)) {
                     delete this.metadata[path]
-                    if (!path.endsWith('.fakefile')) {
-                        await this.provider.delete(path)
-                    }
+                    await this.provider.delete(path)
                 }
             }
         }
@@ -155,7 +153,14 @@ export class DialogController {
     }
 
     new_folder(path: string) {
-        this.metadata[path + '/.fakefile'] = {atime: 0, mtime: 0}
+        // Consider making this a function of the provider, to better support providers which can store actual empty folders
+        const now = Date.now()
+        const dir_path = path + '/.dir'
+        this.provider.write(dir_path, new Uint8Array(0))
+        this.metadata[dir_path] = {
+            atime: now,
+            mtime: now,
+        }
         this.dialog.$set({
             cur_dir: path,
             metadata: this.metadata,

@@ -11,8 +11,9 @@ https://github.com/curiousdannii/asyncglk
 
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 
+import type {DialogDirectories} from '../common/interface.js'
 import {NullProvider} from './common.js'
-import type {FilesMetadata, Provider} from './interface.js'
+import type {BrowseableProvider, FilesMetadata} from './interface.js'
 
 //type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
 
@@ -26,14 +27,16 @@ const enum MetadataUpdateOperation {
     WRITE = 4,
 }
 
-export class WebStorageProvider implements Provider {
+export class WebStorageProvider implements BrowseableProvider {
     browseable: boolean
+    private dirs: DialogDirectories
     next = new NullProvider()
     private prefix: string
     private store: Storage
 
-    constructor(prefix: string, store: Storage, browseable?: boolean) {
+    constructor(prefix: string, store: Storage, dirs: DialogDirectories, browseable?: boolean) {
         this.browseable = browseable ?? false
+        this.dirs = dirs
         this.prefix = prefix
         this.store = store
 
@@ -62,7 +65,10 @@ export class WebStorageProvider implements Provider {
     }
 
     async metadata(): Promise<FilesMetadata> {
-        return JSON.parse(this.store.getItem(METADATA_KEY) || '{}')
+        const metadata: FilesMetadata = JSON.parse(this.store.getItem(METADATA_KEY) || '{}')
+        // Add a fake .dir file to the working folder
+        metadata[this.dirs.working + '/.dir'] = {atime: 0, mtime: 0}
+        return metadata
     }
 
     async read(path: string): Promise<Uint8Array | null> {
@@ -132,6 +138,8 @@ export class WebStorageProvider implements Provider {
                 }
                 metadata[path].mtime = now
         }
+        // Remove the fake .dir file from the working folder
+        delete metadata[this.dirs.working + '/.dir']
         this.store.setItem(METADATA_KEY, JSON.stringify(metadata))
     }
 }

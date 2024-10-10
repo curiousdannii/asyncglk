@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
 import {NullProvider} from './common.js'
-import type {DownloadOptions, FilesMetadata, ProgressCallback, Provider} from './interface.js'
+import type {DownloadOptions, ProgressCallback, Provider} from './interface.js'
 import {utf8decoder} from '../../common/misc.js'
 
 export class DownloadProvider implements Provider {
@@ -57,10 +57,6 @@ export class DownloadProvider implements Provider {
         }
     }
 
-    metadata(): Promise<FilesMetadata> {
-        throw new Error('Cannot get metadata from DownloadProvider')
-    }
-
     async read(path: string): Promise<Uint8Array | null> {
         if (this.store.has(path)) {
             return this.store.get(path)!
@@ -69,10 +65,6 @@ export class DownloadProvider implements Provider {
             return this.next.read(path)
         }
         // TODO: try downloading a sibling file
-    }
-
-    rename(): Promise<void> {
-        throw new Error('Invalid method')
     }
 
     async write(path: string, data: Uint8Array): Promise<void | null> {

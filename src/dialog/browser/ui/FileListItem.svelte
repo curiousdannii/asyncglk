@@ -21,19 +21,19 @@
         return '🗋'
     }*/
 
-    const on_click = () => {
+    function on_click() {
         selected_file = data
     }
 
-    const on_delete = () => {
+    function on_delete() {
         dispatch('file_delete', data)
     }
 
-    const on_doubleclick = () => {
+    function on_doubleclick() {
         dispatch('file_doubleclicked', data)
     }
 
-    const on_download = () => {
+    function on_download() {
         dispatch('file_download', data)
     }
 
@@ -58,7 +58,11 @@
         }
     }
 
-    const on_rename = () => {
+    function on_open() {
+        dispatch('file_doubleclicked', data)
+    }
+
+    function on_rename() {
         dispatch('file_rename', data)
     }
 </script>
@@ -128,7 +132,9 @@
             <div class="date">Last modified: {(new Date(data.meta.mtime)).toDateString()}</div>
         {/if}
         <div class="actions">
-            {#if !data.dir}
+            {#if data.dir}
+                <button on:click={on_open}>Open</button>
+            {:else}
                 <button on:click={on_download}>Download</button>
             {/if}
             <button on:click={on_rename}>Rename</button>

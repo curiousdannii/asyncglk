@@ -37,14 +37,18 @@ export interface Provider {
     delete(path: string): Promise<void | null>
     /** Check if a file exists */
     exists(path: string): Promise<boolean | null>
-    /** Get all file metadata */
-    metadata(): Promise<FilesMetadata>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
-    /** Rename a file or folder */
-    rename(dir: boolean, path: string, new_name: string): Promise<void>
     /** Write a file */
     write(path: string, data: Uint8Array): Promise<void | null>
+}
+
+/** A Provider with a few extra functions for browsing */
+export interface BrowseableProvider extends Provider {
+    /** Get all file metadata */
+    metadata(): Promise<FilesMetadata>
+    /** Rename a file or folder */
+    rename(dir: boolean, path: string, new_name: string): Promise<void>
 }
 
 export interface DirEntry {
