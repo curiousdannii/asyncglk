@@ -34,6 +34,9 @@
     let submit_label = ''
     let upload_files: HTMLInputElement
 
+    // Regex from https://stackoverflow.com/a/23522755/2854284
+    const is_safari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
     $: selected_file = (cur_dir, undefined)
     $: cur_direntry = filter_files(cur_dir, cur_filter, metadata)
 
@@ -275,6 +278,12 @@
         min-width: 100px;
     }
 
+    #storage_warning {
+        font-size: 80%;
+        margin: 0;
+        text-align: center;
+    }
+
     #add_file {
         display: none;
     }
@@ -330,5 +339,14 @@
             <button class="submit" on:click={on_submit}>{submit_label}</button>
         </div>
     </div>
+    {#if saving}
+        <div id="storage_warning">
+            {#if is_safari}
+                Warning: Files saved in this browser will be lost if you don't visit again within a week.
+            {:else}
+                Note: Files saved in this browser may be lost by clearing cookies, or depending on your browser settings.
+            {/if}
+        </div>
+    {/if}
     <input bind:this={upload_files} id="add_file" type="file" multiple on:change={on_upload_files}>
 </BaseDialog>
