@@ -26,7 +26,7 @@ export interface DialogOptions {
 export interface AsyncDialog {
     async: true
     /** Delete a file */
-    delete(path: string): void
+    delete(path: string): Promise<void>
     /** Check if a file exists */
     exists(path: string): Promise<boolean>
     /** Get directories */
@@ -40,8 +40,8 @@ export interface AsyncDialog {
     read(path: string): Promise<Uint8Array | null>
     /** Set storyfile directory and return directories */
     set_storyfile_dir(path: string): Partial<DialogDirectories>
-    /** Write a file */
-    write(path: string, data: Uint8Array): void
+    /** Write some files */
+    write(files: Record<string, Uint8Array>): Promise<void>
 }
 
 export interface DialogDirectories {

@@ -34,13 +34,13 @@ export interface Provider {
     /** A link to the next provider */
     next: Provider
     /** Delete a file */
-    delete(path: string): void
+    delete(path: string): Promise<void>
     /** Check if a file exists */
     exists(path: string): Promise<boolean | null>
     /** Read a file */
     read(path: string): Promise<Uint8Array | null>
-    /** Write a file */
-    write(path: string, data: Uint8Array): void
+    /** Write some files */
+    write(files: Record<string, Uint8Array>): Promise<void>
 }
 
 /** A Provider with a few extra functions for browsing */

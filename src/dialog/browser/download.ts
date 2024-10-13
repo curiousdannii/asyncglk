@@ -39,7 +39,7 @@ export class DownloadProvider implements Provider {
         return path
     }
 
-    delete(path: string) {
+    async delete(path: string) {
         if (this.store.has(path)) {
             this.store.delete(path)
         }
@@ -67,8 +67,8 @@ export class DownloadProvider implements Provider {
         // TODO: try downloading a sibling file
     }
 
-    write(path: string, data: Uint8Array) {
-        return this.next.write(path, data)
+    write(files: Record<string, Uint8Array>) {
+        return this.next.write(files)
     }
 }
 

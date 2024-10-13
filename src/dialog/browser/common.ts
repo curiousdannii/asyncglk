@@ -27,7 +27,7 @@ export class NullProvider implements Provider {
     async read(_path: string) {
         return null
     }
-    async write(_path: string, _data: Uint8Array) {}
+    async write(_files: Record<string, Uint8Array>) {}
 }
 
 export async function show_alert(title: string, message: string) {

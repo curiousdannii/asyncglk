@@ -90,8 +90,8 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         return file_path
     }
 
-    delete(path: string): void {
-        this.providers[0].delete(path)
+    async delete(path: string) {
+        await this.providers[0].delete(path)
     }
 
     async exists(path: string): Promise<boolean> {
@@ -102,8 +102,8 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         return this.providers[0].read(path)
     }
 
-    write(path: string, data: Uint8Array): void {
-        this.providers[0].write(path, data)
+    async write(files: Record<string, Uint8Array>) {
+        await this.providers[0].write(files)
     }
 
     private setup(file_path: string) {
@@ -169,7 +169,7 @@ export class DialogController {
         // Consider making this a function of the provider, to better support providers which can store actual empty folders
         const now = Date.now()
         const dir_path = path + '/.dir'
-        this.provider.write(dir_path, new Uint8Array(0))
+        this.provider.write({dir_path: new Uint8Array(0)})
         this.metadata[dir_path] = {
             atime: now,
             mtime: now,
@@ -200,13 +200,15 @@ export class DialogController {
 
     async upload(files: Record<string, File>) {
         const now = Date.now()
+        const read_files: Record<string, Uint8Array> = {}
         for (const [path, data] of Object.entries(files)) {
-            await this.provider.write(path, await read_uploaded_file(data))
+            read_files[path] = await read_uploaded_file(data)
             this.metadata[path] = {
                 atime: now,
                 mtime: now,
             }
         }
+        await this.provider.write(read_files)
         await this.update()
     }
 }

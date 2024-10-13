@@ -33,7 +33,7 @@ export class CheapAsyncDialog implements AsyncDialog {
         // Anything to do here?
     }
 
-    delete(path: string) {
+    async delete(path: string) {
         try {
             fs.unlinkSync(path_posix_to_native(path))
         }
@@ -81,7 +81,9 @@ export class CheapAsyncDialog implements AsyncDialog {
         }
     }
 
-    write(path: string, data: Uint8Array) {
-        fs.writeFileSync(path_posix_to_native(path), data, {flush: true})
+    async write(files: Record<string, Uint8Array>) {
+        for (const [path, data] of Object.entries(files)) {
+            fs.writeFileSync(path_posix_to_native(path), data, {flush: true})
+        }
     }
 }
