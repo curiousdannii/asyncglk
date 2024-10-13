@@ -9,9 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import type {ProgressCallback} from '../../common/file.js'
 import type {AsyncDialog} from '../common/interface.js'
-
-export type ProgressCallback = (bytes: number) => void
 
 export interface BrowserDialog extends AsyncDialog {
     download(url: string, progress_callback?: ProgressCallback): Promise<string>
