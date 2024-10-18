@@ -197,7 +197,7 @@ const DIALOG_V1_TYPES_TO_EXTS: Record<string, string> = {
 }
 export function migrate_localStorage() {
     const now = Date.now()
-    const version = parseInt(localStorage.getItem(STORAGE_VERSION_KEY) || '', 10)
+    const version = parseInt(localStorage.getItem(STORAGE_VERSION_KEY) || '0', 10)
     if (version < 2) {
         console.log('Dialog: updating localStorage to version 2')
         const metadata: FilesMetadata = {}
