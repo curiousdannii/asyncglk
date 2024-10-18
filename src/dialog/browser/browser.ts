@@ -166,11 +166,11 @@ export class DialogController {
         filesave_saveAs(new Blob([data]), file.name)
     }
 
-    new_folder(path: string) {
+    async new_folder(path: string) {
         // Consider making this a function of the provider, to better support providers which can store actual empty folders
         const now = Date.now()
         const dir_path = path + '/.dir'
-        this.provider.write({dir_path: new Uint8Array(0)})
+        await this.provider.write({[dir_path]: new Uint8Array(0)})
         this.metadata[dir_path] = {
             atime: now,
             mtime: now,
