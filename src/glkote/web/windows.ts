@@ -892,6 +892,7 @@ export default class Windows extends Map<number, Window> {
                 top: update.top,
                 width: update.width,
             })
+                .toggleClass('hidden', update.hidden)
             if (win.type === 'buffer') {
                 win.scroll_to_bottom(true)
             }

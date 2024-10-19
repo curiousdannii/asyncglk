@@ -3,7 +3,7 @@
 The GlkOte protocol
 ===================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2024 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -450,6 +450,8 @@ export interface WindowUpdate {
     /** Grid width (chars) */
     gridwidth?: number,
     height: number,
+    /** Whether the window should be completely hidden, though could potentially still respond to character events */
+    hidden?: boolean,
     /** Window ID */
     id: number,
     /** Left position */

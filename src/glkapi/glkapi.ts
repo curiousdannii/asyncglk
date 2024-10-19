@@ -1834,21 +1834,21 @@ export class AsyncGlk implements Interface.GlkApi {
                     switch (win.key!.type) {
                         case 'buffer':
                             if (win.vertical) {
-                                split = win.size * metrics.buffercharwidth + metrics.buffermarginx
+                                split = win.size ? (win.size * metrics.buffercharwidth + metrics.buffermarginx) : 0
                             }
                             else {
-                                split = win.size * metrics.buffercharheight + metrics.buffermarginy
+                                split = win.size ? (win.size * metrics.buffercharheight + metrics.buffermarginy) : 0
                             }
                             break
                         case 'graphics':
-                            split = win.size + (win.vertical ? metrics.graphicsmarginx : metrics.graphicsmarginy)
+                            split = win.size ? (win.size + (win.vertical ? metrics.graphicsmarginx : metrics.graphicsmarginy)) : 0
                             break
                         case 'grid':
                             if (win.vertical) {
-                                split = win.size * metrics.gridcharwidth + metrics.gridmarginx
+                                split = win.size ? (win.size * metrics.gridcharwidth + metrics.gridmarginx) : 0
                             }
                             else {
-                                split = win.size * metrics.gridcharheight + metrics.gridmarginy
+                                split = win.size ? (win.size * metrics.gridcharheight + metrics.gridmarginy) : 0
                             }
                             break
                     }

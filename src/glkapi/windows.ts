@@ -81,17 +81,20 @@ abstract class WindowBase implements GlkWindow {
         copy_prop(this.input, input_update, 'mouse')
 
         const box = this.box
+        const height = box.bottom - box.top
+        const width = box.right - box.left
         return {
             content: null,
             input: input_update,
             size: {
-                height: box.bottom - box.top,
+                height,
+                hidden: height === 0 || width === 0,
                 id: this.disprock,
                 left: box.left,
                 rock: this.rock,
                 top: box.top,
                 type: this.type,
-                width: box.right - box.left,
+                width,
             },
         }
     }

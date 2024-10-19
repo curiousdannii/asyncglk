@@ -17,6 +17,10 @@ https://github.com/curiousdannii/asyncglk
     position: absolute;
 }
 
+.WindowFrame.hidden {
+    padding: 0;
+}
+
 .BufferWindow {
     color: var(--glkote-buffer-fg);
     font-family: var(--glkote-prop-family);
