@@ -16,7 +16,8 @@ https://github.com/curiousdannii/asyncglk
 
 /** GlkOte->GlkApi/RemGlk input events */
 export type Event = ArrangeEvent | CharEvent | DebugEvent | ExternalEvent | HyperlinkEvent |
-    InitEvent | LineEvent | MouseEvent | RedrawEvent | RefreshEvent | SpecialEvent | TimerEvent
+    InitEvent | LineEvent | MouseEvent | RedrawEvent | RefreshEvent | SoundEvent | SpecialEvent |
+    TimerEvent | VolumeEvent
 
 interface EventBase {
     /** Event code */
@@ -113,6 +114,15 @@ export interface RefreshEvent extends EventBase {
     type: 'refresh',
 }
 
+export interface SoundEvent extends EventBase {
+    /** Event code */
+    type: 'sound',
+    /** Sound resource ID which finished playing */
+    snd: number,
+    /** Notification value */
+    notify: number,
+}
+
 export interface SpecialEvent extends EventBase {
     /** Event code */
     type: 'specialresponse',
@@ -133,6 +143,13 @@ export type FileRef = {
 export interface TimerEvent extends EventBase {
     /** Event code */
     type: 'timer',
+}
+
+export interface VolumeEvent extends EventBase {
+    /** Event code */
+    type: 'volume',
+    /** Notification value */
+    notify: number,
 }
 
 /** Screen and font metrics - all potential options */
@@ -266,6 +283,8 @@ export interface StateUpdate {
     input?: InputUpdate[],
     /** Background colour for the page margin (ie, outside of the gameport) */
     page_margin_bg?: string,
+    /** Sound channels (new channels, or new operations) */
+    schannels?: SoundChannelUpdate[],
     /** Special input */
     specialinput?: SpecialInput,
     timer?: number | null,
@@ -424,6 +443,49 @@ export interface InputUpdate {
 
 export type TerminatorCode = 'escape' | 'func1' | 'func2' | 'func3' | 'func4' | 'func5' | 'func6'
     | 'func7' | 'func8' | 'func9' | 'func10' | 'func11' | 'func12'
+
+export interface SoundChannelUpdate {
+    /** Sound channel ID */
+    id: number,
+    /** Sound channel operations */
+    ops?: SoundChannelOperation[],
+}
+
+export type SoundChannelOperation = PauseOperation | PlayOperation | SetVolumeOperation | StopOperation | UnpauseOperation
+
+export interface PauseOperation {
+    op: 'pause',
+}
+
+export interface PlayOperation {
+    op: 'play',
+    /** Notification value */
+    notify?: number,
+    /** Number of repeats (default: 1) */
+    repeats?: number,
+    /** Sound resource ID (from a Blorb) */
+    snd?: number,
+    /** Sound URL */
+    url?: string,
+}
+
+export interface SetVolumeOperation {
+    op: 'volume',
+    /** Duration in milliseconds */
+    dur?: number,
+    /** Notification value */
+    notify?: number,
+    /** The volume as a number between 0 and 1 */
+    vol: number,
+}
+
+export interface StopOperation {
+    op: 'stop',
+}
+
+export interface UnpauseOperation {
+    op: 'unpause',
+}
 
 export interface SpecialInput {
     /** Special input type */
