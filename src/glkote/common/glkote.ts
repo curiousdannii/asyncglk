@@ -296,7 +296,7 @@ export abstract class GlkOteBase implements GlkOte {
     }
 
     protected ontimer() {
-        if (!this.disabled) {
+        if (!this.disabled && this.timer) {
             this.send_event({type: 'timer'})
         }
     }

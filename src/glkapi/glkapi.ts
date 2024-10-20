@@ -248,7 +248,7 @@ export class AsyncGlk implements Interface.GlkApi {
         // Timer
         const timer = this.timer
         if (timer.last_interval !== timer.interval) {
-            state.timer = timer.interval || null
+            state.timer = timer.interval
             timer.last_interval = timer.interval
         }
 
