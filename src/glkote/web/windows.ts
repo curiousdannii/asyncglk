@@ -723,7 +723,7 @@ export default class Windows extends Map<number, Window> {
     blorb?: Blorb // Note will be set after this is constructed, in WebGlkOte.init
     canvasResizeObserver?: ResizeObserver // Will only be created if the browser's ResizeObserver supports devicePixelContentBoxSize
     private dom: DOM
-    private glkote: WebGlkOte
+    glkote: WebGlkOte
     history: string[] = []
     private metrics: protocol.NormalisedMetrics
     send_event: EventFunc
@@ -892,7 +892,7 @@ export default class Windows extends Map<number, Window> {
                 top: update.top,
                 width: update.width,
             })
-                .toggleClass('hidden', update.hidden)
+                .toggleClass('hidden', !!update.hidden)
             if (win.type === 'buffer') {
                 win.scroll_to_bottom(true)
             }

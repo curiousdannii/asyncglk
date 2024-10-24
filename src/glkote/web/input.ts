@@ -54,6 +54,13 @@ export class TextInput {
     }
 
     private onblur() {
+        // If this input lost focus and no other input gained focus, then tell the metrics to resize the gameport
+        // This is to support iOS better, which delays its `visualViewport:resize` event significantly (~700ms)
+        const input_is_active = document.activeElement?.tagName === 'INPUT'
+        if (!input_is_active) {
+            this.window.manager.glkote.metrics_calculator.set_gameport_height(window.innerHeight)
+        }
+
         scroll_window()
     }
 
@@ -171,6 +178,9 @@ export class TextInput {
         if (this.window.type === 'buffer') {
             const updateheight = this.window.innerel.outerHeight()! - this.window.updatescrolltop
             if (updateheight > this.window.height_above_keyboard) {
+                // If there's not enough space, then tell the metrics to resize the gameport
+                // This is to support iOS better, which delays its `visualViewport:resize` event significantly (~700ms)
+                this.window.manager.glkote.metrics_calculator.set_gameport_height(window.innerHeight)
                 return
             }
         }

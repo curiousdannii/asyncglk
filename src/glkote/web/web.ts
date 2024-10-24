@@ -47,7 +47,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         prefix: '',
         windowport_id: 'windowport',
     })
-    private metrics_calculator: Metrics
+    metrics_calculator: Metrics
     private showing_error = false
     private showing_loading = true
     private transcript_recorder?: TranscriptRecorder
