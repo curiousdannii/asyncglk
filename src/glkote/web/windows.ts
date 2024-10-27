@@ -9,6 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {disableBodyScroll, enableBodyScroll} from 'body-scroll-lock'
 import {debounce} from 'lodash-es'
 
 import {Blorb} from '../../blorb/blorb.js'
@@ -17,7 +18,7 @@ import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM, type EventFunc} from './shared.js'
+import {create, DOM, type EventFunc, is_iOS} from './shared.js'
 import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow
@@ -338,10 +339,23 @@ export class BufferWindow extends TextualWindow {
             tabindex: -1,
         })
             .on('scroll', this.onscroll)
+
+        if (is_iOS) {
+            disableBodyScroll(this.frameel[0])
+        }
+
         this.innerel = create('div', 'BufferWindowInner')
             .append(this.textinput.el)
             .appendTo(this.frameel)
         this.height_above_keyboard = this.frameel.height()!
+    }
+
+    destroy(remove_frame: boolean) {
+        if (is_iOS) {
+            enableBodyScroll(this.frameel[0])
+        }
+
+        super.destroy(remove_frame)
     }
 
     /** Measure the height of the window that is currently visible (excluding virtual keyboards for example) */

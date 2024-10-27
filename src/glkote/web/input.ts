@@ -8,12 +8,14 @@ MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
-import {throttle} from 'lodash-es'
+
+import {debounce} from 'lodash-es'
 
 import {KEY_CODE_DOWN, KEY_CODE_RETURN, KEY_CODE_UP, KEY_CODES_TO_NAMES, OFFSCREEN_OFFSET} from '../../common/constants.js'
 import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
+import {is_input_focused, is_iOS} from './shared.js'
 import {apply_text_run_styles, type Window} from './windows.js'
 
 const MAX_HISTORY_LENGTH = 25
@@ -22,10 +24,12 @@ export class TextInput {
     el: JQuery<HTMLElement>
     history_index = 0
     is_line = false
+    /** Whether this input has been refocused since it was last reset */
+    refocused = false
     window: Window
 
-    constructor(window: Window) {
-        this.window = window
+    constructor(win: Window) {
+        this.window = win
 
         // We use a textarea rather than an input because mobile Chrome shows an extra bar which can't be removed
         // See https://github.com/curiousdannii/asyncglk/issues/30
@@ -34,7 +38,7 @@ export class TextInput {
             autocapitalize: 'off',
             class: 'Input',
             data: {
-                window,
+                window: win,
             },
             on: {
                 blur: () => this.onblur(),
@@ -46,7 +50,7 @@ export class TextInput {
             rows: 1,
         })
             .prop('disabled', true)
-            .appendTo(window.frameel)
+            .appendTo(win.frameel)
     }
 
     destroy() {
@@ -56,12 +60,9 @@ export class TextInput {
     private onblur() {
         // If this input lost focus and no other input gained focus, then tell the metrics to resize the gameport
         // This is to support iOS better, which delays its `visualViewport:resize` event significantly (~700ms)
-        const input_is_active = document.activeElement?.tagName === 'INPUT'
-        if (!input_is_active) {
-            this.window.manager.glkote.metrics_calculator.set_gameport_height(window.innerHeight)
+        if (is_iOS && !is_input_focused()) {
+            this.set_gameport_height(true)
         }
-
-        scroll_window()
     }
 
     private onfocus() {
@@ -69,8 +70,10 @@ export class TextInput {
         if (this.window.type === 'buffer' && !is_pinch_zoomed()) {
             this.window.scroll_to_bottom()
         }
-        // Scroll the browser window over the next 600ms
-        scroll_window()
+        // In iOS tell the metrics to resize the gameport because its `visualViewport:resize` event is slowww
+        if (is_iOS) {
+            this.set_gameport_height(false)
+        }
     }
 
     /** The keydown and keypress inputs are unreliable in mobile browsers with virtual keyboards. This handler can handle character input for printable characters, but not function/arrow keys */
@@ -175,12 +178,18 @@ export class TextInput {
     /** Refocus the input, if it wouldn't obscure part of the update */
     // On Android this forces the window to be scrolled down to the bottom, so only refocus if the virtual keyboard doesn't make the window too small for the full update text to be seen
     refocus() {
+        if (this.refocused || document.activeElement === this.el[0]) {
+            return
+        }
+        this.refocused = true
         if (this.window.type === 'buffer') {
             const updateheight = this.window.innerel.outerHeight()! - this.window.updatescrolltop
             if (updateheight > this.window.height_above_keyboard) {
                 // If there's not enough space, then tell the metrics to resize the gameport
                 // This is to support iOS better, which delays its `visualViewport:resize` event significantly (~700ms)
-                this.window.manager.glkote.metrics_calculator.set_gameport_height(window.innerHeight)
+                if (is_iOS) {
+                    this.set_gameport_height(true)
+                }
                 return
             }
         }
@@ -189,6 +198,7 @@ export class TextInput {
 
     reset() {
         this.history_index = 0
+        this.refocused = false
         this.el
             .attr({
                 'aria-hidden': 'true',
@@ -207,6 +217,10 @@ export class TextInput {
             this.el.appendTo(inputparent)
         }
     }
+
+    private set_gameport_height = debounce((full_screen: boolean) => {
+        this.window.manager.glkote.metrics_calculator.set_gameport_height(full_screen ? window.innerHeight : 0)
+    }, 50)
 
     private submit_char(val: string) {
         this.window.send_text_event({
@@ -285,19 +299,3 @@ export class TextInput {
         }
     }
 }
-
-/* A little helper function to repeatedly scroll the window, because iOS sometimes scrolls badly
-   On iOS, when focusing the soft keyboard, the keyboard animates in over 500ms
-   This would normally cover up the focused input, so iOS cleverly tries to
-   scroll the top-level window down to bring the input into the view
-   But we know better: we want to scroll the input's window frame to the bottom,
-   without scrolling the top-level window at all. */
-const scroll_window = throttle(() => {
-    function do_scroll(count: number) {
-        window.scrollTo(0, 0)
-        if (count > 0) {
-            setTimeout(do_scroll, 50, count - 1)
-        }
-    }
-    do_scroll(12)
-}, 1000)

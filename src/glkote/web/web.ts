@@ -9,13 +9,11 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {throttle} from 'lodash-es'
-
 import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
-import {DOM} from './shared.js'
+import {DOM, is_iOS} from './shared.js'
 import TranscriptRecorder from './transcript-recorder.js'
 import Windows, {GraphicsWindow} from './windows.js'
 
@@ -101,8 +99,6 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             }
             windowport.empty()
 
-            $(document).on('scroll', this.on_document_scroll)
-
             // Augment the viewport meta tag
             // Rather than requiring all users to update their HTML we will add new properties here
             // The properties we want are initial-scale, minimum-scale, width, and the new interactive-widget
@@ -112,7 +108,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             // Prevent iOS from zooming in when focusing input, but allow Android to still pinch zoom
             // As they handle the maximum-scale viewport meta option differently, we will conditionally add it only in iOS
             // Idea from https://stackoverflow.com/a/62750441/2854284
-            if (/iPhone OS/i.test(navigator.userAgent)) {
+            if (is_iOS) {
                 viewport_meta_tag_content += ',maximum-scale=1'
             }
 
@@ -208,6 +204,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 'aria-label': 'Close',
                 click: () => {
                     errorpane.hide()
+                    return false
                 },
                 id: 'errorclose',
                 text: '✖',
@@ -298,12 +295,6 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             loadingpane.style.display = 'none'
         }
     }
-
-    // iOS devices can scroll the window even though body/#gameport are set to height 100%
-    // Scroll back to the top if they try
-    on_document_scroll = throttle(async () => {
-        window.scrollTo(0, 0)
-    }, 500, {leading: false})
 
     save_allstate(): AutosaveState {
         const graphics_bg: Array<[number, string]> = []

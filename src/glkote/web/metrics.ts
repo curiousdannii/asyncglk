@@ -14,7 +14,7 @@ import {throttle} from 'lodash-es'
 import {is_pinch_zoomed} from '../../common/misc.js'
 import * as protocol from '../../common/protocol.js'
 
-import {create} from './shared.js'
+import {create, is_input_focused, is_iOS} from './shared.js'
 import WebGlkOte from './web.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
@@ -35,10 +35,12 @@ function metrics_differ(newmetrics: protocol.NormalisedMetrics, oldmetrics: prot
 }
 
 export default class Metrics {
-    // Shares the current_metrics and DOM of WebGlkOte
-    private metrics: protocol.NormalisedMetrics
+    /** When we don't know how high the screen is, use a height we've saved before, or, at the very beginning, a rough estimate */
+    private height_with_keyboard = (visualViewport?.height || window.innerHeight) / 2
     private loaded: Promise<void>
     private glkote: WebGlkOte
+    // Shares the current_metrics and DOM of WebGlkOte
+    private metrics: protocol.NormalisedMetrics
     private observer?: ResizeObserver
 
     constructor(glkote: WebGlkOte) {
@@ -63,6 +65,11 @@ export default class Metrics {
         }
         else {
             $(window).on('resize', this.on_gameport_resize)
+        }
+
+        // iOS sends repeated visualViewport:resize events, so throttle it
+        if (is_iOS) {
+            this.on_visualViewport_resize = throttle(this.on_visualViewport_resize, 700)
         }
         if (visualViewport) {
             $(visualViewport).on('resize', this.on_visualViewport_resize)
@@ -179,9 +186,15 @@ export default class Metrics {
     }, 200, {leading: false})
 
     on_visualViewport_resize = () => {
+        // If the keyboard is active, then store the height for later
+        const height = visualViewport!.height
+        if (is_input_focused()) {
+            this.height_with_keyboard = height
+        }
+
         // The iOS virtual keyboard does not change the gameport height, but it does change the viewport
         // Try to account for this by setting the gameport to the viewport height
-        this.set_gameport_height(visualViewport!.height)
+        this.set_gameport_height(height)
     }
 
     /** Update the gameport height and then send new metrics */
@@ -189,6 +202,10 @@ export default class Metrics {
         // Don't do anything if the window is pinch zoomed
         if (is_pinch_zoomed()){
             return
+        }
+
+        if (!height) {
+            height = this.height_with_keyboard
         }
 
         // We set the outer height to account for any padding or margin
