@@ -228,7 +228,7 @@ export class Blorb {
         return null
     }
 
-    get_chunk(usage: string, num: number): BlorbChunk | null {
+    get_chunk(usage: BlorbChunk['usage'], num: number): BlorbChunk | null {
         return this.chunks[`${usage}:${num}`] || null
     }
 

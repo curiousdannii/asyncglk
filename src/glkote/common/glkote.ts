@@ -88,7 +88,7 @@ export abstract class GlkOteBase implements GlkOte {
 
     protected accept_func: (event: protocol.Event) => void = () => {}
     protected autorestoring = false
-    protected Blorb?: Blorb
+    Blorb?: Blorb
     current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
     protected Dialog?: Dialog
     disabled = false
@@ -206,6 +206,9 @@ export abstract class GlkOteBase implements GlkOte {
             }
             if (data.input) {
                 this.update_inputs(data.input)
+            }
+            if (data.schannels && this.Blorb) {
+                this.update_schannels(data.schannels)
             }
 
             if (data.timer !== undefined) {
@@ -329,6 +332,8 @@ export abstract class GlkOteBase implements GlkOte {
     }
 
     protected set_page_bg(colour: string) {}
+
+    protected update_schannels(windows: protocol.SoundChannelUpdate[]) {}
 
     // Functions to be implemented in a subclass
     protected abstract cancel_inputs(windows: protocol.InputUpdate[]): void

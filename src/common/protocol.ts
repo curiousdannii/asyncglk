@@ -464,9 +464,7 @@ export interface PlayOperation {
     /** Number of repeats (default: 1) */
     repeats?: number,
     /** Sound resource ID (from a Blorb) */
-    snd?: number,
-    /** Sound URL */
-    url?: string,
+    snd: number,
 }
 
 export interface SetVolumeOperation {

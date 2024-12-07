@@ -13,6 +13,7 @@ import * as GlkOte from '../common/glkote.js'
 import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
+import {SoundChannelManager} from './schannels.js'
 import {DOM, is_iOS} from './shared.js'
 import TranscriptRecorder from './transcript-recorder.js'
 import Windows, {GraphicsWindow} from './windows.js'
@@ -46,6 +47,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         windowport_id: 'windowport',
     })
     metrics_calculator: Metrics
+    private schannels: SoundChannelManager
     private showing_error = false
     private showing_loading = true
     private transcript_recorder?: TranscriptRecorder
@@ -55,6 +57,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         super()
 
         this.metrics_calculator = new Metrics(this)
+        this.schannels = new SoundChannelManager(this)
         this.windows = new Windows(this)
     }
 
@@ -180,6 +183,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             'graphics',
             'graphicswin',
             'hyperlinks',
+            'sounds',
             'timer',
         ]
     }
@@ -356,6 +360,10 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
 
     protected update_inputs(windows: protocol.InputUpdate[]) {
         this.windows.update_inputs(windows)
+    }
+
+    protected update_schannels(schannels: protocol.SoundChannelUpdate[]) {
+        this.schannels.update(schannels)
     }
 
     protected update_windows(windows: protocol.WindowUpdate[]) {
