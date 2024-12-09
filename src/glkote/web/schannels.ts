@@ -12,6 +12,8 @@ https://github.com/curiousdannii/asyncglk
 import * as protocol from '../../common/protocol.js'
 import WebGlkOte from './web.js'
 
+import GlkAudio_init, {decode as GlkAudio_decode} from 'glkaudio'
+
 export class SoundChannelManager extends Map<number, SoundChannel> {
     private context: AudioContext
     private glkote: WebGlkOte
@@ -54,6 +56,7 @@ export class SoundChannel {
     private gain: GainNode
     private glkote: WebGlkOte
     private notify = 0
+    private snd = 0
     private source: AudioBufferSourceNode | null = null
 
     constructor(glkote: WebGlkOte, context: AudioContext) {
@@ -77,12 +80,24 @@ export class SoundChannel {
                     this.stop()
 
                     // Get the data from Blorb
+                    this.snd = op.snd
                     const chunk = this.glkote.Blorb!.get_chunk('sound', op.snd)
                     if (!chunk) {
                         continue
                     }
+
                     // Decode
-                    const buffer = await this.context.decodeAudioData(chunk.content!.slice().buffer)
+                    // TODO: cache decoded, or try streaming
+                    let buffer
+                    try {
+                        buffer = await this.context.decodeAudioData(chunk.content!.slice().buffer)
+                    }
+                    catch {
+                        await GlkAudio_init()
+                        const decoded = GlkAudio_decode(chunk.content!)
+                        buffer = await this.context.decodeAudioData(decoded.buffer)
+                    }
+
                     const source = this.context.createBufferSource()
                     source.buffer = buffer
 
@@ -147,6 +162,7 @@ export class SoundChannel {
         this.glkote.send_event({
             type: 'sound',
             notify: this.notify,
+            snd: this.snd,
         })
     }
 

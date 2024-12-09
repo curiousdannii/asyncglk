@@ -16,6 +16,7 @@
     "base32768": "^3.0.1",
     "body-scroll-lock": "^4.0.0-beta.0",
     "file-saver": "^2.0.5",
+    "glkaudio": "file:src/glkaudio/pkg",
     "lodash-es": "^4.17.21",
     "mute-stream": "2.0.0",
     "path-browserify-esm": "^1.0.6"
