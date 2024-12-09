@@ -81,4 +81,4 @@ export function is_input_focused() {
 
 /** Try to detect iOS */
 // From https://stackoverflow.com/a/58065241/2854284
-export const is_iOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+export const is_iOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints ?? 0) > 1)

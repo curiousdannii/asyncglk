@@ -47,7 +47,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         windowport_id: 'windowport',
     })
     metrics_calculator: Metrics
-    private schannels: SoundChannelManager
+    private schannels?: SoundChannelManager
     private showing_error = false
     private showing_loading = true
     private transcript_recorder?: TranscriptRecorder
@@ -57,7 +57,9 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         super()
 
         this.metrics_calculator = new Metrics(this)
-        this.schannels = new SoundChannelManager(this)
+        if (typeof AudioContext !== 'undefined') {
+            this.schannels = new SoundChannelManager(this)
+        }
         this.windows = new Windows(this)
     }
 
@@ -178,14 +180,17 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected capabilities(): string[] {
-        return [
+        const capabilities = [
             'garglktext',
             'graphics',
             'graphicswin',
             'hyperlinks',
-            'sounds',
             'timer',
         ]
+        if (this.schannels) {
+            capabilities.push('sounds')
+        }
+        return capabilities
     }
 
     protected disable(disable: boolean) {
@@ -363,7 +368,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
     }
 
     protected update_schannels(schannels: protocol.SoundChannelUpdate[]) {
-        this.schannels.update(schannels)
+        this.schannels?.update(schannels)
     }
 
     protected update_windows(windows: protocol.WindowUpdate[]) {
