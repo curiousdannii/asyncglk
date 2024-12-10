@@ -9,6 +9,8 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {gunzipSync} from 'fflate'
+
 export type ProgressCallback = (bytes: number) => void
 
 export type TruthyOption = boolean | number
@@ -48,14 +50,19 @@ export async function fetch_resource(options: DownloadOptions, path: string, pro
 async function fetch_resource_inner(options: DownloadOptions, path: string, progress_callback?: ProgressCallback) {
     // Handle embedded resources in single file mode
     if (options.single_file) {
-        const data = (document.getElementById(path) as HTMLScriptElement).text
+        const node = document.getElementById(path) as HTMLScriptElement
+        const data_base64 = node.text
         if (path.endsWith('.js')) {
-            return import(`data:text/javascript,${encodeURIComponent(data)}`)
+            return import(`data:text/javascript,${encodeURIComponent(data_base64)}`)
         }
         if (!path.endsWith('.wasm')) {
             throw new Error(`Can't load ${path} in single file mode`)
         }
-        return parse_base64(data)
+        let data = await parse_base64(data_base64)
+        if (node.type.endsWith(';gzip')) {
+            data = gunzipSync(data)
+        }
+        return data
     }
 
     // Handle when lib_path is a proper URL (such as import.meta.url), as well as the old style path fragment
