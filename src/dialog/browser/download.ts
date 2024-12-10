@@ -11,6 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
+import {gunzipSync} from 'fflate'
+
 import type {DownloadOptions, ProgressCallback} from '../../common/file.js'
 import {NullProvider} from './common.js'
 import type {Provider} from './interface.js'
@@ -85,8 +87,13 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
 
     // Load an embedded storyfile
     if (story_url.protocol === 'embedded:') {
-        const data = (document.getElementById(story_url.pathname) as HTMLScriptElement).text
-        return parse_base64(data)
+        const node = document.getElementById(story_url.pathname) as HTMLScriptElement
+        const data_base64 = node.text
+        let data = await parse_base64(data_base64)
+        if (node.type.endsWith(';gzip')) {
+            data = gunzipSync(data)
+        }
+        return data
     }
 
     // Only directly access files same origin files or those from the list of reliable domains
