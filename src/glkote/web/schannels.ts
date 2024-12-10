@@ -9,6 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
+import {fetch_resource} from '../../common/file.js'
 import * as protocol from '../../common/protocol.js'
 import WebGlkOte from './web.js'
 
@@ -17,6 +18,7 @@ import GlkAudio_init, {decode as GlkAudio_decode} from 'glkaudio'
 export class SoundChannelManager extends Map<number, SoundChannel> {
     private context: AudioContext
     private glkote: WebGlkOte
+    private loaded = false
 
     constructor(glkote: WebGlkOte) {
         super()
@@ -24,7 +26,7 @@ export class SoundChannelManager extends Map<number, SoundChannel> {
         this.context = new AudioContext()
     }
 
-    update(schannels: protocol.SoundChannelUpdate[]) {
+    async update(schannels: protocol.SoundChannelUpdate[]) {
         const wanted_schannels = []
         for (const schannel of schannels) {
             const {id, ops} = schannel
@@ -37,6 +39,12 @@ export class SoundChannelManager extends Map<number, SoundChannel> {
 
             // Do operations
             if (ops) {
+                // Load the glkaudio library only when we actually have something to do
+                // We still might be loading it unnecessarily, but it's not very big
+                if (!this.loaded) {
+                    await GlkAudio_init({module_or_path: fetch_resource(this.glkote.options, 'glkaudio_bg.wasm')})
+                    this.loaded = true
+                }
                 this.get(id)!.do_ops(ops)
             }
         }
@@ -112,7 +120,6 @@ export class SoundChannel {
                         this.buffer = await context.decodeAudioData(chunk.content!.slice().buffer)
                     }
                     catch {
-                        await GlkAudio_init()
                         const decoded = GlkAudio_decode(chunk.content!)
                         this.buffer = await context.decodeAudioData(decoded.buffer)
                     }

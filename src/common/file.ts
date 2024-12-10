@@ -11,6 +11,71 @@ https://github.com/curiousdannii/asyncglk
 
 export type ProgressCallback = (bytes: number) => void
 
+export type TruthyOption = boolean | number
+
+export interface DownloadOptions {
+    /** Domains to access directly: should always have both Access-Control-Allow-Origin and compression headers */
+    direct_domains: string[],
+    /** Path to resources */
+    lib_path: string,
+    /** URL of Proxy */
+    proxy_url: string,
+    /** Whether to load embedded resources in single file mode */
+    single_file?: TruthyOption,
+    /** Use the file proxy; if disabled may mean that some files can't be loaded */
+    use_proxy?: boolean | number,
+}
+
+/** Fetch a resource */
+const resource_map: Map<string, any> = new Map()
+export async function fetch_resource(options: DownloadOptions, path: string, progress_callback?: ProgressCallback) {
+    // Check the cache
+    const cached = resource_map.get(path)
+    if (cached) {
+        return cached
+    }
+
+    const response = fetch_resource_inner(options, path, progress_callback)
+    // Fill the cache with the promise, and then when the resource has been obtained, update the cache
+    resource_map.set(path, response)
+    response.then((resource: any) => {
+        resource_map.set(path, resource)
+    })
+    return response
+}
+
+/** Actually fetch a resource */
+async function fetch_resource_inner(options: DownloadOptions, path: string, progress_callback?: ProgressCallback) {
+    // Handle embedded resources in single file mode
+    if (options.single_file) {
+        const data = (document.getElementById(path) as HTMLScriptElement).text
+        if (path.endsWith('.js')) {
+            return import(`data:text/javascript,${encodeURIComponent(data)}`)
+        }
+        if (!path.endsWith('.wasm')) {
+            throw new Error(`Can't load ${path} in single file mode`)
+        }
+        return parse_base64(data)
+    }
+
+    // Handle when lib_path is a proper URL (such as import.meta.url), as well as the old style path fragment
+    let url: URL | string
+    try {
+        url = new URL(path, options.lib_path)
+    }
+    catch {
+        url = options.lib_path + path
+    }
+
+    if (path.endsWith('.js')) {
+        return import(url + '')
+    }
+
+    // Something else, like a .wasm
+    const response = await fetch(url)
+    return read_response(response, progress_callback)
+}
+
 /** Parse Base 64 into a Uint8Array */
 export async function parse_base64(data: string): Promise<Uint8Array> {
     // Firefox has a data URL limit of 32MB, so we have to chunk large data

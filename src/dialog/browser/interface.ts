@@ -17,15 +17,6 @@ export interface BrowserDialog extends AsyncDialog {
     upload(file: File): Promise<string>
 }
 
-export interface DownloadOptions {
-    /** Domains to access directly: should always have both Access-Control-Allow-Origin and compression headers */
-    direct_domains: string[],
-    /** URL of Proxy */
-    proxy_url: string,
-    /** Disable the file proxy, which may mean that some files can't be loaded */
-    use_proxy?: boolean | number,
-}
-
 /** A provider handles part of the filesystem, and can cascade down to another provider for files it doesn't handle */
 export interface Provider {
     /** Whether we can browse this provider */

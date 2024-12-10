@@ -11,9 +11,9 @@ https://github.com/curiousdannii/asyncglk
 
 // The download provider stores its own files just in a map (maybe to be cached in the future), but if files are written next to them, then they need to be done so in another provider
 
-import type {ProgressCallback} from '../../common/file.js'
+import type {DownloadOptions, ProgressCallback} from '../../common/file.js'
 import {NullProvider} from './common.js'
-import type {DownloadOptions, Provider} from './interface.js'
+import type {Provider} from './interface.js'
 import {parse_base64, read_response} from '../../common/file.js'
 import {utf8decoder} from '../../common/misc.js'
 

@@ -11,6 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
+import type {DownloadOptions}  from '../../common/file.js'
 import * as protocol from '../../common/protocol.js'
 import {filetype_to_extension} from '../../dialog/common/common.js'
 import type {Dialog} from '../../dialog/common/interface.js'
@@ -34,7 +35,7 @@ export interface GlkOte {
     warning(msg: any): void,
 }
 
-export interface GlkOteOptions {
+export interface GlkOteOptions extends DownloadOptions {
     accept(event: protocol.Event): void,
     Blorb?: Blorb,
     debug_commands?: boolean,
@@ -94,7 +95,7 @@ export abstract class GlkOteBase implements GlkOte {
     disabled = false
     protected generation = 0
     protected is_inited = false
-    protected options: GlkOteOptions = {} as GlkOteOptions
+    options: GlkOteOptions = {} as GlkOteOptions
     protected timer: ReturnType<typeof setTimeout> | null = null
     protected waiting_for_update = false
 

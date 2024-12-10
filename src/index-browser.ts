@@ -11,6 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 export * from './index-common.js'
 
+export {fetch_resource} from './common/file.js'
+
 export {ProviderBasedBrowserDialog} from './dialog/browser/browser.js'
 
 export {default as WebGlkOte} from './glkote/web/web.js'
