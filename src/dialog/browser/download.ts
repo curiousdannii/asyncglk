@@ -81,7 +81,6 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
     const story_domain = story_url.hostname
     const same_protocol = story_url.protocol === document.location.protocol
     const same_domain = story_domain === document.location.hostname
-    const proxy_url = `${options.proxy_url}?url=${story_url}`
     let response: Response
 
     // Load an embedded storyfile
@@ -92,8 +91,9 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
 
     // Only directly access files same origin files or those from the list of reliable domains
     let direct_access = (same_protocol && same_domain) || story_url.protocol === 'data:'
-    if (!direct_access) {
-        for (const domain of options.direct_domains) {
+    const direct_domains = options.direct_domains
+    if (!direct_access && direct_domains) {
+        for (const domain of direct_domains) {
             if (story_domain.endsWith(domain)) {
                 // all direct domains require HTTPS
                 story_url.protocol = 'https:'
@@ -115,8 +115,8 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
 
     // Otherwise use the proxy
     else {
-        if (options.use_proxy) {
-            response = await fetch(proxy_url)
+        if (options.use_proxy && options.proxy_url) {
+            response = await fetch(`${options.proxy_url}?url=${story_url}`)
         }
         else {
             throw new Error('Storyfile not in list of direct domains and proxy disabled')

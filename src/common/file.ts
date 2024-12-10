@@ -17,14 +17,15 @@ export type TruthyOption = boolean | number
 
 export interface DownloadOptions {
     /** Domains to access directly: should always have both Access-Control-Allow-Origin and compression headers */
-    direct_domains: string[],
+    direct_domains?: string[],
     /** Path to resources */
-    lib_path: string,
+    lib_path?: string,
     /** URL of Proxy */
-    proxy_url: string,
+    proxy_url?: string,
     /** Whether to load embedded resources in single file mode */
     single_file?: TruthyOption,
     /** Use the file proxy; if disabled may mean that some files can't be loaded */
+    // We could just say to exclude proxy_url instead?
     use_proxy?: boolean | number,
 }
 
@@ -66,12 +67,13 @@ async function fetch_resource_inner(options: DownloadOptions, path: string, prog
     }
 
     // Handle when lib_path is a proper URL (such as import.meta.url), as well as the old style path fragment
+    const lib_path = options.lib_path ?? import.meta.url
     let url: URL | string
     try {
-        url = new URL(path, options.lib_path)
+        url = new URL(path, lib_path)
     }
     catch {
-        url = options.lib_path + path
+        url = lib_path + path
     }
 
     if (path.endsWith('.js')) {
