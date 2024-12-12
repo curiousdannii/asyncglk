@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import type {ProgressCallback} from '../../common/file.js'
+import type {ProgressCallback} from '../../common/file/interface.js'
 import type {AsyncDialog} from '../common/interface.js'
 
 export interface BrowserDialog extends AsyncDialog {

@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {saveAs as filesave_saveAs} from 'file-saver'
 import path from 'path-browserify-esm'
 
-import type {DownloadOptions, ProgressCallback} from '../../common/file.js'
+import type {DownloadOptions, ProgressCallback} from '../../common/file/interface.js'
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
 import {show_alert} from './common.js'
 import {DownloadProvider, read_uploaded_file} from './download.js'

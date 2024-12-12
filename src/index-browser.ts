@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 export * from './index-common.js'
 
-export {fetch_resource} from './common/file.js'
+export {fetch_resource, parse_base64, read_response} from './common/file/browser.js'
 
 export {ProviderBasedBrowserDialog} from './dialog/browser/browser.js'
 

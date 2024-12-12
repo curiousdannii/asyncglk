@@ -14,8 +14,7 @@ export type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize, InfoMap, InfoMapR
 export {IFF} from './blorb/iff.js'
 
 export * as constants from './common/constants.js'
-export {parse_base64, read_response} from './common/file.js'
-export type {DownloadOptions, ProgressCallback, TruthyOption} from './common/file.js'
+export type {DownloadOptions, ProgressCallback, TruthyOption} from './common/file/interface.js'
 export {FileView} from './common/misc.js'
 export * as protocol from './common/protocol.js'
 

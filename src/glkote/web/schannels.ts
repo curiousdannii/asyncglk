@@ -9,7 +9,7 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {fetch_resource} from '../../common/file.js'
+import {fetch_resource} from '../../common/file/browser.js'
 import * as protocol from '../../common/protocol.js'
 import WebGlkOte from './web.js'
 

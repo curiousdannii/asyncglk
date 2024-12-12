@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {Blorb} from '../../blorb/blorb.js'
 import * as Constants from '../../common/constants.js'
-import type {DownloadOptions}  from '../../common/file.js'
+import type {DownloadOptions}  from '../../common/file/interface.js'
 import * as protocol from '../../common/protocol.js'
 import {filetype_to_extension} from '../../dialog/common/common.js'
 import type {Dialog} from '../../dialog/common/interface.js'

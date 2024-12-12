@@ -13,10 +13,10 @@ https://github.com/curiousdannii/asyncglk
 
 import {gunzipSync} from 'fflate'
 
-import type {DownloadOptions, ProgressCallback} from '../../common/file.js'
+import type {DownloadOptions, ProgressCallback} from '../../common/file/interface.js'
+import {parse_base64, read_response} from '../../common/file/browser.js'
 import {NullProvider} from './common.js'
 import type {Provider} from './interface.js'
-import {parse_base64, read_response} from '../../common/file.js'
 import {utf8decoder} from '../../common/misc.js'
 
 export class DownloadProvider implements Provider {
