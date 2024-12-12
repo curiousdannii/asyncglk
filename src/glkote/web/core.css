@@ -41,6 +41,12 @@ https://github.com/curiousdannii/asyncglk
     descent-override: 21.9%;
 }
 
+/* The body-scroll-lock package needs these to be set */
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
 /* The position of #gameport must be controlled from without, but the overflow behaviour is ours. */
 div#gameport {
     overflow: clip;
@@ -50,13 +56,6 @@ div#gameport {
     height: 100%;
     position: relative;
     width: 100%;
-}
-
-#loadingpane {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    top: 20%;
 }
 
 /* Make the test pane render invisibly */

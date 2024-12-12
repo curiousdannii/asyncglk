@@ -1,4 +1,6 @@
 <script lang="ts">
+    import '../../../common/ui/common.css'
+
     import {is_pinch_zoomed} from '../../../common/misc.js'
 
     let dialog: HTMLDialogElement
@@ -53,24 +55,6 @@
 </script>
 
 <style>
-    /* A light theme (loosely) based on Material design */
-    :global(:root) {
-        --asyncglk-ui-bg: #fff;
-        --asyncglk-ui-border: #666;
-        --asyncglk-ui-fg: #222;
-        --asyncglk-ui-selected: #cee0f2;
-        --asyncglk-ui-textbox: #fff;
-    }
-
-    /* A dark theme (loosely) based on Material design */
-    :global([data-theme="dark"]) {
-        --asyncglk-ui-bg: #111;
-        --asyncglk-ui-border: #666;
-        --asyncglk-ui-fg: #ddd;
-        --asyncglk-ui-selected: #153351;
-        --asyncglk-ui-textbox: #111;
-    }
-
     dialog {
         box-sizing: border-box;
         background: var(--asyncglk-ui-bg);
@@ -121,40 +105,6 @@
         top: 10px;
     }
 
-    /* Some styles to be applied to everything in the dialog */
-    dialog :global(.uirow) {
-        line-height: 28px;
-    }
-
-    dialog :global(button), dialog :global(select), dialog :global(textarea) {
-        background: var(--asyncglk-ui-bg);
-        border: 2px solid var(--asyncglk-ui-border);
-        color: var(--asyncglk-ui-fg);
-        font-size: 15px;
-        padding: 3px 6px 4px;
-    }
-
-    dialog :global(button.flat) {
-        background: none;
-        border: 0;
-        display: inline;
-        font-size: inherit;
-        padding: 0;
-    }
-
-    dialog :global(label) {
-        line-height: 28px;
-    }
-
-    dialog :global(select) {
-        padding: 2px 3px 3px;
-    }
-
-    dialog :global(textarea) {
-        font-size: 14px;
-        padding: 4px 6px;
-    }
-
     dialog :global(.foot) {
         text-align: right;
     }
@@ -162,7 +112,7 @@
 
 <dialog bind:this={dialog}
     class:fullscreen
-    class={extra_class}
+    class="asyncglk_ui {extra_class}"
     class:manually_positioned={typeof visualViewport !== 'undefined'}
     on:close={on_close}
 >
