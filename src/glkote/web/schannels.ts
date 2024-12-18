@@ -9,11 +9,14 @@ https://github.com/curiousdannii/asyncglk
 
 */
 
-import {fetch_resource} from '../../common/file/browser.js'
+import {fetch_resource, parse_base64} from '../../common/file/browser.js'
 import * as protocol from '../../common/protocol.js'
 import WebGlkOte from './web.js'
 
 import GlkAudio_init, {decode as GlkAudio_decode, wasm as GlkAudio_is_ready} from 'glkaudio'
+
+// From https://github.com/compulim/web-speech-cognitive-services/issues/34
+const priming_mp3 = 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjU2LjEwMQAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU3LjY0AAAAAAAAAAAAAAAAJAUHAAAAAAAAAYYoRBqpAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMQpg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'
 
 export class SoundChannelManager extends Map<number, SoundChannel> {
     private context: AudioContext
@@ -23,6 +26,9 @@ export class SoundChannelManager extends Map<number, SoundChannel> {
         super()
         this.glkote = glkote
         this.context = new AudioContext()
+
+        // Try to prime the audio system so that sounds starting after a timer will work
+        this.prime()
     }
 
     async update(schannels: protocol.SoundChannelUpdate[]) {
@@ -49,6 +55,21 @@ export class SoundChannelManager extends Map<number, SoundChannel> {
                 this.delete(id)
             }
         }
+    }
+
+    private async prime() {
+        const context = this.context
+
+        const source = this.context.createBufferSource()
+        const data = await parse_base64(priming_mp3)
+        source.buffer = await context.decodeAudioData(data.buffer)
+
+        source.connect(context.destination)
+        source.start()
+        setTimeout(() => {
+            source.disconnect()
+            source.stop()
+        }, 10)
     }
 }
 
