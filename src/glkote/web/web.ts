@@ -57,9 +57,6 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         super()
 
         this.metrics_calculator = new Metrics(this)
-        if (typeof AudioContext !== 'undefined') {
-            this.schannels = new SoundChannelManager(this)
-        }
         this.windows = new Windows(this)
     }
 
@@ -139,6 +136,11 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
                 }
             }
 
+            // Set up sound channels now to try to avoid the autoplaying-without-user input problem
+            if (typeof AudioContext !== 'undefined') {
+                this.schannels = new SoundChannelManager(this)
+            }
+
             // Note that this must be called last as it will result in VM.start() being called
             return super.init(options)
         }
@@ -187,7 +189,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
             'hyperlinks',
             'timer',
         ]
-        if (this.schannels) {
+        if (typeof AudioContext !== 'undefined') {
             capabilities.push('sounds')
         }
         return capabilities
