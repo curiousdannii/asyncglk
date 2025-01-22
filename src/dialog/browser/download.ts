@@ -3,7 +3,7 @@
 Download/upload provider
 ========================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2025 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -30,8 +30,8 @@ export class DownloadProvider implements Provider {
     }
 
     async download(url: string, progress_callback?: ProgressCallback): Promise<string> {
-        const data = await fetch_storyfile(this.options, url, progress_callback)
-        const path = url_to_path(url)
+        const [final_url, data] = await fetch_storyfile(this.options, url, progress_callback)
+        const path = url_to_path(final_url)
         this.store.set(path, data)
         return path
     }
@@ -77,9 +77,10 @@ export class DownloadProvider implements Provider {
 }
 
 /** Fetch a storyfile, using the proxy if necessary, and handling JSified stories */
-export async function fetch_storyfile(options: DownloadOptions, url: string, progress_callback?: ProgressCallback): Promise<Uint8Array> {
+async function fetch_storyfile(options: DownloadOptions, url: string, progress_callback?: ProgressCallback): Promise<[string, Uint8Array]> {
     // Handle a relative URL
     const story_url = new URL(url, document.URL)
+    url = story_url + ''
     const story_domain = story_url.hostname
     const same_protocol = story_url.protocol === document.location.protocol
     const same_domain = story_domain === document.location.hostname
@@ -93,7 +94,7 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
         if (node.type.endsWith(';gzip')) {
             data = gunzipSync(data)
         }
-        return data
+        return [url, data]
     }
 
     // Only directly access files same origin files or those from the list of reliable domains
@@ -113,6 +114,8 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
     if (direct_access) {
         try {
             response = await fetch('' + story_url)
+            // If we were redirected get the final URL
+            url = response.url ?? url
         }
         // We can't specifically detect CORS errors but that's probably what happened
         catch {
@@ -124,6 +127,8 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
     else {
         if (options.use_proxy && options.proxy_url) {
             response = await fetch(`${options.proxy_url}?url=${story_url}`)
+            // If the proxy was redirected get the final URL
+            url = response.headers.get('Final-Url') ?? url
         }
         else {
             throw new Error('Storyfile not in list of direct domains and proxy disabled')
@@ -146,10 +151,10 @@ export async function fetch_storyfile(options: DownloadOptions, url: string, pro
             throw new Error('Abnormal JSified story')
         }
 
-        return parse_base64(matched[1])
+        return [url, await parse_base64(matched[1])]
     }
 
-    return data
+    return [url, data]
 }
 
 /** Read an uploaded file and return it as a Uint8Array */
