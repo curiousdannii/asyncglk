@@ -55,6 +55,10 @@ async function fetch_resource_inner(options: DownloadOptions, path: string, prog
     let url: URL | string
     try {
         url = new URL(path, lib_path)
+        const lastmod = options.engine_files?.[path]
+        if (lastmod) {
+            url.searchParams.set('lastmod', lastmod)
+        }
     }
     catch {
         url = lib_path + path
