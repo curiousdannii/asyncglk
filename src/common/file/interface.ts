@@ -25,4 +25,5 @@ export interface DownloadOptions {
     /** Use the file proxy; if disabled may mean that some files can't be loaded */
     // We could just say to exclude proxy_url instead?
     use_proxy?: boolean | number,
+    engine_files?: {[key: string]: string},
 }
