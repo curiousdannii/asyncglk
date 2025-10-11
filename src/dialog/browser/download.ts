@@ -136,6 +136,13 @@ async function fetch_storyfile(options: DownloadOptions, url: string, progress_c
     }
 
     if (!response.ok) {
+        if (response.status === 451) {
+            let message = '<p>Storyfile is unavailable for legal reasons'
+            if (response.headers.get('Content-type')?.startsWith('text/html')) {
+                message += `<p>The server might have <a href='${encodeURI(response.url)}'>more information</a>`
+            }
+            throw message
+        }
         throw new Error(`Could not fetch storyfile, got ${response.status}`)
     }
 
