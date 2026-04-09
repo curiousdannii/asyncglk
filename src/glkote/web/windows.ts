@@ -3,7 +3,7 @@
 GlkOte windows
 ==============
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -450,13 +450,37 @@ export class BufferWindow extends TextualWindow {
                     }
                 }
                 else if ('special' in instruction && instruction.special === 'image') {
-                    const el = $('<img>', {
+                    const image_elem_props: JQuery.PlainObject = {
                         alt: instruction.alttext || `Image ${instruction.image}`,
                         class: inline_alignment_classes[instruction.alignment || 'inlineup'],
-                        height: instruction.height,
                         src: this.blorb && this.blorb.get_image_url(instruction.image!) || instruction.url!,
-                        width: instruction.width,
-                    })
+                        css: {},
+                    }
+                    // Process the new imagerule constraints
+                    if (instruction.widthratio) {
+                        image_elem_props.css.width = '' + instruction.widthratio * 100 + '%'
+                    }
+                    else {
+                        if (instruction.winmaxwidth === undefined) {
+                            instruction.winmaxwidth = 1
+                        }
+                        if (instruction.winmaxwidth) {
+                            image_elem_props.css['max-width'] = '' + instruction.winmaxwidth * 100 + '%'
+                        }
+                        image_elem_props.width = instruction.width!
+                    }
+                    if (instruction.aspectwidth) {
+                        image_elem_props.css['aspect-ratio'] = '' + instruction.aspectwidth + '/' + instruction.aspectheight!
+                    }
+                    else {
+                        if (instruction.winmaxwidth && !instruction.widthratio) {
+                            image_elem_props.css['aspect-ratio'] = '' + instruction.width + '/' + instruction.height!
+                        }
+                        else {
+                            image_elem_props.height = instruction.height!
+                        }
+                    }
+                    const el = $('<img>', image_elem_props)
                     if (instruction.hyperlink) {
                         $('<a>', {
                             data: {

@@ -185,6 +185,7 @@ export default class WebGlkOte extends GlkOte.GlkOteBase implements GlkOte.GlkOt
         const capabilities = [
             'garglktext',
             'graphics',
+            'graphicsext',
             'graphicswin',
             'hyperlinks',
             'timer',

@@ -3,7 +3,7 @@
 The GlkOte protocol
 ===================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -395,14 +395,18 @@ export interface BufferWindowImage {
     alignment: 'inlinecenter' | 'inlinedown' | 'inlineup' | 'marginleft' | 'marginright' | undefined,
     /** Image alt text */
     alttext?: string,
-    height: number,
+    aspectheight: number,
+    aspectwidth: number,
+    height?: number,
     /** Hyperlink value */
     hyperlink?: number,
     /** Image number */
     image?: number,
-    width: number,
     /** Image URL */
     url?: string,
+    width?: number,
+    widthratio?: number,
+    winmaxwidth?: number | null,
 }
 
 /** Text run */
