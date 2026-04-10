@@ -332,7 +332,7 @@ export abstract class GlkOteBase implements GlkOte {
         this.accept_func(ev as Required<protocol.Event>)
     }
 
-    protected set_page_bg(colour: string) {}
+    protected set_page_bg(colour: string | null) {}
 
     protected update_schannels(windows: protocol.SoundChannelUpdate[]) {}
 

@@ -282,7 +282,7 @@ export interface StateUpdate {
     /** Windows with active input */
     input?: InputUpdate[],
     /** Background colour for the page margin (ie, outside of the gameport) */
-    page_margin_bg?: string,
+    page_margin_bg?: string | null,
     /** Sound channels (new channels, or new operations) */
     schannels?: SoundChannelUpdate[],
     /** Special input */
@@ -303,9 +303,9 @@ export interface TextualWindowUpdate {
     /** Clear the window */
     clear?: boolean,
     /** Background colour after clearing */
-    bg?: string,
+    bg?: string | null,
     /** Foreground colour after clearing */
-    fg?: string,
+    fg?: string | null,
 }
 
 /** Buffer window content update */

@@ -146,8 +146,8 @@ function split_after_spaces(text: string): string[] {
 }
 
 abstract class TextualWindow extends WindowBase {
-    bg?: string
-    fg?: string
+    bg: string | null = null
+    fg: string | null = null
     last_run_styles?: protocol.CSSProperties
     styles?: protocol.WindowStyles
 
@@ -298,7 +298,7 @@ abstract class TextualWindow extends WindowBase {
     }
 
     /** Refresh styles after a cleared window */
-    refresh_styles(bg?: string, fg?: string) {
+    refresh_styles(bg?: string | null, fg?: string | null) {
         let styles_need_refreshing
         if (typeof bg !== 'undefined' && bg !== this.bg) {
             this.bg = bg
