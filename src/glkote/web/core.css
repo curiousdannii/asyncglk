@@ -45,6 +45,8 @@ https://github.com/curiousdannii/asyncglk
 body, html {
     height: 100%;
     width: 100%;
+    /* The Inform 7 template needs this otherwise its margins will cause unwanted scrollbars */
+    overflow: hidden;
 }
 
 /* The position of #gameport must be controlled from without, but the overflow behaviour is ours. */
