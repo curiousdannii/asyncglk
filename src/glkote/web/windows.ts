@@ -422,6 +422,11 @@ export class BufferWindow extends TextualWindow {
             if (line.append && this.lastline) {
                 divel = this.lastline
                 line_has_style = 1
+                // If appending to a blank line, fix it up first
+                if (divel.hasClass('BlankPara')) {
+                    divel.removeClass('BlankPara')
+                    divel.empty()
+                }
             }
             else {
                 divel = create('div', 'BufferLine')
