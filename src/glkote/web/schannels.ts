@@ -138,7 +138,7 @@ export class SoundChannel {
                         if (!GlkAudio_is_ready) {
                             await GlkAudio_init({module_or_path: fetch_resource(this.glkote.options, 'glkaudio_bg.wasm')})
                         }
-                        const decoded = GlkAudio_decode(chunk.content!)
+                        const decoded = GlkAudio_decode(chunk.content!) as Uint8Array<ArrayBuffer>
                         this.buffer = await context.decodeAudioData(decoded.buffer)
                     }
 

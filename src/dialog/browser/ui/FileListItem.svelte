@@ -5,7 +5,7 @@
 
     import type {DirEntry} from '../interface.js'
 
-    const dispatch = createEventDispatcher()
+    const dispatch = createEventDispatcher<Record<string, DirEntry>>()
 
     export let data: DirEntry
     export let selected: boolean

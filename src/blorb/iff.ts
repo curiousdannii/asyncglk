@@ -12,7 +12,7 @@ https://github.com/curiousdannii/asyncglk
 import {FileView} from '../common/misc.js'
 
 export interface IFFChunk {
-    data: Uint8Array,
+    data: Uint8Array<ArrayBuffer>,
     offset: number,
     type: string,
 }
@@ -22,7 +22,7 @@ export class IFF {
     type = ''
     chunks: IFFChunk[] = []
 
-    parse(data: Uint8Array) {
+    parse(data: Uint8Array<ArrayBuffer>) {
         const view = new FileView(data)
 
         // Check this is actually an IFF file

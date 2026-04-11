@@ -13,10 +13,10 @@ export type GlkTypedArray = Uint8Array | Uint32Array
 export type GlkTypedArrayConstructor = Uint8ArrayConstructor | Uint32ArrayConstructor
 
 /** A DataView with support for getting and setting arrays and four character codes */
-export class FileView extends DataView {
-    constructor(array: Uint8Array);
+export class FileView extends DataView<ArrayBuffer> {
+    constructor(array: Uint8Array<ArrayBuffer>);
     constructor(buffer: ArrayBuffer, byteOffset?: number, byteLength?: number);
-    constructor(data: Uint8Array | ArrayBuffer, byteOffset?: number, byteLength?: number) {
+    constructor(data: Uint8Array<ArrayBuffer> | ArrayBuffer, byteOffset?: number, byteLength?: number) {
         if (data instanceof Uint8Array) {
             super(data.buffer, data.byteOffset, data.byteLength)
         }
@@ -29,7 +29,7 @@ export class FileView extends DataView {
         return String.fromCharCode(this.getUint8(index), this.getUint8(index + 1), this.getUint8(index + 2), this.getUint8(index + 3))
     }
 
-    getUint8Subarray(index?: number, length?: number): Uint8Array {
+    getUint8Subarray(index?: number, length?: number): Uint8Array<ArrayBuffer> {
         return new Uint8Array(this.buffer, this.byteOffset + (index || 0), length)
     }
 

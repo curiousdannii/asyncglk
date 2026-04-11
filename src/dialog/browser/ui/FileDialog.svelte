@@ -308,7 +308,7 @@
         <DirTree bind:cur_dir/>
     </div>
     <div id="filelist" role="listbox">
-        {#each cur_direntry as file}
+        {#each cur_direntry as file (file.full_path)}
             <FileListItem
                 data={file}
                 bind:selected_file

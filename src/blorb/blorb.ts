@@ -27,7 +27,7 @@ export interface BlorbChunk {
     binary?: boolean,
     /** The original Chunk ID FourCC */
     blorbtype?: string,
-    content?: Uint8Array,
+    content?: Uint8Array<ArrayBuffer>,
     /** Cached image dimensions */
     imagesize?: ImageSize,
     /** Image type */
@@ -79,7 +79,7 @@ export class Blorb {
 
     // The original Blorb library requires you to call init(), but I think it's better to pass the data into the constructor
     constructor(data?: Uint8Array);
-    constructor(data?: Uint8Array) {
+    constructor(data?: Uint8Array<ArrayBuffer>) {
         if (data) {
             this.init(data)
         }
@@ -87,8 +87,8 @@ export class Blorb {
 
     init(data: Array<any>): void;
     init(data: InfoMap, options: {format: 'infomap'}): void;
-    init(data: Uint8Array): void;
-    init(data: Array<any> | InfoMap | Uint8Array, options?: any) {
+    init(data: Uint8Array<ArrayBuffer>): void;
+    init(data: Array<any> | InfoMap | Uint8Array<ArrayBuffer>, options?: any) {
         if (this.is_inited) {
             return
         }
@@ -313,12 +313,12 @@ export class Blorb {
     }
 }
 
-export function is_blorb(data: Uint8Array): boolean {
+export function is_blorb(data: Uint8Array<ArrayBuffer>): boolean {
     const view = new FileView(data)
     return view.getFourCC(0) === 'FORM' && view.getFourCC(8) === 'IFRS'
 }
 
-function get_jpeg_dimensions(data: Uint8Array): ImageSize | undefined {
+function get_jpeg_dimensions(data: Uint8Array<ArrayBuffer>): ImageSize | undefined {
     const view = new FileView(data)
     let i = 0
     while (i < view.byteLength) {
@@ -348,7 +348,7 @@ function get_jpeg_dimensions(data: Uint8Array): ImageSize | undefined {
     }
 }
 
-function get_png_dimensions(data: Uint8Array): ImageSize | undefined {
+function get_png_dimensions(data: Uint8Array<ArrayBuffer>): ImageSize | undefined {
     const view = new FileView(data)
     if (view.getFourCC(0) !== '\x89PNG') {
         return

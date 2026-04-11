@@ -74,12 +74,12 @@ export class WebStorageProvider implements BrowseableProvider {
         return this._metadata
     }
 
-    async read(path: string): Promise<Uint8Array | null> {
+    async read(path: string): Promise<Uint8Array<ArrayBuffer> | null> {
         if (path.startsWith(this.prefix)) {
             const res = this.store.getItem(path)
             if (res !== null) {
                 await this.update_metadata(path, MetadataUpdateOperation.READ)
-                return base32768_decode(res)
+                return base32768_decode(res) as Uint8Array<ArrayBuffer>
             }
             return null
         }

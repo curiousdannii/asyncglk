@@ -28,7 +28,7 @@ export interface Provider {
     /** Check if a file exists */
     exists(path: string): Promise<boolean | null>
     /** Read a file */
-    read(path: string): Promise<Uint8Array | null>
+    read(path: string): Promise<Uint8Array<ArrayBuffer> | null>
     /** Write some files */
     write(files: Record<string, Uint8Array>): Promise<void>
 }

@@ -23,7 +23,7 @@ export class DownloadProvider implements Provider {
     browseable = false
     next = new NullProvider()
     private options: DownloadOptions
-    private store: Map<string, Uint8Array> = new Map()
+    private store: Map<string, Uint8Array<ArrayBuffer>> = new Map()
 
     constructor(options: DownloadOptions) {
         this.options = options
@@ -61,7 +61,7 @@ export class DownloadProvider implements Provider {
         }
     }
 
-    async read(path: string): Promise<Uint8Array | null> {
+    async read(path: string): Promise<Uint8Array<ArrayBuffer> | null> {
         if (this.store.has(path)) {
             return this.store.get(path)!
         }
@@ -77,7 +77,7 @@ export class DownloadProvider implements Provider {
 }
 
 /** Fetch a storyfile, using the proxy if necessary, and handling JSified stories */
-async function fetch_storyfile(options: DownloadOptions, url: string, progress_callback?: ProgressCallback): Promise<[string, Uint8Array]> {
+async function fetch_storyfile(options: DownloadOptions, url: string, progress_callback?: ProgressCallback): Promise<[string, Uint8Array<ArrayBuffer>]> {
     // Handle a relative URL
     const story_url = new URL(url, document.URL)
     url = story_url + ''
@@ -92,7 +92,7 @@ async function fetch_storyfile(options: DownloadOptions, url: string, progress_c
         const data_base64 = node.text
         let data = await parse_base64(data_base64)
         if (node.type.endsWith(';gzip')) {
-            data = gunzipSync(data)
+            data = gunzipSync(data) as Uint8Array<ArrayBuffer>
         }
         return [url, data]
     }
@@ -165,7 +165,7 @@ async function fetch_storyfile(options: DownloadOptions, url: string, progress_c
 }
 
 /** Read an uploaded file and return it as a Uint8Array */
-export function read_uploaded_file(file: File): Promise<Uint8Array> {
+export function read_uploaded_file(file: File): Promise<Uint8Array<ArrayBuffer>> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onerror = () => reject(reader.error)

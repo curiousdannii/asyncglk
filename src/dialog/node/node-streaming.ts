@@ -394,7 +394,7 @@ export class NodeFileStream implements ClassicFileStream {
            efficient for small moves. */
         this.fflush()
 
-        let val = 0
+        let val: number
         if (seekmode === seekmode_Current) {
             val = this.mark + pos
         }

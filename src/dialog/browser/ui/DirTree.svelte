@@ -27,7 +27,7 @@
 </style>
 
 <div id="dirtree">
-    {#each dir_tree as dir, i}
+    {#each dir_tree as dir, i (dir)}
         {#if i !== 0}
             <span class="slash">&nbsp;/&nbsp;</span>
         {/if}

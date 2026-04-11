@@ -45,7 +45,7 @@ async function fetch_resource_inner(options: DownloadOptions, path: string, prog
         }
         let data = await parse_base64(data_base64)
         if (node.type.endsWith(';gzip')) {
-            data = gunzipSync(data)
+            data = gunzipSync(data) as Uint8Array<ArrayBuffer>
         }
         return data
     }
@@ -70,13 +70,13 @@ async function fetch_resource_inner(options: DownloadOptions, path: string, prog
 }
 
 /** Parse Base 64 into a Uint8Array */
-export async function parse_base64(data: string): Promise<Uint8Array> {
+export async function parse_base64(data: string): Promise<Uint8Array<ArrayBuffer>> {
     // Firefox has a data URL limit of 32MB, so we have to chunk large data
     const chunk_length = 30_000_000
     if (data.length < chunk_length) {
         return parse_base64_with_data_url(data)
     }
-    const chunks: Uint8Array[] = []
+    const chunks: Uint8Array<ArrayBuffer>[] = []
     let i = 0
     while (i < data.length) {
         chunks.push(await parse_base64_with_data_url(data.substring(i, i += chunk_length)))
@@ -95,7 +95,7 @@ async function parse_base64_with_data_url(data: string) {
 }
 
 /** Read a response, with optional progress notifications */
-export async function read_response(response: Response, progress_callback?: ProgressCallback): Promise<Uint8Array> {
+export async function read_response(response: Response, progress_callback?: ProgressCallback): Promise<Uint8Array<ArrayBuffer>> {
     if (!response.ok) {
         throw new Error(`Could not fetch ${response.url}, got ${response.status}`)
     }
