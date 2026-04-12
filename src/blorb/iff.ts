@@ -11,11 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 import {FileView} from '../common/misc.js'
 
-export interface IFFChunk {
-    data: Uint8Array<ArrayBuffer>,
-    offset: number,
-    type: string,
-}
+import type {IFFChunk} from './interface.js'
 
 /** An Interchange File Format reader and writer */
 export class IFF {
@@ -43,8 +39,10 @@ export class IFF {
             }
             this.chunks.push({
                 data: view.getUint8Subarray(i + 8, chunk_length),
-                offset: i,
-                type: view.getFourCC(i),
+                length: chunk_length,
+                offset_data: i + 8,
+                offset_header: i,
+                chunktype: view.getFourCC(i),
             })
             i += 8 + chunk_length
             if (i % 2) {
@@ -70,7 +68,7 @@ export class IFF {
         view.setFourCC(8, this.type)
         let i = 12
         for (const chunk of this.chunks) {
-            view.setFourCC(i, chunk.type)
+            view.setFourCC(i, chunk.chunktype)
             view.setUint32(i + 4, chunk.data.length)
             view.setUint8Array(i + 8, chunk.data)
             i += 8 + chunk.data.length

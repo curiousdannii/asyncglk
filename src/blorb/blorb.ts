@@ -3,7 +3,7 @@
 Blorb Files and functions
 =========================
 
-Copyright (c) 2023 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -14,81 +14,34 @@ import {unescape} from 'lodash-es'
 import {FileView, utf8decoder} from '../common/misc.js'
 
 import {IFF} from './iff.js'
+import type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize} from './interface.js'
 
-export interface ImageSize {
-    height: number,
-    width: number,
-}
+const giblorb_ID_BINA = 'BINA'
+const giblorb_ID_Data = 'Data'
+const giblorb_ID_FORM = 'FORM'
+const giblorb_ID_JPEG = 'JPEG'
+const giblorb_ID_PNG_ = 'PNG '
 
-export interface BlorbChunk {
-    /** Resource descriptions */
-    alttext?: string,
-    /** Whether a data chunk is binary */
-    binary?: boolean,
-    /** The original Chunk ID FourCC */
-    blorbtype?: string,
-    content?: Uint8Array<ArrayBuffer>,
-    /** Cached image dimensions */
-    imagesize?: ImageSize,
-    /** Image type */
-    type?: string,
-    /** External URL for image */
-    url?: string,
-    /** Resource usage */
-    usage: 'data' | 'exec' | 'pict' | 'sound',
-}
-
-export interface ImageInfo extends BlorbChunk {
-    height?: number,
-    /** The resource number */
-    image: number,
-    width?: number,
-}
-
-export interface BlorbDataChunk {
-    binary: boolean,
-    data: Uint8Array,
-}
-
-// The infomap format
-export interface InfoMapResource {
-    height: number,
-    image: number,
-    url: string,
-    width: number,
-}
-export type InfoMap = Record<string, InfoMapResource>
-
-const BLORB_RESOURCE_INDEX_USAGES: Record<string, string> = {
-    Data: 'data',
-    Exec: 'exec',
-    Pict: 'pict',
-    'Snd ': 'sound',
-}
-
-const UNKNOWN_IMAGE_TYPE = '????'
+type BlorbUsage = 'Data' | 'Exec' | 'Pict' | 'Snd '
 
 export class Blorb {
     classname = 'Blorb'
     /** Chunks are indexed with "USE:NUMBER" keys */
-    chunks: Record<string, BlorbChunk> = {}
+    chunks: BlorbChunk[] = []
     private coverimagenum?: number
-    private debugdata?: Uint8Array
+    //private debugdata?: Uint8Array
     private is_inited = false
     private metadata: Record<string, string> = {}
+    private resources: Record<string, BlorbChunk> = {}
 
     // The original Blorb library requires you to call init(), but I think it's better to pass the data into the constructor
-    constructor(data?: Uint8Array);
     constructor(data?: Uint8Array<ArrayBuffer>) {
         if (data) {
             this.init(data)
         }
     }
 
-    init(data: Array<any>): void;
-    init(data: InfoMap, options: {format: 'infomap'}): void;
-    init(data: Uint8Array<ArrayBuffer>): void;
-    init(data: Array<any> | InfoMap | Uint8Array<ArrayBuffer>, options?: any) {
+    init(data: Uint8Array<ArrayBuffer>) {
         if (this.is_inited) {
             return
         }
@@ -98,18 +51,52 @@ export class Blorb {
             if (iff.type !== 'IFRS') {
                 throw new Error('Not a Blorb file')
             }
-            if (iff.chunks[0].type !== 'RIdx') {
+
+            // Parse the resource index chunk
+            const ridx_chunk = iff.chunks[0]
+            if (ridx_chunk.chunktype !== 'RIdx') {
                 throw new Error('Malformed blorb: chunk 1 is not RIdx')
+            }
+            const resources_by_offset: Record<number, string> = {}
+            const ridx_view = new FileView(ridx_chunk.data)
+            let i = 4
+            while (i < ridx_view.byteLength) {
+                const usage = ridx_view.getFourCC(i)
+                const resource_number = ridx_view.getUint32(i + 4)
+                const resource_offset = ridx_view.getUint32(i + 8)
+                i += 12
+                resources_by_offset[resource_offset] = usage + ':' + resource_number
             }
 
             // Process the chunks
             for (const iff_chunk of iff.chunks) {
-                switch (iff_chunk.type) {
-                    case 'Dbug': {
+                const chunk: BlorbChunk = {
+                    chunktype: iff_chunk.chunktype,
+                    data: iff_chunk.data,
+                }
+                // For FORM chunks we set the chunk type to the internal type and the data to the internal
+                if (chunk.chunktype === giblorb_ID_FORM) {
+                    const view = new FileView(data)
+                    chunk.chunktype = view.getFourCC(iff_chunk.offset_data)
+                    chunk.data = view.getUint8Subarray(iff_chunk.offset_header, iff_chunk.length + 8)
+                }
+                // Check if this chunk is a resource
+                const resource_key = resources_by_offset[iff_chunk.offset_header]
+                if (resource_key) {
+                    this.resources[resource_key] = chunk
+                    if (resource_key.startsWith(giblorb_ID_Data)) {
+                        if (chunk.chunktype === giblorb_ID_BINA || iff_chunk.chunktype === giblorb_ID_FORM) {
+                            chunk.binary = true
+                        }
+                    }
+                }
+                // Process other chunks
+                switch (iff_chunk.chunktype) {
+                    /*case 'Dbug': {
                         // Process the debug chunk
                         this.debugdata = iff_chunk.data
                         break
-                    }
+                    }*/
                     case 'Fspc': {
                         // Process the frontispiece chunk
                         const view = new FileView(iff_chunk.data)
@@ -136,7 +123,7 @@ export class Blorb {
                         }
                         break
                     }
-                    case 'RDes': {
+                    /*case 'RDes': {
                         // Process the resource description chunk
                         const view = new FileView(iff_chunk.data)
                         let i = 4
@@ -151,71 +138,10 @@ export class Blorb {
                             i += 12 + text_length
                         }
                         break
-                    }
-                    case 'RIdx': {
-                        // Process the resource index chunk
-                        const view = new FileView(iff_chunk.data)
-                        let i = 4
-                        while (i < view.byteLength) {
-                            const usage = view.getFourCC(i)
-                            const resource_number = view.getUint32(i + 4)
-                            const resource_offset = view.getUint32(i + 8)
-                            i += 12
-                            const resource_chunk = iff.chunks.filter(chunk => chunk.offset === resource_offset)[0]
-                            if (!resource_chunk) {
-                                throw new Error(`No Blorb chunk at offset ${resource_offset}`)
-                            }
-                            const type = resource_chunk.type
-                            const chunk: BlorbChunk = {
-                                blorbtype: type,
-                                // Embedded FORM chunks need to include the chunk headers for resource streams, so patch them now
-                                content: type === 'FORM' ? data.subarray(resource_chunk.offset, resource_chunk.offset + 8 + resource_chunk.data.length) : resource_chunk.data,
-                                usage: BLORB_RESOURCE_INDEX_USAGES[usage] as BlorbChunk['usage'],
-                            }
-                            if (usage === 'Pict') {
-                                if (type === 'JPEG') {
-                                    chunk.type = 'jpeg'
-                                }
-                                else if (type === 'PNG ') {
-                                    chunk.type = 'png'
-                                }
-                                else {
-                                    chunk.type = UNKNOWN_IMAGE_TYPE
-                                }
-                            }
-                            if (usage === 'Data') {
-                                chunk.binary = type === 'BINA' || type === 'FORM'
-                            }
-                            this.chunks[`${chunk.usage}:${resource_number}`] = chunk
-                        }
-                        break
-                    }
+                    }*/
                 }
+                this.chunks.push(chunk)
             }
-        }
-        // Process the infomap format
-        else if (options?.format === 'infomap') {
-            for (const key in data) {
-                if (!Number.isInteger(+key)) {
-                    continue
-                }
-                const chunk: any = Object.assign({}, (data as InfoMap)[key])
-                delete chunk.image
-                if (chunk.height && chunk.width) {
-                    chunk.imagesize = {
-                        height: chunk.height,
-                        width: chunk.width,
-                    }
-                    delete chunk.height
-                    delete chunk.width
-                }
-                chunk.type = chunk.url.endsWith('.png') ? 'png' : 'jpeg'
-                chunk.usage = 'pict'
-                this.chunks[`pict:${key}`] = chunk
-            }
-        }
-        else if (Array.isArray(data) && data.length === 0) {
-            // Empty data, do nothing
         }
         else {
             throw new Error('Unsupported Blorb.init data format')
@@ -228,8 +154,8 @@ export class Blorb {
         return null
     }
 
-    get_chunk(usage: BlorbChunk['usage'], num: number): BlorbChunk | null {
-        return this.chunks[`${usage}:${num}`] || null
+    get_chunk(usage: BlorbUsage, num: number): BlorbChunk | null {
+        return this.resources[usage + ':' + num] || null
     }
 
     get_cover_pict(): number | null {
@@ -237,44 +163,44 @@ export class Blorb {
     }
 
     get_data_chunk(num: number): BlorbDataChunk | null {
-        const chunk = this.chunks[`data:${num}`]
-        if (!chunk?.content) {
+        const chunk = this.resources[`data:${num}`]
+        if (!chunk?.data) {
             return null
         }
         return {
             binary: chunk.binary!,
-            data: chunk.content,
+            data: chunk.data,
         }
     }
-    
-    get_debug_info(): Uint8Array | undefined {
+
+    /*get_debug_info(): Uint8Array | undefined {
         return this.debugdata
-    }
+    }*/
 
     /** Return the game file chunk, or null if there isn't one.
      * If type is provided (GLUL or ZCOD) then the game file is checked to ensure it matches
      */
     get_exec_data(gametype?: 'GLUL' | 'ZCOD'): Uint8Array | null {
-        const chunk = this.chunks['exec:0']
-        if (!chunk?.content || (gametype && chunk.blorbtype !== gametype)) {
+        const chunk = this.resources['exec:0']
+        if (!chunk?.data || (gametype && chunk.chunktype !== gametype)) {
             return null
         }
-        return chunk.content
+        return chunk.data
     }
 
     get_image_info(num: number): ImageInfo | null {
-        const chunk = this.chunks[`pict:${num}`]
+        const chunk = this.resources[`pict:${num}`]
         if (!chunk) {
             return null
         }
 
         // Try to extract the image sizes
-        if (!chunk.imagesize && chunk.content) {
-            if (chunk.type === 'jpeg') {
-                chunk.imagesize = get_jpeg_dimensions(chunk.content)
+        if (!chunk.imagesize && chunk.data) {
+            if (chunk.chunktype === giblorb_ID_JPEG) {
+                chunk.imagesize = get_jpeg_dimensions(chunk.data)
             }
-            else if (chunk.type === 'png') {
-                chunk.imagesize = get_png_dimensions(chunk.content)
+            else if (chunk.chunktype === giblorb_ID_PNG_) {
+                chunk.imagesize = get_png_dimensions(chunk.data)
             }
         }
 
@@ -287,7 +213,7 @@ export class Blorb {
     }
 
     get_image_url(num: number): string | null {
-        const chunk = this.chunks[`pict:${num}`]
+        const chunk = this.resources[`pict:${num}`]
         if (!chunk) {
             return null
         }
@@ -296,8 +222,8 @@ export class Blorb {
             return chunk.url
         }
 
-        if (chunk.type !== UNKNOWN_IMAGE_TYPE && chunk.content) {
-            chunk.url = URL.createObjectURL(new Blob([chunk.content], {type: `image/${chunk.type}`}))
+        if ((chunk.chunktype === giblorb_ID_JPEG || chunk.chunktype === giblorb_ID_PNG_) && chunk.data) {
+            chunk.url = URL.createObjectURL(new Blob([chunk.data], {type: `image/${chunk.chunktype === giblorb_ID_JPEG ? 'jpeg' : 'png'}`}))
             return chunk.url
         }
 

@@ -3,17 +3,23 @@
 Web GlkOte Sound Channels
 =========================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
 */
 
-import {fetch_resource, parse_base64} from '../../common/file/browser.js'
+import decode_aiff from '@audio/decode-aiff'
+import decode_oggv from '@audio/decode-vorbis'
+
+import {parse_base64} from '../../common/file/browser.js'
 import * as protocol from '../../common/protocol.js'
 import WebGlkOte from './web.js'
 
-import GlkAudio_init, {decode as GlkAudio_decode, wasm as GlkAudio_is_ready} from 'glkaudio'
+interface AudioData {
+    channelData: Float32Array[],
+    sampleRate: number,
+}
 
 // From https://github.com/compulim/web-speech-cognitive-services/issues/34
 const priming_mp3 = 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjU2LjEwMQAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU3LjY0AAAAAAAAAAAAAAAAJAUHAAAAAAAAAYYoRBqpAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy45OS41VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMQpg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'
@@ -94,6 +100,13 @@ export class SoundChannel {
         this.gain.connect(context.destination)
     }
 
+    private createBuffer(data: AudioData) {
+        this.buffer = this.context.createBuffer(data.channelData.length, data.channelData[0].length, data.sampleRate)
+        for (const [i, channel] of data.channelData.entries()) {
+            this.buffer.getChannelData(i).set(channel)
+        }
+    }
+
     delete() {
         this.stop()
         if (this.vol_timer) {
@@ -123,23 +136,28 @@ export class SoundChannel {
                     this.snd = op.snd
 
                     // Get the data from Blorb
-                    const chunk = this.glkote.Blorb!.get_chunk('sound', op.snd)
+                    const chunk = this.glkote.Blorb!.get_chunk('Snd ', op.snd)
                     if (!chunk) {
-                        continue
+                        break
                     }
 
                     // Decode
                     // TODO: cache decoded, or try streaming
                     try {
-                        this.buffer = await context.decodeAudioData(chunk.content!.slice().buffer)
+                        this.buffer = await context.decodeAudioData(chunk.data!.slice().buffer)
                     }
                     catch {
-                        // Load the glkaudio library if it hasn't been yet
-                        if (!GlkAudio_is_ready) {
-                            await GlkAudio_init({module_or_path: fetch_resource(this.glkote.options, 'glkaudio_bg.wasm')})
+                        if (chunk.chunktype === 'AIFF') {
+                            const decoded = await decode_aiff(chunk.data!)
+                            this.createBuffer(decoded)
                         }
-                        const decoded = GlkAudio_decode(chunk.content!) as Uint8Array<ArrayBuffer>
-                        this.buffer = await context.decodeAudioData(decoded.buffer)
+                        else if (chunk.chunktype === 'OGGV') {
+                            const decoded = await decode_oggv(chunk.data!)
+                            this.createBuffer(decoded)
+                        }
+                        else {
+                            break
+                        }
                     }
 
                     if (!this.paused) {

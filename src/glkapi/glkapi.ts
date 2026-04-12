@@ -11,7 +11,8 @@ https://github.com/curiousdannii/asyncglk
 
 import {cloneDeep} from 'lodash-es'
 
-import {Blorb, type ImageInfo} from '../blorb/blorb.js'
+import {Blorb} from '../blorb/blorb.js'
+import type {ImageInfo} from '../blorb/interface.js'
 import {DEFAULT_METRICS, PACKAGE_VERSION} from '../common/constants.js'
 import {BEBuffer_to_Array, type GlkTypedArray, type GlkTypedArrayConstructor, utf8decoder} from '../common/misc.js'
 import * as Protocol from '../common/protocol.js'
@@ -1736,7 +1737,8 @@ export class AsyncGlk implements Interface.GlkApi {
 
     private draw_image(win: Window, imginfo: ImageInfo, height: number, val1: number, val2: number, width: number) {
         const data: Partial<BufferWindowImage & ImageOperation> = {
-            alttext: imginfo.alttext,
+            // TODO!
+            alttext: '',
             height,
             image: imginfo.image,
             special: 'image',

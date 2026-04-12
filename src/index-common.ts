@@ -10,8 +10,8 @@ https://github.com/curiousdannii/asyncglk
 */
 
 export {Blorb, is_blorb} from './blorb/blorb.js'
-export type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize, InfoMap, InfoMapResource} from './blorb/blorb.js'
 export {IFF} from './blorb/iff.js'
+export type {BlorbChunk, BlorbDataChunk, IFFChunk, ImageInfo, ImageSize} from './blorb/interface.js'
 
 export * as constants from './common/constants.js'
 export type {DownloadOptions, ProgressCallback, TruthyOption} from './common/file/interface.js'
