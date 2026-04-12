@@ -37,7 +37,7 @@ export interface AsyncDialog {
     // TODO: support multiple extensions
     prompt(extension: string, save: boolean): Promise<string | null>
     /** Read a file */
-    read(path: string): Promise<Uint8Array | null>
+    read(path: string): Promise<Uint8Array<ArrayBuffer> | null>
     /** Set storyfile directory and return directories */
     set_storyfile_dir(path: string): Partial<DialogDirectories>
     /** Write some files */

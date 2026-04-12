@@ -163,7 +163,7 @@ export class Blorb {
     }
 
     get_data_chunk(num: number): BlorbDataChunk | null {
-        const chunk = this.resources[`data:${num}`]
+        const chunk = this.resources['Data:' + num]
         if (!chunk?.data) {
             return null
         }
@@ -181,7 +181,7 @@ export class Blorb {
      * If type is provided (GLUL or ZCOD) then the game file is checked to ensure it matches
      */
     get_exec_data(gametype?: 'GLUL' | 'ZCOD'): Uint8Array | null {
-        const chunk = this.resources['exec:0']
+        const chunk = this.resources['Exec:0']
         if (!chunk?.data || (gametype && chunk.chunktype !== gametype)) {
             return null
         }
@@ -189,7 +189,7 @@ export class Blorb {
     }
 
     get_image_info(num: number): ImageInfo | null {
-        const chunk = this.resources[`pict:${num}`]
+        const chunk = this.resources['Pict:' + num]
         if (!chunk) {
             return null
         }
@@ -213,7 +213,7 @@ export class Blorb {
     }
 
     get_image_url(num: number): string | null {
-        const chunk = this.resources[`pict:${num}`]
+        const chunk = this.resources['Pict:' + num]
         if (!chunk) {
             return null
         }

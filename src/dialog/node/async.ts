@@ -69,7 +69,7 @@ export class CheapAsyncDialog implements AsyncDialog {
         })
     }
 
-    read(path: string): Promise<Uint8Array | null> {
+    read(path: string): Promise<Uint8Array<ArrayBuffer> | null> {
         return fs_async.readFile(path_posix_to_native(path))
             .catch(() => null)
     }

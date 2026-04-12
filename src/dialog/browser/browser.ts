@@ -99,7 +99,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         return !!(await this.providers[0].exists(path))
     }
 
-    async read(path: string): Promise<Uint8Array | null> {
+    async read(path: string): Promise<Uint8Array<ArrayBuffer> | null> {
         return this.providers[0].read(path)
     }
 
