@@ -14,8 +14,8 @@ export {IFF} from './blorb/iff.js'
 export type {BlorbChunk, BlorbDataChunk, IFFChunk, ImageInfo, ImageSize} from './blorb/interface.js'
 
 export * as constants from './common/constants.js'
-export type {DownloadOptions, ProgressCallback, TruthyOption} from './common/file/interface.js'
-export {FileView} from './common/misc.js'
+export type {DownloadOptions, ProgressCallback, Resource, TruthyOption} from './common/file/interface.js'
+export {FileView, utf8decoder, utf8encoder} from './common/misc.js'
 export * as protocol from './common/protocol.js'
 
 export {filetype_to_extension, filters_for_usage, path_native_to_posix, path_posix_to_native} from './dialog/common/common.js'

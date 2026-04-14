@@ -14,15 +14,33 @@ import {unescape} from 'lodash-es'
 import {FileView, utf8decoder} from '../common/misc.js'
 
 import {IFF} from './iff.js'
-import type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize} from './interface.js'
+import type {BlorbChunk, BlorbDataChunk, ImageInfo, ImageSize, ResourceMapResource} from './interface.js'
 
+const giblorb_ID_AIFF = 'AIFF'
 const giblorb_ID_BINA = 'BINA'
 const giblorb_ID_Data = 'Data'
 const giblorb_ID_FORM = 'FORM'
 const giblorb_ID_JPEG = 'JPEG'
+const giblorb_ID_MP3_ = 'MP3 '
+const giblorb_ID_OGGV = 'OGGV'
 const giblorb_ID_PNG_ = 'PNG '
 
 type BlorbUsage = 'Data' | 'Exec' | 'Pict' | 'Snd '
+
+const resource_to_chunktype: Record<string, string> =  {
+    AIFF: giblorb_ID_AIFF,
+    JPEG: giblorb_ID_JPEG,
+    MP3: giblorb_ID_MP3_,
+    'Ogg Vorbis': giblorb_ID_OGGV,
+    PNG: giblorb_ID_PNG_,
+}
+
+function resource_format_to_usage(resource_format: string): BlorbUsage {
+    if (resource_format === 'JPEG' || resource_format === 'PNG') {
+        return 'Pict'
+    }
+    return 'Snd '
+}
 
 export class Blorb {
     classname = 'Blorb'
@@ -35,13 +53,17 @@ export class Blorb {
     private resources: Record<string, BlorbChunk> = {}
 
     // The original Blorb library requires you to call init(), but I think it's better to pass the data into the constructor
-    constructor(data?: Uint8Array<ArrayBuffer>) {
+    constructor(data?: Uint8Array<ArrayBuffer>);
+    constructor(data?: ResourceMapResource[]);
+    constructor(data?: Uint8Array<ArrayBuffer> | ResourceMapResource[]) {
         if (data) {
-            this.init(data)
+            this.init(data as any)
         }
     }
 
-    init(data: Uint8Array<ArrayBuffer>) {
+    init(data: Uint8Array<ArrayBuffer>): void;
+    init(data: ResourceMapResource[]): void;
+    init(data: Uint8Array<ArrayBuffer> | ResourceMapResource[]) {
         if (this.is_inited) {
             return
         }
@@ -141,6 +163,23 @@ export class Blorb {
                     }*/
                 }
                 this.chunks.push(chunk)
+            }
+        }
+        // Parse the new Inform 7 resource map
+        else if (Array.isArray(data)) {
+            for (const resource of data) {
+                const chunk: BlorbChunk = {
+                    chunktype: resource_to_chunktype[resource.format],
+                    url: resource.url,
+                }
+                if (resource.width) {
+                    chunk.imagesize = {
+                        height: resource.height!,
+                        width: resource.width,
+                    }
+                }
+                this.chunks.push(chunk)
+                this.resources[resource_format_to_usage(resource.format) + ':' + resource.id] = chunk
             }
         }
         else {

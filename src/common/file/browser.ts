@@ -3,7 +3,7 @@
 File processing functions for the browser
 =========================================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -11,18 +11,23 @@ https://github.com/curiousdannii/asyncglk
 
 import {gunzipSync} from 'fflate'
 
-import type {DownloadOptions, ProgressCallback} from './interface.js'
+import type {DownloadOptions, ProgressCallback, Resource} from './interface.js'
 
 /** Fetch a resource */
+let jsonp_queue: JSONPQueue
 const resource_map: Map<string, any> = new Map()
-export async function fetch_resource(options: DownloadOptions, path: string, progress_callback?: ProgressCallback) {
+export async function fetch_resource<T>(options: DownloadOptions, path: string, progress_callback?: ProgressCallback): Promise<T> {
+    if (!jsonp_queue && options.jsonp) {
+        jsonp_queue = new JSONPQueue(options)
+    }
+
     // Check the cache
     const cached = resource_map.get(path)
     if (cached) {
         return cached
     }
 
-    const response = fetch_resource_inner(options, path, progress_callback)
+    const response = fetch_resource_inner<T>(options, path, progress_callback)
     // Fill the cache with the promise, and then when the resource has been obtained, update the cache
     resource_map.set(path, response)
     response.then((resource: any) => {
@@ -32,22 +37,23 @@ export async function fetch_resource(options: DownloadOptions, path: string, pro
 }
 
 /** Actually fetch a resource */
-async function fetch_resource_inner(options: DownloadOptions, path: string, progress_callback?: ProgressCallback) {
-    // Handle embedded resources in single file mode
-    if (options.single_file) {
-        const node = document.getElementById(path) as HTMLScriptElement
-        const data_base64 = node.text
+async function fetch_resource_inner<T>(options: DownloadOptions, path: string, progress_callback?: ProgressCallback): Promise<T> {
+    // Handle embedded resources
+    const node = document.getElementById(path) as HTMLScriptElement | null
+    if (node) {
+        const data = node.text
         if (path.endsWith('.js')) {
-            return import(`data:text/javascript,${encodeURIComponent(data_base64)}`)
+            return import(`data:text/javascript,${encodeURIComponent(data)}`)
         }
         if (!path.endsWith('.wasm')) {
             throw new Error(`Can't load ${path} in single file mode`)
         }
-        let data = await parse_base64(data_base64)
-        if (node.type.endsWith(';gzip')) {
-            data = gunzipSync(data) as Uint8Array<ArrayBuffer>
-        }
-        return data
+        const node_types = node.type.split(';')
+        return process_resource<T>({
+            base64: 1,
+            data,
+            gzip: node_types.includes('gzip'),
+        })
     }
 
     // Handle when lib_path is a proper URL (such as import.meta.url), as well as the old style path fragment
@@ -60,17 +66,25 @@ async function fetch_resource_inner(options: DownloadOptions, path: string, prog
         url = lib_path + path
     }
 
+    if (options.jsonp) {
+        return jsonp_queue.request(url + '')
+    }
+
     if (path.endsWith('.js')) {
         return import(url + '')
     }
 
     // Something else, like a .wasm
     const response = await fetch(url)
-    return read_response(response, progress_callback)
+    return read_response(response, progress_callback) as Promise<T>
 }
 
 /** Parse Base 64 into a Uint8Array */
-export async function parse_base64(data: string): Promise<Uint8Array<ArrayBuffer>> {
+export async function parse_base64(data: string) {
+    if (Uint8Array.fromBase64) {
+        return Uint8Array.fromBase64(data)
+    }
+
     // Firefox has a data URL limit of 32MB, so we have to chunk large data
     const chunk_length = 30_000_000
     if (data.length < chunk_length) {
@@ -94,8 +108,20 @@ async function parse_base64_with_data_url(data: string) {
     return new Uint8Array(await response.arrayBuffer())
 }
 
+/** Decode and decompress a resource if required */
+export async function process_resource<T>(resource: Resource<T>): Promise<T> {
+    if (resource.base64) {
+        let data = await parse_base64(resource.data as string)
+        if (resource.gzip) {
+            data = gunzipSync(data) as Uint8Array<ArrayBuffer>
+        }
+        return data as T
+    }
+    return resource.data as T
+}
+
 /** Read a response, with optional progress notifications */
-export async function read_response(response: Response, progress_callback?: ProgressCallback): Promise<Uint8Array<ArrayBuffer>> {
+export async function read_response(response: Response, progress_callback?: ProgressCallback) {
     if (!response.ok) {
         throw new Error(`Could not fetch ${response.url}, got ${response.status}`)
     }
@@ -124,4 +150,53 @@ export async function read_response(response: Response, progress_callback?: Prog
         result.set(chunk, offset)
     }
     return result
+}
+
+/** A helper class to handle requesting JSONP resources one at a time */
+interface QueueRequest<T> {
+    path: string,
+    resolve: (value: T) => void,
+}
+class JSONPQueue {
+    private options: DownloadOptions
+    private pending = false
+    private queue: QueueRequest<any>[] = []
+
+    constructor(options: DownloadOptions) {
+        this.options = options
+    }
+
+    private async next<T>() {
+        if (this.pending) {
+            return
+        }
+
+        const next = this.queue.pop()
+        if (!next) {
+            return
+        }
+
+        this.pending = true
+
+        const script_elem = document.createElement('script')
+        script_elem.src = next.path
+
+        ;(window as any)[this.options.jsonp!] = async (resource: Resource<T>) => {
+            const data = await process_resource(resource)
+            next.resolve(data)
+            this.pending = false
+            script_elem.remove()
+            delete (window as any)[this.options.jsonp!]
+            this.next()
+        }
+
+        document.head.appendChild(script_elem)
+    }
+
+    async request<T>(path: string): Promise<T> {
+        return new Promise((resolve) => {
+            this.queue.push({path, resolve})
+            this.next<T>()
+        })
+    }
 }

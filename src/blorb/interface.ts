@@ -48,3 +48,12 @@ export interface BlorbDataChunk {
     binary: boolean,
     data: Uint8Array,
 }
+
+export interface ResourceMapResource {
+    altttext?: string,
+    format: string,
+    height?: number,
+    id: number,
+    url: string,
+    width?: number,
+}
