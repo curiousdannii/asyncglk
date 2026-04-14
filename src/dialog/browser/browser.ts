@@ -12,10 +12,11 @@ https://github.com/curiousdannii/asyncglk
 import {saveAs as filesave_saveAs} from 'file-saver'
 import path from 'path-browserify-esm'
 
+import {read_uploaded_file} from '../../common/file/browser.js'
 import type {DownloadOptions, ProgressCallback} from '../../common/file/interface.js'
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
 import {show_alert} from './common.js'
-import {DownloadProvider, read_uploaded_file} from './download.js'
+import {DownloadProvider} from './download.js'
 import type {BrowseableProvider, BrowserDialog, DirEntry, FilesMetadata, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
 import FileDialog from './ui/FileDialog.svelte'
@@ -85,9 +86,11 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         }
     }
 
-    async upload(file: File) {
-        const file_path = await this.downloader!.upload(file)
-        this.setup(file_path)
+    async upload(filename: string, data: Uint8Array<ArrayBuffer>, main_file = true) {
+        const file_path = await this.downloader!.upload(filename, data)
+        if (main_file) {
+            this.setup(file_path)
+        }
         return file_path
     }
 

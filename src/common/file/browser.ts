@@ -152,11 +152,21 @@ export async function read_response(response: Response, progress_callback?: Prog
     return result
 }
 
-/** A helper class to handle requesting JSONP resources one at a time */
+/** Read an uploaded file and return it as a Uint8Array */
+export function read_uploaded_file(file: File): Promise<Uint8Array<ArrayBuffer>> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onerror = () => reject(reader.error)
+        reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer))
+        reader.readAsArrayBuffer(file)
+    })
+}
+
 interface QueueRequest<T> {
     path: string,
     resolve: (value: T) => void,
 }
+/** A helper class to handle requesting JSONP resources one at a time */
 class JSONPQueue {
     private options: DownloadOptions
     private pending = false

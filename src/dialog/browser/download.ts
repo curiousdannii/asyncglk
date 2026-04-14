@@ -36,9 +36,8 @@ export class DownloadProvider implements Provider {
         return path
     }
 
-    async upload(file: File) {
-        const data = await read_uploaded_file(file)
-        const path = '/upload/' + file.name
+    async upload(filename: string, data: Uint8Array<ArrayBuffer>) {
+        const path = '/upload/' + filename
         this.store.set(path, data)
         return path
     }
@@ -162,16 +161,6 @@ async function fetch_storyfile(options: DownloadOptions, url: string, progress_c
     }
 
     return [url, data]
-}
-
-/** Read an uploaded file and return it as a Uint8Array */
-export function read_uploaded_file(file: File): Promise<Uint8Array<ArrayBuffer>> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onerror = () => reject(reader.error)
-        reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer))
-        reader.readAsArrayBuffer(file)
-    })
 }
 
 function url_to_path(url: string) {

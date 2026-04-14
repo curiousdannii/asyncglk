@@ -14,7 +14,7 @@ import type {AsyncDialog} from '../common/interface.js'
 
 export interface BrowserDialog extends AsyncDialog {
     download(url: string, progress_callback?: ProgressCallback): Promise<string>
-    upload(file: File): Promise<string>
+    upload(filename: string, data: Uint8Array<ArrayBuffer>, main_file?: boolean): Promise<string>
 }
 
 /** A provider handles part of the filesystem, and can cascade down to another provider for files it doesn't handle */
