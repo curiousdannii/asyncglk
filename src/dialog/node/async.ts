@@ -3,7 +3,7 @@
 Cheap implementation of AsyncDialog
 ===================================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -13,8 +13,8 @@ import fs from 'fs'
 import fs_async from 'fs/promises'
 import MuteStream from 'mute-stream'
 import os from 'os'
+import path from 'path'
 
-import {path_native_to_posix, path_posix_to_native} from '../common/common.js'
 import type {AsyncDialog, DialogOptions} from '../common/interface.js'
 import {get_stdio, type HackableReadline} from '../../glkote/cheap/stdio.js'
 
@@ -85,5 +85,33 @@ export class CheapAsyncDialog implements AsyncDialog {
         for (const [path, data] of Object.entries(files)) {
             fs.writeFileSync(path_posix_to_native(path), data, {flush: true})
         }
+    }
+}
+
+/** Convert a native path to a POSIX path */
+export function path_native_to_posix(native_path: string): string {
+    if (process.platform === 'win32') {
+        let new_path = native_path.replaceAll(path.sep, path.posix.sep)
+        if (/^\w:/.test(new_path)) {
+            new_path = path.posix.sep + new_path
+        }
+        return new_path
+    }
+    else {
+        return native_path
+    }
+}
+
+/** Convert a POSIX path to a native path */
+export function path_posix_to_native(posix_path: string): string {
+    if (process.platform === 'win32') {
+        let new_path = posix_path.replaceAll(path.posix.sep, path.sep)
+        if (new_path.startsWith('\\')) {
+            new_path = new_path.substring(1)
+        }
+        return new_path
+    }
+    else {
+        return posix_path
     }
 }

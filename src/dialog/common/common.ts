@@ -39,23 +39,3 @@ export function filters_for_usage(usage: string | null) {
             return []
     }
 }
-
-/** Convert a native path to a POSIX path */
-export function path_native_to_posix(path: string): string {
-    if (process.platform === 'win32') {
-        throw new Error('not implemented')
-    }
-    else {
-        return path
-    }
-}
-
-/** Convert a POSIX path to a native path */
-export function path_posix_to_native(path: string): string {
-    if (process.platform === 'win32') {
-        throw new Error('not implemented')
-    }
-    else {
-        return path
-    }
-}
