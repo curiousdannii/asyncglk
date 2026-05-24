@@ -64,7 +64,7 @@ export class CheapAsyncDialog implements AsyncDialog {
         this.stdout.write('\n')
         return new Promise(resolve => {
             this.rl.question('Please enter a file name (without an extension): ', path => {
-                resolve(path ? `${path}.${extension}` : null)
+                resolve(path ? `${path}${extension}` : null)
             })
         })
     }
