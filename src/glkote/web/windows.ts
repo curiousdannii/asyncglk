@@ -846,8 +846,8 @@ export default class Windows extends Map<number, Window> {
 
     // On document.keypress events, redirect to a window
     private onkeydown = (ev: JQuery.KeyDownEvent) => {
-        // Don't fire on inputs or focused buffer windows
-        if (!this.glkote.disabled && ev.target.nodeName !== 'INPUT' && ev.target.nodeName !== 'TEXTAREA' && !(ev.target.nodeName === 'DIV' && $(ev.target).is('.BufferWindow:focus'))) {
+        // Don't fire on inputs
+        if (!this.glkote.disabled && ev.target.nodeName !== 'INPUT' && ev.target.nodeName !== 'TEXTAREA') {
             // Look first for a window with active text input, but as a fallback any buffer window
             const windows = [...this.values()]
             const window = windows.filter(win => win.inputs?.type)[0] || windows.filter(win => win.type === 'buffer')[0]
