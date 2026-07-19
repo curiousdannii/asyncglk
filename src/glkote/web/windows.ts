@@ -861,6 +861,11 @@ export default class Windows extends Map<number, Window> {
                 // Otherwise focus the window so that nav keys will work
                 else if (window.type === 'buffer') {
                     window.frameel.trigger('focus')
+                    // If the key is a regular letter key then scroll down
+                    if (ev.key && /^[a-z]$/i.test(ev.key)) {
+                        const new_scrollTop = window.frameel.scrollTop()! + window.frameel.height()! * 0.9
+                        window.frameel.animate({scrollTop: new_scrollTop}, 100)
+                    }
                 }
             }
         }
