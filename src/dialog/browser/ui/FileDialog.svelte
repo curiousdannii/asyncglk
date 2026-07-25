@@ -20,13 +20,14 @@
     import AlertDialog from './AlertDialog.svelte'
     import BaseDialog from './BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
-    import FileListItem from './FileListItem.svelte'
+    import FileList from './FileList.svelte'
 
     let base_dialog: BaseDialog
     export let controller: DialogController
     export let cur_dir: string = '/usr'
     let cur_direntry: DirEntry[] = []
     let cur_filter: string = ''
+    let file_list: FileList
     let filename_input: HTMLTextAreaElement
     let filter: Filter | undefined
     export let metadata: FilesMetadata = {}
@@ -58,13 +59,21 @@
                 cur_filter = '*'
             }
         }
+        cur_direntry = filter_files(cur_dir, cur_filter, metadata)
         saving = opts.save
         submit_label = opts.submit_label
         selected_file = undefined
         const promise = base_dialog.open(opts.title)
-        if (saving && filename_input) {
-            filename_input.focus()
-            filename_input.value = ''
+        if (saving) {
+            selected_file = undefined
+            if (filename_input) {
+                filename_input.focus()
+                filename_input.value = ''
+            }
+        }
+        else {
+            selected_file = cur_direntry[0]
+            file_list.focus_list()
         }
         return promise.then(res => {
             return typeof res === 'string' ? res : null
@@ -174,7 +183,9 @@
             cur_dir = file.full_path
         }
         else {
-            filename_input.value = file.name
+            if (saving) {
+                filename_input.value = file.name
+            }
             on_submit()
         }
     }
@@ -259,13 +270,6 @@
         text-align: right;
     }
 
-    #filelist {
-        border: 2px solid var(--asyncglk-ui-border);
-        flex: 1;
-        overflow-y: scroll;
-        padding: 6px;
-    }
-
     .filename {
         display: flex;
     }
@@ -307,19 +311,15 @@
         </div>
         <DirTree bind:cur_dir/>
     </div>
-    <div id="filelist" role="listbox">
-        {#each cur_direntry as file (file.full_path)}
-            <FileListItem
-                data={file}
-                bind:selected_file
-                selected={file.full_path === selected_file?.full_path}
-                on:file_delete={on_file_delete}
-                on:file_doubleclicked={on_file_doubleclicked}
-                on:file_download={on_file_download}
-                on:file_rename={on_file_rename}
-            />
-        {/each}
-    </div>
+    <FileList
+        bind:cur_direntry
+        bind:selected_file
+        bind:this={file_list}
+        on:file_delete={on_file_delete}
+        on:file_doubleclicked={on_file_doubleclicked}
+        on:file_download={on_file_download}
+        on:file_rename={on_file_rename}
+    />
     {#if saving}
         <div class="filename">
             <label for="filename_input">File name:</label>

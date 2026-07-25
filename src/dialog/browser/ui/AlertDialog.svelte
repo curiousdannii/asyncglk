@@ -66,7 +66,8 @@
             {#if mode !== ALERT_MODE_ALERT}
                 <button class="close" on:click={on_cancel}>Cancel</button>
             {/if}
-            <button class="submit" on:click={on_submit}>Ok</button>
+            <!-- svelte-ignore a11y-autofocus -->
+            <button class="submit" on:click={on_submit} autofocus>Ok</button>
         </div>
     </div>
 </BaseDialog>

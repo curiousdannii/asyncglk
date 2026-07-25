@@ -862,7 +862,7 @@ export default class Windows extends Map<number, Window> {
                 else if (window.type === 'buffer') {
                     window.frameel.trigger('focus')
                     // If the key is a regular letter key then scroll down
-                    if (ev.key && /^[a-z]$/i.test(ev.key)) {
+                    if (ev.which >= 65 && ev.which <= 90) {
                         const new_scrollTop = window.frameel.scrollTop()! + window.frameel.height()! * 0.9
                         window.frameel.animate({scrollTop: new_scrollTop}, 100)
                     }
