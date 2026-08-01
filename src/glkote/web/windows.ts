@@ -14,11 +14,11 @@ import {debounce} from 'lodash-es'
 
 import {Blorb} from '../../blorb/blorb.js'
 import {NBSP} from '../../common/constants.js'
-import {is_pinch_zoomed} from '../../common/misc.js'
+import {is_iOS, is_pinch_zoomed} from '../../common/browser.js'
 import * as protocol from '../../common/protocol.js'
 
 import {TextInput} from './input.js'
-import {create, DOM, type EventFunc, is_iOS} from './shared.js'
+import {create, DOM, type EventFunc} from './shared.js'
 import WebGlkOte from './web.js'
 
 export type Window = BufferWindow | GraphicsWindow | GridWindow

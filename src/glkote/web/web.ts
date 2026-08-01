@@ -10,11 +10,12 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import * as GlkOte from '../common/glkote.js'
+import {is_iOS} from '../../common/browser.js'
 import * as protocol from '../../common/protocol.js'
 
 import Metrics from './metrics.js'
 import {SoundChannelManager} from './schannels.js'
-import {DOM, is_iOS} from './shared.js'
+import {DOM} from './shared.js'
 import TranscriptRecorder from './transcript-recorder.js'
 import Windows, {GraphicsWindow} from './windows.js'
 

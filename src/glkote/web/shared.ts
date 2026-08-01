@@ -72,13 +72,3 @@ export class DOM {
 }
 
 export type EventFunc = (event: Partial<protocol.Event>) => void
-
-/** Is any input element focused? */
-export function is_input_focused() {
-    const activeElement_tagName = document.activeElement?.tagName
-    return activeElement_tagName === 'INPUT' || activeElement_tagName === 'TEXTAREA'
-}
-
-/** Try to detect iOS */
-// From https://stackoverflow.com/a/58065241/2854284
-export const is_iOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints ?? 0) > 1)

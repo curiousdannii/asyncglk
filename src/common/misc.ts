@@ -66,14 +66,6 @@ export function BEBuffer_to_Array(buf: Uint8Array) {
     return arr
 }
 
-/** If we can determine that the browser is currently pinch zoomed */
-export function is_pinch_zoomed() {
-    if (visualViewport) {
-        return (visualViewport.scale - 1) > 0.001
-    }
-    return false
-}
-
 export function is_unicode_array(arr: GlkTypedArray) {
     return arr.BYTES_PER_ELEMENT === 4
 }
