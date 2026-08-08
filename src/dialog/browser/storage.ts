@@ -231,13 +231,16 @@ export class WebStorageProvider implements BrowseableProvider {
         }
     }
 
-    async write(files: Record<string, Uint8Array>) {
+    // Emglken accidentally sends us Int8Arrays, so we must account for that
+    async write(files: Record<string, Int8Array | Uint8Array>) {
         const was_already_in_transaction = await this.transaction_start()
         let wrote_files = false, next_files = false
-        for (const [path, data] of Object.entries(files)) {
+        for (let [path, data] of Object.entries(files)) {
             if (path.startsWith(this.path_prefix)) {
                 wrote_files = true
                 try {
+                    // Ensure we have a Uint8Array
+                    data = new Uint8Array(data.buffer, data.byteOffset, data.length)
                     this.storage_write(path, base32768_encode(gzipSync(data)))
                     this.update_metadata(path, MetadataUpdateOperation.WRITE)
                 }

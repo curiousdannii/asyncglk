@@ -29,8 +29,10 @@ export interface Provider {
     exists(path: string): Promise<boolean | null>
     /** Read a file */
     read(path: string): Promise<Uint8Array<ArrayBuffer> | null>
-    /** Write some files */
-    write(files: Record<string, Uint8Array>): Promise<void>
+    /** Write some files
+     *  Emglken accidentally sends Int8Arrays instead of Uint8Arrays, which must be accounted for
+    */
+    write(files: Record<string, Int8Array | Uint8Array>): Promise<void>
 }
 
 /** A Provider with a few extra functions for browsing */
