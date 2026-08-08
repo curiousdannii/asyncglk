@@ -10,6 +10,7 @@ https://github.com/curiousdannii/asyncglk
 */
 
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
+import {gunzipSync, gzipSync} from 'fflate'
 
 import type {DialogDirectories} from '../common/interface.js'
 import {NullProvider, show_alert} from './common.js'
@@ -80,7 +81,7 @@ export class WebStorageProvider implements BrowseableProvider {
     // See docs/dialog-localstorage.md
     private migrate() {
         const now = Date.now()
-        const version = parseInt(this.storage_read(STORAGE_VERSION_KEY) || '0', 10)
+        let version = parseInt(this.storage_read(STORAGE_VERSION_KEY) || '0', 10)
         if (version < 2) {
             console.log('Dialog: updating localStorage to version 2')
             const metadata: FilesMetadata = {}
@@ -111,8 +112,19 @@ export class WebStorageProvider implements BrowseableProvider {
             }
             this.storage_write(METADATA_KEY, JSON.stringify(metadata))
             this.storage_write(STORAGE_VERSION_KEY, '2')
+            version = 2
         }
-        if (version > 2) {
+        if (version === 2) {
+            console.log('Dialog: updating localStorage to version 3')
+            // Compress all files
+            const metadata = JSON.parse(this.storage_read(METADATA_KEY) || '{}') as FilesMetadata
+            for (const path of Object.keys(metadata)) {
+                const data = base32768_decode(this.storage_read(path)!)
+                this.storage_write(path, base32768_encode(gzipSync(data)))
+            }
+            this.storage_write(STORAGE_VERSION_KEY, '3')
+        }
+        if (version > 3) {
             throw new Error('dialog_storage_version is newer than this library supports')
         }
     }
@@ -122,7 +134,7 @@ export class WebStorageProvider implements BrowseableProvider {
             const res = this.storage_read(path)
             if (res !== null) {
                 await this.update_metadata(path, MetadataUpdateOperation.READ)
-                return base32768_decode(res) as Uint8Array<ArrayBuffer>
+                return gunzipSync(base32768_decode(res))
             }
             return null
         }
@@ -226,7 +238,7 @@ export class WebStorageProvider implements BrowseableProvider {
             if (path.startsWith(this.path_prefix)) {
                 wrote_files = true
                 try {
-                    this.storage_write(path, base32768_encode(data))
+                    this.storage_write(path, base32768_encode(gzipSync(data)))
                     this.update_metadata(path, MetadataUpdateOperation.WRITE)
                 }
                 catch {
