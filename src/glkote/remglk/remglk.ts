@@ -80,15 +80,15 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         }
     }
 
-    cancel_inputs(windows: protocol.InputUpdate[]) {
+    cancel_inputs(_windows: protocol.InputUpdate[]) {
         throw new Error('cancel_inputs method should not be called in RemGlk mode')
     }
 
-    disable(disable: boolean) {
+    disable(_disable: boolean) {
         throw new Error('disable method should not be called in RemGlk mode')
     }
 
-    handle_specialinput(data: protocol.SpecialInput) {
+    handle_specialinput(_data: protocol.SpecialInput) {
         throw new Error('handle_specialinput method should not be called in RemGlk mode')
     }
 
@@ -96,15 +96,15 @@ export default class RemGlk extends GlkOte.GlkOteBase implements GlkOte.GlkOte {
         throw new Error('save_allstate method should not be called in RemGlk mode')
     }
 
-    update_content(content: protocol.ContentUpdate[]) {
+    update_content(_content: protocol.ContentUpdate[]) {
         throw new Error('update_content method should not be called in RemGlk mode')
     }
 
-    update_inputs(windows: protocol.InputUpdate[]) {
+    update_inputs(_windows: protocol.InputUpdate[]) {
         throw new Error('update_inputs method should not be called in RemGlk mode')
     }
 
-    update_windows(windows: protocol.WindowUpdate[]) {
+    update_windows(_windows: protocol.WindowUpdate[]) {
         throw new Error('update_windows method should not be called in RemGlk mode')
     }
 }

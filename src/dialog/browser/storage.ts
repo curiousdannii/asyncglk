@@ -31,7 +31,7 @@ const enum MetadataUpdateOperation {
 export class WebStorageProvider implements BrowseableProvider {
     browseable: boolean
     private dirs: DialogDirectories
-    private id_prefix?: string
+    private id_prefix: string
     private _metadata: FilesMetadata = {}
     next = new NullProvider()
     private path_prefix: string
@@ -42,7 +42,7 @@ export class WebStorageProvider implements BrowseableProvider {
     constructor(path_prefix: string, store: Storage, dirs: DialogDirectories, browseable?: boolean, id_prefix?: string) {
         this.browseable = browseable ?? false
         this.dirs = dirs
-        this.id_prefix = id_prefix
+        this.id_prefix = id_prefix ? id_prefix + '-' : ''
         this.path_prefix = path_prefix
         this.store = store
 
@@ -168,20 +168,17 @@ export class WebStorageProvider implements BrowseableProvider {
 
     /** Delete from this storage, accounting for an optional ID prefix */
     private storage_delete(key: string) {
-        key = this.id_prefix ? this.id_prefix + '-' + key : key
-        return this.store.removeItem(key)
+        this.store.removeItem(this.id_prefix + key)
     }
 
     /** Read this storage, accounting for an optional ID prefix */
     private storage_read(key: string) {
-        key = this.id_prefix ? this.id_prefix + '-' + key : key
-        return this.store.getItem(key)
+        return this.store.getItem(this.id_prefix + key)
     }
 
     /** Write to this storage, accounting for an optional ID prefix */
     private storage_write(key: string, value: string) {
-        key = this.id_prefix ? this.id_prefix + '-' + key : key
-        this.store.setItem(key, value)
+        this.store.setItem(this.id_prefix + key, value)
     }
 
     private async transaction_start() {

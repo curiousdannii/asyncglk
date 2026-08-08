@@ -138,7 +138,7 @@ export abstract class GlkOteBase implements GlkOte {
         throw new Error('getdomcontext is not applicable to this GlkOte library')
     }
 
-    getdomid(name: string): string {
+    getdomid(_name: string): string {
         throw new Error('getdomid is not applicable to this GlkOte library')
     }
 
@@ -162,7 +162,7 @@ export abstract class GlkOteBase implements GlkOte {
         console.log(msg)
     }
 
-    setdomcontext(val: HTMLElement) {
+    setdomcontext(_val: HTMLElement) {
         throw new Error('setdomcontext is not applicable to this GlkOte library')
     }
 
@@ -256,7 +256,7 @@ export abstract class GlkOteBase implements GlkOte {
     }
 
     // AsyncGlk specific implementation methods
-    protected autorestore(data: any) {}
+    protected autorestore(_data: any) {}
 
     protected capabilities(): string[] {
         return ['timer']
@@ -332,9 +332,9 @@ export abstract class GlkOteBase implements GlkOte {
         this.accept_func(ev as Required<protocol.Event>)
     }
 
-    protected set_page_bg(colour: string | null) {}
+    protected set_page_bg(_colour: string | null) {}
 
-    protected update_schannels(windows: protocol.SoundChannelUpdate[]) {}
+    protected update_schannels(_windows: protocol.SoundChannelUpdate[]) {}
 
     // Functions to be implemented in a subclass
     protected abstract cancel_inputs(windows: protocol.InputUpdate[]): void

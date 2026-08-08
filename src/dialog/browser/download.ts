@@ -164,6 +164,9 @@ async function fetch_storyfile(options: DownloadOptions, url: string, progress_c
 }
 
 function url_to_path(url: string) {
+    if (url.startsWith('embedded:')) {
+        return '/download/embedded/' + url.substring(9)
+    }
     if (url.startsWith('https:')) {
         return '/download/https/' + url.substring(8)
     }

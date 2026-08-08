@@ -82,7 +82,7 @@ abstract class WindowBase {
     // Dummy function which is only needed for buffer windows
     measure_height() {}
 
-    protected onclick(ev: JQuery.ClickEvent) {
+    protected onclick(_ev: JQuery.ClickEvent) {
         if (this.inputs?.type && no_text_selected()) {
             this.textinput.el.trigger('focus')
             return false

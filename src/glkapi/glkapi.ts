@@ -851,7 +851,7 @@ export class AsyncGlk implements Interface.GlkApi {
         throw new Error('Invalid Schannel')
     }
 
-    glk_schannel_set_volume_ext(_schannel: GlkSchannel, _volume: number, __duration: number, notify: number) {
+    glk_schannel_set_volume_ext(_schannel: GlkSchannel, _volume: number, _duration: number, _notify: number) {
         throw new Error('Invalid Schannel')
     }
 
