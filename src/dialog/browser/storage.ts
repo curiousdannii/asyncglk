@@ -3,7 +3,7 @@
 Web storage provider
 ====================
 
-Copyright (c) 2024 Dannii Willis
+Copyright (c) 2026 Dannii Willis
 MIT licenced
 https://github.com/curiousdannii/asyncglk
 
@@ -30,27 +30,29 @@ const enum MetadataUpdateOperation {
 export class WebStorageProvider implements BrowseableProvider {
     browseable: boolean
     private dirs: DialogDirectories
+    private id_prefix?: string
     private _metadata: FilesMetadata = {}
     next = new NullProvider()
-    private prefix: string
+    private path_prefix: string
     private store: Storage
     /** Whether or not we are doing multiple operations in one transaction */
     private transaction: boolean = false
 
-    constructor(prefix: string, store: Storage, dirs: DialogDirectories, browseable?: boolean) {
+    constructor(path_prefix: string, store: Storage, dirs: DialogDirectories, browseable?: boolean, id_prefix?: string) {
         this.browseable = browseable ?? false
         this.dirs = dirs
-        this.prefix = prefix
+        this.id_prefix = id_prefix
+        this.path_prefix = path_prefix
         this.store = store
 
         if (store === localStorage) {
-            migrate_localStorage()
+            this.migrate()
         }
     }
 
     async delete(path: string) {
-        if (path.startsWith(this.prefix)) {
-            this.store.removeItem(path)
+        if (path.startsWith(this.path_prefix)) {
+            this.storage_delete(path)
             await this.update_metadata(path, MetadataUpdateOperation.DELETE)
         }
         else {
@@ -59,8 +61,8 @@ export class WebStorageProvider implements BrowseableProvider {
     }
 
     async exists(path: string): Promise<boolean | null> {
-        if (path.startsWith(this.prefix)) {
-            return this.store.getItem(path) !== null
+        if (path.startsWith(this.path_prefix)) {
+            return this.storage_read(path) !== null
         }
         else {
             return this.next.exists(path)
@@ -68,15 +70,56 @@ export class WebStorageProvider implements BrowseableProvider {
     }
 
     async metadata(): Promise<FilesMetadata> {
-        this._metadata = JSON.parse(this.store.getItem(METADATA_KEY) || '{}') as FilesMetadata
+        this._metadata = JSON.parse(this.storage_read(METADATA_KEY) || '{}') as FilesMetadata
         // Add a fake .dir file to the working folder
         this._metadata[this.dirs.working + '/.dir'] = {atime: 0, mtime: 0}
         return this._metadata
     }
 
+    // Migrate versions of our file system
+    // See docs/dialog-localstorage.md
+    private migrate() {
+        const now = Date.now()
+        const version = parseInt(this.storage_read(STORAGE_VERSION_KEY) || '0', 10)
+        if (version < 2) {
+            console.log('Dialog: updating localStorage to version 2')
+            const metadata: FilesMetadata = {}
+            for (let [key, data] of Object.entries<string>(localStorage)) {
+                if (key.startsWith('autosave:')) {
+                    // We're not keeping any old autosaves
+                    localStorage.removeItem(key)
+                }
+                if (key.startsWith('content:')) {
+                    const key_data = /^content:(\w+):(\w*):(.+)$/.exec(key)
+                    if (key_data) {
+                        const path = `/usr/${key_data[3]}.${DIALOG_V1_TYPES_TO_EXTS[key_data[1]] || key_data[1]}`
+                        if (data !== '' && version < 1) {
+                            data = base32768_encode(/\[[,\d]*\]/.test(data) ? JSON.parse(data) : Uint8Array.from(data, ch => ch.charCodeAt(0)))
+                        }
+                        this.storage_write(path, data)
+                        const dirent_key = 'dirent' + key.substring(7)
+                        const dirent = localStorage.getItem(dirent_key) || ''
+                        const dirent_data = /^created:\d+,modified:(\d+)$/.exec(dirent)
+                        metadata[path] = {
+                            atime: parseInt(dirent_data?.[1] || '', 10) || now,
+                            mtime: parseInt(dirent_data?.[1] || '', 10) || now,
+                        }
+                        localStorage.removeItem(dirent_key)
+                    }
+                    localStorage.removeItem(key)
+                }
+            }
+            this.storage_write(METADATA_KEY, JSON.stringify(metadata))
+            this.storage_write(STORAGE_VERSION_KEY, '2')
+        }
+        if (version > 2) {
+            throw new Error('dialog_storage_version is newer than this library supports')
+        }
+    }
+
     async read(path: string): Promise<Uint8Array<ArrayBuffer> | null> {
-        if (path.startsWith(this.prefix)) {
-            const res = this.store.getItem(path)
+        if (path.startsWith(this.path_prefix)) {
+            const res = this.storage_read(path)
             if (res !== null) {
                 await this.update_metadata(path, MetadataUpdateOperation.READ)
                 return base32768_decode(res) as Uint8Array<ArrayBuffer>
@@ -111,6 +154,24 @@ export class WebStorageProvider implements BrowseableProvider {
         await this.delete(old_path)
     }
 
+    /** Delete from this storage, accounting for an optional ID prefix */
+    private storage_delete(key: string) {
+        key = this.id_prefix ? this.id_prefix + '-' + key : key
+        return this.store.removeItem(key)
+    }
+
+    /** Read this storage, accounting for an optional ID prefix */
+    private storage_read(key: string) {
+        key = this.id_prefix ? this.id_prefix + '-' + key : key
+        return this.store.getItem(key)
+    }
+
+    /** Write to this storage, accounting for an optional ID prefix */
+    private storage_write(key: string, value: string) {
+        key = this.id_prefix ? this.id_prefix + '-' + key : key
+        this.store.setItem(key, value)
+    }
+
     private async transaction_start() {
         const old_transaction = this.transaction
         this.transaction = true
@@ -124,7 +185,7 @@ export class WebStorageProvider implements BrowseableProvider {
         this.transaction = false
         // Remove the fake .dir file from the working folder
         delete this._metadata![this.dirs.working + '/.dir']
-        this.store.setItem(METADATA_KEY, JSON.stringify(this._metadata))
+        this.storage_write(METADATA_KEY, JSON.stringify(this._metadata))
     }
 
     private async update_metadata(path: string, op: MetadataUpdateOperation, old_path?: string) {
@@ -162,10 +223,10 @@ export class WebStorageProvider implements BrowseableProvider {
         const was_already_in_transaction = await this.transaction_start()
         let wrote_files = false, next_files = false
         for (const [path, data] of Object.entries(files)) {
-            if (path.startsWith(this.prefix)) {
+            if (path.startsWith(this.path_prefix)) {
                 wrote_files = true
                 try {
-                    this.store.setItem(path, base32768_encode(data))
+                    this.storage_write(path, base32768_encode(data))
                     this.update_metadata(path, MetadataUpdateOperation.WRITE)
                 }
                 catch {
@@ -194,42 +255,4 @@ const DIALOG_V1_TYPES_TO_EXTS: Record<string, string> = {
     data: 'glkdata',
     save: 'glksave',
     transcript: 'txt',
-}
-export function migrate_localStorage() {
-    const now = Date.now()
-    const version = parseInt(localStorage.getItem(STORAGE_VERSION_KEY) || '0', 10)
-    if (version < 2) {
-        console.log('Dialog: updating localStorage to version 2')
-        const metadata: FilesMetadata = {}
-        for (let [key, data] of Object.entries<string>(localStorage)) {
-            if (key.startsWith('autosave:')) {
-                // We're not keeping any old autosaves
-                localStorage.removeItem(key)
-            }
-            if (key.startsWith('content:')) {
-                const key_data = /^content:(\w+):(\w*):(.+)$/.exec(key)
-                if (key_data) {
-                    const path = `/usr/${key_data[3]}.${DIALOG_V1_TYPES_TO_EXTS[key_data[1]] || key_data[1]}`
-                    if (data !== '' && version < 1) {
-                        data = base32768_encode(/\[[,\d]*\]/.test(data) ? JSON.parse(data) : Uint8Array.from(data, ch => ch.charCodeAt(0)))
-                    }
-                    localStorage.setItem(path, data)
-                    const dirent_key = 'dirent' + key.substring(7)
-                    const dirent = localStorage.getItem(dirent_key) || ''
-                    const dirent_data = /^created:\d+,modified:(\d+)$/.exec(dirent)
-                    metadata[path] = {
-                        atime: parseInt(dirent_data?.[1] || '', 10) || now,
-                        mtime: parseInt(dirent_data?.[1] || '', 10) || now,
-                    }
-                    localStorage.removeItem(dirent_key)
-                }
-                localStorage.removeItem(key)
-            }
-        }
-        localStorage.setItem(METADATA_KEY, JSON.stringify(metadata))
-        localStorage.setItem(STORAGE_VERSION_KEY, '2')
-    }
-    if (version > 2) {
-        throw new Error('dialog_storage_version is newer than this library supports')
-    }
 }

@@ -14,7 +14,7 @@ import * as Constants from '../../common/constants.js'
 import type {DownloadOptions}  from '../../common/file/interface.js'
 import * as protocol from '../../common/protocol.js'
 import {filetype_to_extension} from '../../dialog/common/common.js'
-import type {Dialog} from '../../dialog/common/interface.js'
+import type {Dialog, DialogOptions} from '../../dialog/common/interface.js'
 import type {GlkApi} from '../../glkapi/interface.js'
 
 export interface GlkOte {
@@ -35,7 +35,7 @@ export interface GlkOte {
     warning(msg: any): void,
 }
 
-export interface GlkOteOptions extends DownloadOptions {
+export interface GlkOteOptions extends DownloadOptions, DialogOptions {
     accept(event: protocol.Event): void,
     Blorb?: Blorb,
     debug_commands?: boolean,

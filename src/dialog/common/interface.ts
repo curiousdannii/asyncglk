@@ -20,6 +20,8 @@ export type AutosaveData = {
 
 export interface DialogOptions {
     dom_prefix?: string,
+    /** An ID to allow multiple localStorage file systems to coexist */
+    dialog_localStorage_id?: string
     GlkOte: GlkOte,
 }
 

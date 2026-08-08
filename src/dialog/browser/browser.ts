@@ -39,7 +39,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             this.providers = [
                 this.downloader,
                 new WebStorageProvider('/tmp', sessionStorage, this.dirs),
-                new WebStorageProvider('/', localStorage, this.dirs, true),
+                new WebStorageProvider('/', localStorage, this.dirs, true, options.dialog_localStorage_id),
             ]
         }
         catch {
