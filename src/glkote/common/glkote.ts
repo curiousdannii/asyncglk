@@ -324,6 +324,7 @@ export abstract class GlkOteBase implements GlkOte {
             case 'init':
                 ev.metrics = this.current_metrics
                 ev.support = this.capabilities()
+                ev.tzoffset = new Date().getTimezoneOffset() * -1
                 break
             case 'specialresponse':
                 ev.response = 'fileref_prompt'

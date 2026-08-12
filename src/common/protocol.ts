@@ -77,6 +77,8 @@ export interface InitEvent extends EventBase {
     metrics: Metrics,
     /** Capabilities list */
     support: string[],
+    /** Timezone offset in minutes (UTC+10 = `600`) */
+    tzoffset?: number,
 }
 
 /** Line (text) event */
