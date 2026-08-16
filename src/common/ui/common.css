@@ -11,6 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 /* A light theme (loosely) based on Material design */
 :root {
+    --asyncglk-ui-mono-family: "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", monospace;
     --asyncglk-ui-bg: #fff;
     --asyncglk-ui-border: #666;
     --asyncglk-ui-fg: #222;

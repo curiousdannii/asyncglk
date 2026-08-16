@@ -11,7 +11,7 @@ https://github.com/curiousdannii/asyncglk
 
 export * from './index-common.js'
 
-export {is_input_focused, is_iOS, is_pinch_zoomed} from './common/browser.js'
+export {is_input_focused, is_iOS, is_pinch_zoomed, show_alert_dialog, show_error_dialog} from './common/browser.js'
 
 export {fetch_resource, parse_base64, process_resource, read_response, read_uploaded_file} from './common/file/browser.js'
 

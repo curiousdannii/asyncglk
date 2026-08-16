@@ -15,10 +15,10 @@
     import path from 'path-browserify-esm'
 
     import {DialogController} from '../browser.js'
-    import {type AlertMode, ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from '../common.js'
+    import {type AlertMode, ALERT_MODE_CONFIRM, ALERT_MODE_PROMPT} from '../../../common/browser.js'
 
-    import AlertDialog from './AlertDialog.svelte'
-    import BaseDialog from './BaseDialog.svelte'
+    import AlertDialog from '../../../common/ui/AlertDialog.svelte'
+    import BaseDialog from '../../../common/ui/BaseDialog.svelte'
     import DirTree from './DirTree.svelte'
     import FileList from './FileList.svelte'
 

@@ -12,8 +12,9 @@ https://github.com/curiousdannii/asyncglk
 import {decode as base32768_decode, encode as base32768_encode} from 'base32768'
 import {gunzipSync, gzipSync} from 'fflate'
 
+import {show_alert_dialog} from '../../common/browser.js'
 import type {DialogDirectories} from '../common/interface.js'
-import {NullProvider, show_alert} from './common.js'
+import {NullProvider} from './common.js'
 import type {BrowseableProvider, FilesMetadata} from './interface.js'
 
 //type WebStorageFileMetadata = Pick<FileData, 'atime' | 'mtime'>
@@ -243,7 +244,7 @@ export class WebStorageProvider implements BrowseableProvider {
                 }
                 catch {
                     // TODO: remove autosaves first
-                    show_alert('localStorage full', `The file ${path.replace(/\//g, '/\u200b')} could not be written as your browser's localStorage is full! Please delete some files, and then try again.`)
+                    show_alert_dialog('localStorage full', `The file ${path.replace(/\//g, '/\u200b')} could not be written as your browser's localStorage is full! Please delete some files, and then try again.`)
                 }
                 delete files[path]
             }

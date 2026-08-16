@@ -1,7 +1,7 @@
 <script lang="ts">
-    import '../../../common/ui/common.css'
+    import './common.css'
 
-    import {is_pinch_zoomed} from '../../../common/browser.js'
+    import {is_pinch_zoomed} from '../browser.js'
 
     let dialog: HTMLDialogElement
     export let extra_class = ''

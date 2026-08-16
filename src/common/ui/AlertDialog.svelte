@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {type AlertMode, ALERT_MODE_ALERT, ALERT_MODE_PROMPT} from '../common.js'
+    import {type AlertMode, ALERT_MODE_ALERT, ALERT_MODE_PROMPT} from '../browser.js'
     import BaseDialog from './BaseDialog.svelte'
 
     let base_dialog: BaseDialog
@@ -56,11 +56,11 @@
 
 <BaseDialog bind:this={base_dialog}>
     <p>{message}</p>
-    <div>
-        {#if mode === ALERT_MODE_PROMPT}
+    {#if mode === ALERT_MODE_PROMPT}
+        <div>
             <textarea id="val_input" autocapitalize="off" rows="1" on:keydown={on_input_keydown} use:on_create_input></textarea>
-        {/if}
-    </div>
+        </div>
+    {/if}
     <div class="foot uirow">
         <div>
             {#if mode !== ALERT_MODE_ALERT}

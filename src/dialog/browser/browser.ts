@@ -12,10 +12,10 @@ https://github.com/curiousdannii/asyncglk
 import {saveAs as filesave_saveAs} from 'file-saver'
 import path from 'path-browserify-esm'
 
+import {show_alert_dialog, show_error_dialog} from '../../common/browser.js'
 import {read_uploaded_file} from '../../common/file/browser.js'
 import type {DownloadOptions, ProgressCallback} from '../../common/file/interface.js'
 import type {DialogDirectories, DialogOptions} from '../common/interface.js'
-import {show_alert} from './common.js'
 import {DownloadProvider} from './download.js'
 import type {BrowseableProvider, BrowserDialog, DirEntry, FilesMetadata, Provider} from './interface.js'
 import {WebStorageProvider} from './storage.js'
@@ -42,7 +42,9 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
                 new WebStorageProvider('/', localStorage, this.dirs, true, options.dialog_localStorage_id),
             ]
         }
-        catch {
+        catch (err: any) {
+            await show_error_dialog(err)
+
             this.providers = [
                 this.downloader,
             ]
@@ -75,7 +77,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             return this.controller.prompt(extension, save)
         }
         else {
-            await show_alert(`Cannot ${save ? 'save' : 'open'}`, 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.')
+            await show_alert_dialog(`Cannot ${save ? 'save' : 'open'}`, 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.')
             return null
         }
     }
