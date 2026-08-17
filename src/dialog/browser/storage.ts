@@ -120,9 +120,16 @@ export class WebStorageProvider implements BrowseableProvider {
             // Compress all files
             const metadata = JSON.parse(this.storage_read(METADATA_KEY) || '{}') as FilesMetadata
             for (const path of Object.keys(metadata)) {
-                const data = base32768_decode(this.storage_read(path)!)
-                this.storage_write(path, base32768_encode(gzipSync(data)))
+                const data = this.storage_read(path)
+                if (data) {
+                    const decoded_data = base32768_decode(data)
+                    this.storage_write(path, base32768_encode(gzipSync(decoded_data)))
+                }
+                else {
+                    delete metadata[path]
+                }
             }
+            this.storage_write(METADATA_KEY, JSON.stringify(metadata))
             this.storage_write(STORAGE_VERSION_KEY, '3')
         }
         if (version > 3) {
