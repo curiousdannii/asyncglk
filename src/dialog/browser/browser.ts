@@ -31,6 +31,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
         working: '/usr',
     }
     private downloader: DownloadProvider | undefined
+    private no_data = false
     private providers: (Provider | BrowseableProvider)[] = []
 
     async init(options: DialogOptions & DownloadOptions): Promise<void> {
@@ -43,7 +44,12 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             ]
         }
         catch (err: any) {
-            await show_error_dialog(err)
+            if (err.name === 'SecurityError') {
+                this.no_data = true
+            }
+            else {
+                await show_error_dialog(err)
+            }
 
             this.providers = [
                 this.downloader,
@@ -77,7 +83,7 @@ export class ProviderBasedBrowserDialog implements BrowserDialog {
             return this.controller.prompt(extension, save)
         }
         else {
-            await show_alert_dialog(`Cannot ${save ? 'save' : 'open'}`, 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.')
+            await show_alert_dialog(`Cannot ${save ? 'save' : 'open'}`, this.no_data ? 'LocalStorage is not currently supported in this browser. You should be able to enable it in your browser settings; it may be under a setting about cookies.' : 'Parchment could not find a valid storage method in this browser.')
             return null
         }
     }
