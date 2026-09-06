@@ -15,6 +15,7 @@ import {is_input_focused, is_iOS, is_pinch_zoomed} from '../../common/browser.js
 import * as protocol from '../../common/protocol.js'
 
 import {create} from './shared.js'
+import {append_style_measurement_spans, build_theme_table, themes_equal} from './theme.js'
 import WebGlkOte from './web.js'
 
 function get_size(el: JQuery<HTMLElement>): {height: number, width: number} {
@@ -73,6 +74,15 @@ export default class Metrics {
         }
         if (visualViewport) {
             $(visualViewport).on('resize', this.on_visualViewport_resize)
+        }
+
+        if (window.MutationObserver) {
+            new MutationObserver(() => {
+                this.on_gameport_resize()
+            }).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme'],
+            })
         }
     }
 
@@ -168,6 +178,17 @@ export default class Metrics {
         this.metrics.gridmarginx = gridwinsize.width - gridspansize.width
         this.metrics.gridmarginy = gridwinsize.height - (gridline1size.height + gridline2size.height)
 
+        // Theme probes must not affect margin/char metrics above; add them only
+        // after calibration, then read computed styles for glk_style_measure.
+        const style_spans = append_style_measurement_spans(bufinnerwin, gridwin)
+
+        const honor_game_styles = this.glkote.options.honor_game_styles !== false
+        this.glkote.current_theme = build_theme_table(
+            style_spans.buffer,
+            style_spans.grid,
+            honor_game_styles,
+        )
+
         // Clean up
         layout_test_pane.remove()
     }
@@ -179,8 +200,9 @@ export default class Metrics {
             return
         }
         const oldmetrics = Object.assign({}, this.metrics)
+        const oldtheme = this.glkote.current_theme
         await this.measure()
-        if (metrics_differ(this.metrics, oldmetrics)) {
+        if (metrics_differ(this.metrics, oldmetrics) || !themes_equal(this.glkote.current_theme, oldtheme)) {
             this.glkote.send_event({type: 'arrange'})
         }
     }, 200, {leading: false})

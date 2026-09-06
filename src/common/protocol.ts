@@ -32,6 +32,7 @@ export interface ArrangeEvent extends EventBase {
     /** Event code */
     type: 'arrange',
     metrics: Metrics,
+    theme?: Theme,
 }
 
 /** Character (single key) event */
@@ -79,6 +80,31 @@ export interface InitEvent extends EventBase {
     support: string[],
     /** Timezone offset in minutes (UTC+10 = `600`) */
     tzoffset?: number,
+    theme?: Theme,
+}
+
+/** Runner theme for glk_style_measure */
+export interface Theme {
+    /** Whether the client is honoring game-suggested styles (stylehints, zcolors, CSS) */
+    honor_game_styles: boolean,
+    buffer: StyleTable,
+    grid: StyleTable,
+}
+
+/** Measured styles keyed by Glk style name (`normal`, `emphasized`, …) */
+export type StyleTable = Record<string, StyleEntry>
+
+/** Effective theme values for one Glk style (all fields optional; inherit from `normal`) */
+export interface StyleEntry {
+    fg?: number,
+    bg?: number,
+    weight?: -1 | 0 | 1,
+    oblique?: 0 | 1,
+    /** Glk sense: 1 = proportional, 0 = fixed-width */
+    proportional?: 0 | 1,
+    reverse?: 0 | 1,
+    /** Font size in CSS pixels */
+    size?: number,
 }
 
 /** Line (text) event */

@@ -62,6 +62,8 @@ export interface GlkOteOptions extends DownloadOptions, DialogOptions {
     regex_external_links?: RegExp,
     /** Whether or not to set the <body> background colour to the page_margin_bg */
     set_body_to_page_bg?: boolean | number,
+    /** Whether to honor game-suggested styles (stylehints, zcolors, CSS). Default true. */
+    honor_game_styles?: boolean,
     windowport?: string,
 }
 
@@ -91,6 +93,11 @@ export abstract class GlkOteBase implements GlkOte {
     protected autorestoring = false
     Blorb?: Blorb
     current_metrics = Object.assign({}, Constants.DEFAULT_METRICS)
+    current_theme: protocol.Theme = {
+        honor_game_styles: true,
+        buffer: {},
+        grid: {},
+    }
     protected Dialog?: Dialog
     disabled = false
     protected generation = 0
@@ -320,9 +327,11 @@ export abstract class GlkOteBase implements GlkOte {
         switch (ev.type) {
             case 'arrange':
                 ev.metrics = this.current_metrics
+                ev.theme = this.current_theme
                 break
             case 'init':
                 ev.metrics = this.current_metrics
+                ev.theme = this.current_theme
                 ev.support = this.capabilities()
                 ev.tzoffset = new Date().getTimezoneOffset() * -1
                 break
