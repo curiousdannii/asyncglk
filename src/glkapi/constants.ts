@@ -37,6 +37,7 @@ export const gestalt_Sound2 = 21
 export const gestalt_ResourceStream = 22
 export const gestalt_GraphicsCharInput = 23
 export const gestalt_GarglkText = 0x1100
+export const gestalt_WindowBackgroundImmediate = 0x1120
 
 export const keycode_Unknown = 0xffffffff
 export const keycode_Left = 0xfffffffe

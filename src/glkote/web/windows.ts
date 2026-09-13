@@ -227,9 +227,9 @@ abstract class TextualWindow extends WindowBase {
             }
         }
 
-        // Finally output the styles
+        // Always drop the previous <style> so clearing this.bg returns to CSS vars
+        this.frameel.children('style').remove()
         if (Object.keys(styles).length) {
-            this.frameel.children('style').remove()
             this.frameel.prepend(`<style>${Object.entries(styles).map(rule => {
                 const [selector, properties] = rule
                 return `${selector} {${Object.entries(properties).map(property => {
@@ -297,11 +297,24 @@ abstract class TextualWindow extends WindowBase {
         }
     }
 
-    /** Refresh styles after a cleared window */
+    /** Refresh styles after a cleared window or immediate background change */
     refresh_styles(bg?: string | null, fg?: string | null) {
         let styles_need_refreshing
         if (typeof bg !== 'undefined' && bg !== this.bg) {
             this.bg = bg
+            // Keep Style_normal in sync so existing text runs pick up the new fill
+            if (!this.styles) {
+                this.styles = {}
+            }
+            if (!this.styles['.Style_normal']) {
+                this.styles['.Style_normal'] = {}
+            }
+            if (bg) {
+                this.styles['.Style_normal']['background-color'] = bg
+            }
+            else {
+                delete this.styles['.Style_normal']['background-color']
+            }
             styles_need_refreshing = 1
         }
         if (typeof fg !== 'undefined' && fg !== this.fg) {
@@ -399,6 +412,10 @@ export class BufferWindow extends TextualWindow {
             this.is_scrolled_down = true
             this.lastline = undefined
             this.last_run_styles = undefined
+        }
+
+        // Apply bg/fg from clear or window_set_background_color_immediate
+        if (typeof data.bg !== 'undefined' || typeof data.fg !== 'undefined') {
             this.refresh_styles(data.bg, data.fg)
         }
 
@@ -702,6 +719,10 @@ class GridWindow extends TextualWindow {
     update(data: protocol.GridWindowContentUpdate) {
         if (data.clear) {
             this.last_run_styles = undefined
+        }
+
+        // Apply bg/fg from clear or window_set_background_color_immediate
+        if (typeof data.bg !== 'undefined' || typeof data.fg !== 'undefined') {
             this.refresh_styles(data.bg, data.fg)
         }
 
@@ -902,6 +923,11 @@ export default class Windows extends Map<number, Window> {
             else {
                 if (win.type !== type) {
                     throw new Error(`Window ${id} was created with type ${win.type}, but now is described as type ${type}`)
+                }
+                // Live stylehint updates (e.g. window_set_background_color_immediate)
+                if (update.styles && (win.type === 'buffer' || win.type === 'grid')) {
+                    win.styles = update.styles
+                    win.add_stylehints()
                 }
             }
             win.desired = true

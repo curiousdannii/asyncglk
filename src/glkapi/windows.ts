@@ -108,6 +108,8 @@ export class BlankWindow extends WindowBase {
 export abstract class TextWindow extends WindowBase {
     cleared = true
     line_input_buf?: GlkArray
+    /** Pending immediate background colour (null = default) */
+    pending_bg?: string | null
     request_echo_line_input = true
     stylehints: WindowStyles
     uni_input?: boolean
@@ -265,18 +267,23 @@ export class BufferWindow extends TextWindow {
         for (const par of paragraphs) {
             par.content = cleanup_paragraph_styles(par.content.filter((text) => 'special' in text || text.text))
         }
-        // Only send an update if there is new content or the window has been cleared
-        if (this.cleared || paragraphs.length > 1 || paragraphs[0].content.length) {
+        // Only send an update if there is new content, the window has been cleared, or an immediate bg change
+        const has_content = this.cleared || paragraphs.length > 1 || paragraphs[0].content.length
+        if (has_content || this.pending_bg !== undefined) {
             update.content = {
                 id: this.disprock,
                 // Send an empty object for a blank line
-                text: paragraphs.map(par => par.append || par.flowbreak || par.content.length ? par : {}),
+                text: has_content ? paragraphs.map(par => par.append || par.flowbreak || par.content.length ? par : {}) : [],
             }
             if (this.cleared) {
                 update.content.clear = true
                 this.cleared = false
-                // TODO: fg bg
+                // TODO: fg bg from zcolors
             }
+            else if (this.pending_bg !== undefined) {
+                update.content.bg = this.pending_bg
+            }
+            delete this.pending_bg
         }
         this.clear_content()
 
@@ -441,7 +448,7 @@ export class GridWindow extends TextWindow {
     update(): WindowUpdate {
         const update = super.update()
 
-        if (this.lines.find(line => line.changed)) {
+        if (this.lines.find(line => line.changed) || this.pending_bg !== undefined) {
             update.content = {
                 id: this.disprock,
                 lines: this.lines.flatMap((line, index) => {
@@ -472,8 +479,12 @@ export class GridWindow extends TextWindow {
             if (this.cleared) {
                 update.content.clear = true
                 this.cleared = false
-                // TODO: fg bg
+                // TODO: fg bg from zcolors
             }
+            else if (this.pending_bg !== undefined) {
+                update.content.bg = this.pending_bg
+            }
+            delete this.pending_bg
         }
 
         if (this.input.type) {
