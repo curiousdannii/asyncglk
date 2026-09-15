@@ -304,7 +304,7 @@ export interface TextualWindowUpdate {
     id: number,
     /** Clear the window */
     clear?: boolean,
-    /** Background colour after clearing */
+    /** Background colour (after clearing, or from window_set_background_color_immediate) */
     bg?: string | null,
     /** Foreground colour after clearing */
     fg?: string | null,

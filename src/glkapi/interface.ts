@@ -239,6 +239,7 @@ export interface GlkApi {
     glk_window_open(splitwin: GlkWindow | null, method: number, size: number, wintype: number, rock: number): GlkWindow | null,
     glk_window_set_arrangement(win: GlkWindow, method: number, size: number, keywin?: GlkWindow): void,
     glk_window_set_background_color(win: GlkWindow, colour: number): void,
+    glk_window_set_background_color_immediate(win: GlkWindow, colour: number): void,
     glk_window_set_echo_stream(win: GlkWindow, stream: GlkStream | null): void,
     garglk_set_reversevideo(val: number): void,
     garglk_set_reversevideo_stream(str: GlkStream, val: number): void,

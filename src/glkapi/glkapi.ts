@@ -22,7 +22,7 @@ import type {GlkOte, GlkOteOptions} from '../glkote/common/glkote.js'
 
 import {copy_array, type TimerData} from './common.js'
 import * as Const from './constants.js'
-import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, evtype_MouseInput, evtype_None, evtype_Redraw, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, keycode_Unknown, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
+import {evtype_Arrange, evtype_CharInput, evtype_Hyperlink, evtype_LineInput, evtype_MouseInput, evtype_None, evtype_Redraw, evtype_Timer, filemode_Read, filemode_ReadWrite, filemode_Write, filemode_WriteAppend, fileusage_SavedGame, fileusage_TypeMask, gestalt_CharInput, gestalt_CharOutput, gestalt_CharOutput_ExactPrint, gestalt_DateTime, gestalt_DrawImage, gestalt_GarglkText, gestalt_Graphics, gestalt_GraphicsCharInput, gestalt_GraphicsTransparency, gestalt_HyperlinkInput, gestalt_Hyperlinks, gestalt_LineInput, gestalt_LineInputEcho, gestalt_LineTerminatorKey, gestalt_LineTerminators, gestalt_MouseInput, gestalt_ResourceStream, gestalt_Timer, gestalt_Unicode, gestalt_UnicodeNorm, gestalt_Version, gestalt_WindowBackgroundImmediate, keycode_Escape, keycode_Func1, keycode_Func12, keycode_Left, keycode_MAXVAL, keycode_Unknown, seekmode_End, stylehint_BackColor, stylehint_Indentation, stylehint_Justification, stylehint_NUMHINTS, stylehint_Oblique, stylehint_ParaIndentation, stylehint_Proportional, stylehint_ReverseColor, stylehint_Size, stylehint_TextColor, stylehint_Weight, style_NUMSTYLES, winmethod_Above, winmethod_Below, winmethod_Border, winmethod_BorderMask, winmethod_DirMask, winmethod_DivisionMask, winmethod_Fixed, winmethod_Left, winmethod_NoBorder, winmethod_Proportional, winmethod_Right, wintype_AllTypes, wintype_Blank, wintype_Graphics, wintype_Pair, wintype_TextBuffer, wintype_TextGrid, zcolor_Current, zcolor_Default} from './constants.js'
 import {FileRef} from './filerefs.js'
 import * as Interface from './interface.js'
 import type {GlkArray, GlkApiOptions, GlkByteArray, GlkSchannel, GlkWordArray, RefBoxArg, RefStructArg, RefStructValue} from './interface.js'
@@ -111,6 +111,8 @@ export class AsyncGlk implements Interface.GlkApi {
     private first_window: Window | null = null
     private root_window: Window | null = null
     private windows_changed = false
+    private page_margin_bg: string | null | undefined
+    private page_margin_bg_transmitted: string | null | undefined
 
     // API functions
 
@@ -238,7 +240,11 @@ export class AsyncGlk implements Interface.GlkApi {
         }
         this.windows_changed = false
 
-        // TODO: Page BG colour
+        // Page margin background colour
+        if (this.page_margin_bg !== this.page_margin_bg_transmitted) {
+            state.page_margin_bg = this.page_margin_bg ?? null
+            this.page_margin_bg_transmitted = this.page_margin_bg
+        }
 
         // Special input
         if (this.special) {
@@ -560,6 +566,8 @@ export class AsyncGlk implements Interface.GlkApi {
                 return +((val === wintype_Graphics || val === wintype_TextBuffer) && this.support.includes('graphics'))
             case gestalt_GarglkText:
                 return +this.support.includes('garglktext')
+            case gestalt_WindowBackgroundImmediate:
+                return 1
             case gestalt_Graphics:
             case gestalt_GraphicsCharInput:
             case gestalt_GraphicsTransparency:
@@ -1480,6 +1488,46 @@ export class AsyncGlk implements Interface.GlkApi {
             color: colour_code_to_css(colour),
             special: 'setcolor',
         })
+    }
+
+    glk_window_set_background_color_immediate(win: Window, colour: number) {
+        if (!win) {
+            throw new Error('Invalid Window')
+        }
+        if (win.type !== 'graphics' && win.type !== 'buffer' && win.type !== 'grid') {
+            throw new Error('Invalid Window: not a graphics, text buffer, or text grid window')
+        }
+
+        const css = colour === zcolor_Default ? null : colour_code_to_css(colour)
+
+        if (win.type === 'graphics') {
+            if (css) {
+                win.draw.push({
+                    color: css,
+                    special: 'setcolor',
+                })
+            }
+            return
+        }
+
+        win.pending_bg = css
+        // Update Normal style so existing text runs track the window fill
+        if (!win.stylehints['.Style_normal']) {
+            win.stylehints['.Style_normal'] = {}
+        }
+        if (css) {
+            win.stylehints['.Style_normal']['background-color'] = css
+        }
+        else {
+            delete win.stylehints['.Style_normal']['background-color']
+            if (!Object.keys(win.stylehints['.Style_normal']).length) {
+                delete win.stylehints['.Style_normal']
+            }
+        }
+        this.windows_changed = true
+        if (win.type === 'buffer') {
+            this.page_margin_bg = css
+        }
     }
 
     glk_window_set_echo_stream(win: Window, stream: Stream | null) {
